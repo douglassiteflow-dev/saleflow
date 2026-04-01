@@ -32,3 +32,6 @@ config :phoenix,
 
 # Disable Oban in tests
 config :saleflow, Oban, testing: :inline
+
+# Speed up bcrypt in tests (DO NOT use in production)
+config :bcrypt_elixir, log_rounds: 1

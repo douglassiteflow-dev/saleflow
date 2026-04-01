@@ -1,5 +1,8 @@
 defmodule Saleflow.Repo do
-  use Ecto.Repo,
-    otp_app: :saleflow,
-    adapter: Ecto.Adapters.Postgres
+  use AshPostgres.Repo,
+    otp_app: :saleflow
+
+  def installed_extensions do
+    ["ash-functions", "citext", "uuid-ossp"]
+  end
 end
