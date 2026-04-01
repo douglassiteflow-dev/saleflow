@@ -36,7 +36,7 @@ mix test                    # run all tests
 MIX_ENV=test mix coveralls  # run with coverage report
 ```
 
-**243 tests, 0 failures — 88.9% coverage**
+**323 tests, 0 failures**
 
 ## API Routes
 
@@ -72,9 +72,41 @@ MIX_ENV=test mix coveralls  # run with coverage report
 
 ## Domains
 
-- **Accounts** — `User`, `Token` (AshAuthentication)
+- **Accounts** — `User`, `Token` (AshAuthentication), `OtpCode`
 - **Sales** — `Lead`, `Assignment`, `CallLog`, `Meeting`, `Quarantine`
 - **Audit** — `AuditLog` (append-only, fires on every mutating action)
+
+## OTP Authentication
+
+`Saleflow.Accounts` provides email-based OTP for 2-step authentication.
+
+### Functions
+
+| Function | Description |
+|---|---|
+| `create_otp(user)` | Generates a 6-digit code valid 5 min, invalidates prior OTPs, sends email |
+| `verify_otp(user_id, code)` | Verifies code; marks used on success; enforces rate limit |
+| `invalidate_otps(user_id)` | Marks all active OTPs for a user as used |
+
+### OtpCode resource (`otp_codes` table)
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | uuid | PK |
+| `user_id` | uuid | Required |
+| `code` | string | 6 digits, auto-generated |
+| `expires_at` | utc_datetime_usec | `inserted_at + 5 min` |
+| `used_at` | utc_datetime_usec | Null until verified or invalidated |
+| `inserted_at` | utc_datetime_usec | Auto-set on create |
+
+### Rate limiting
+
+`verify_otp/2` counts OTP records created for the user in the last 15 minutes.
+If the count reaches 5 or more, it returns `{:error, :rate_limited}`.
+
+### Audit trail
+
+Every OTP create fires `"otp.created"` and every mark-used fires `"otp.verified"` in `AuditLog`.
 
 ## Workers (Oban)
 
