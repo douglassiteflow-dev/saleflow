@@ -98,6 +98,37 @@ defmodule SaleflowWeb.AdminControllerTest do
 
       assert json_response(conn, 403)
     end
+
+    test "returns 422 when registration fails (duplicate email)", %{conn: conn, admin: admin} do
+      conn =
+        conn
+        |> log_in_user(admin)
+        |> post("/api/admin/users", %{
+          email: "admin@example.com",
+          name: "Duplicate Admin",
+          password: "password123",
+          password_confirmation: "password123",
+          role: "admin"
+        })
+
+      assert json_response(conn, 422)
+    end
+
+    test "parse_role defaults to :agent for unknown role string", %{conn: conn, admin: admin} do
+      conn =
+        conn
+        |> log_in_user(admin)
+        |> post("/api/admin/users", %{
+          email: "somerole@example.com",
+          name: "Custom Role",
+          password: "password123",
+          password_confirmation: "password123",
+          role: "superuser"
+        })
+
+      assert %{"user" => user} = json_response(conn, 201)
+      assert user["role"] == "agent"
+    end
   end
 
   # -------------------------------------------------------------------------

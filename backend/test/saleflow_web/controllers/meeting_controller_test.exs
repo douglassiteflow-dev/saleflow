@@ -109,4 +109,56 @@ defmodule SaleflowWeb.MeetingControllerTest do
       assert json_response(conn, 404)
     end
   end
+
+  # -------------------------------------------------------------------------
+  # POST /api/meetings — error and fallback paths
+  # -------------------------------------------------------------------------
+
+  describe "POST /api/meetings — parse fallbacks" do
+    test "creates meeting with invalid date string — falls back to tomorrow", %{conn: conn, lead: lead} do
+      conn =
+        post(conn, "/api/meetings", %{
+          lead_id: lead.id,
+          title: "Fallback Date",
+          meeting_date: "not-a-date",
+          meeting_time: "10:00:00"
+        })
+
+      assert %{"meeting" => meeting} = json_response(conn, 201)
+      assert meeting["title"] == "Fallback Date"
+    end
+
+    test "creates meeting with invalid time string — falls back to 10:00", %{conn: conn, lead: lead} do
+      conn =
+        post(conn, "/api/meetings", %{
+          lead_id: lead.id,
+          title: "Fallback Time",
+          meeting_date: "2026-08-01",
+          meeting_time: "not-a-time"
+        })
+
+      assert %{"meeting" => meeting} = json_response(conn, 201)
+      assert meeting["title"] == "Fallback Time"
+    end
+
+    test "creates meeting without date or time — uses defaults", %{conn: conn, lead: lead} do
+      conn =
+        post(conn, "/api/meetings", %{
+          lead_id: lead.id,
+          title: "No DateTime"
+        })
+
+      assert %{"meeting" => meeting} = json_response(conn, 201)
+      assert meeting["title"] == "No DateTime"
+    end
+
+    test "returns 422 when required params are missing (no lead_id)", %{conn: conn} do
+      conn =
+        post(conn, "/api/meetings", %{
+          title: "Missing Lead"
+        })
+
+      assert json_response(conn, 422)
+    end
+  end
 end

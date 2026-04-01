@@ -199,5 +199,86 @@ defmodule SaleflowWeb.LeadControllerTest do
       conn = post(conn, "/api/leads/#{lead.id}/outcome", %{})
       assert json_response(conn, 400)
     end
+
+    test "unknown outcome returns 422", %{conn: conn, lead: lead} do
+      # Use a valid atom string that maps to an unknown outcome handler
+      conn = post(conn, "/api/leads/#{lead.id}/outcome", %{outcome: "new"})
+      assert json_response(conn, 422)
+    end
+
+    test "callback without explicit callback_at sets a default 1-hour future time", %{conn: conn, lead: lead} do
+      conn = post(conn, "/api/leads/#{lead.id}/outcome", %{outcome: "callback"})
+      assert %{"ok" => true} = json_response(conn, 200)
+
+      {:ok, updated_lead} = Sales.get_lead(lead.id)
+      assert updated_lead.status == :callback
+      refute is_nil(updated_lead.callback_at)
+    end
+
+    test "meeting_booked with meeting_notes persists notes", %{conn: conn, lead: lead} do
+      conn =
+        post(conn, "/api/leads/#{lead.id}/outcome", %{
+          outcome: "meeting_booked",
+          title: "Notes Meeting",
+          meeting_date: "2026-07-01",
+          meeting_time: "09:00:00",
+          meeting_notes: "Bring samples"
+        })
+
+      assert %{"ok" => true} = json_response(conn, 200)
+
+      {:ok, meetings} = Sales.list_meetings_for_lead(lead.id)
+      assert length(meetings) == 1
+      assert hd(meetings).notes == "Bring samples"
+    end
+
+    test "meeting_booked without title defaults to 'Meeting'", %{conn: conn, lead: lead} do
+      conn =
+        post(conn, "/api/leads/#{lead.id}/outcome", %{
+          outcome: "meeting_booked",
+          meeting_date: "2026-07-02",
+          meeting_time: "11:00:00"
+        })
+
+      assert %{"ok" => true} = json_response(conn, 200)
+
+      {:ok, meetings} = Sales.list_meetings_for_lead(lead.id)
+      assert hd(meetings).title == "Meeting"
+    end
+
+    test "meeting_booked without meeting_date and time uses defaults", %{conn: conn, lead: lead} do
+      conn =
+        post(conn, "/api/leads/#{lead.id}/outcome", %{
+          outcome: "meeting_booked",
+          title: "Default Date Meeting"
+        })
+
+      assert %{"ok" => true} = json_response(conn, 200)
+
+      {:ok, meetings} = Sales.list_meetings_for_lead(lead.id)
+      assert length(meetings) == 1
+    end
+
+    test "outcome for non-existent lead returns 422", %{conn: conn} do
+      conn =
+        post(conn, "/api/leads/00000000-0000-0000-0000-000000000000/outcome", %{
+          outcome: "no_answer"
+        })
+
+      assert json_response(conn, 422)
+    end
+
+    test "callback with invalid callback_at string defaults to +1 hour", %{conn: conn, lead: lead} do
+      conn =
+        post(conn, "/api/leads/#{lead.id}/outcome", %{
+          outcome: "callback",
+          callback_at: "not-a-datetime"
+        })
+
+      assert %{"ok" => true} = json_response(conn, 200)
+
+      {:ok, updated_lead} = Sales.get_lead(lead.id)
+      assert updated_lead.status == :callback
+    end
   end
 end

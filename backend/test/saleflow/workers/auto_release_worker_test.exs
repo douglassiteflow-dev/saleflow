@@ -180,5 +180,43 @@ defmodule Saleflow.Workers.AutoReleaseWorkerTest do
       assert a1.release_reason == :timeout
       assert a2.release_reason == :timeout
     end
+
+    test "logs and resets lead to :new when assignment was :assigned before timeout" do
+      lead = create_lead!()
+      agent = create_user!()
+      {:ok, assignment} = Sales.assign_lead(lead, agent)
+
+      # Simulate lead status being :assigned (as set by queue)
+      Saleflow.Repo.query!(
+        "UPDATE leads SET status = 'assigned' WHERE id = $1",
+        [Ecto.UUID.dump!(lead.id)]
+      )
+
+      backdate_assignment!(assignment.id, 35)
+
+      assert :ok = AutoReleaseWorker.perform(%Oban.Job{})
+
+      {:ok, refreshed_lead} = Sales.get_lead(lead.id)
+      assert refreshed_lead.status == :new
+    end
+
+    test "does not reset lead if it has a non-assigned status after timeout" do
+      lead = create_lead!()
+      agent = create_user!()
+      {:ok, assignment} = Sales.assign_lead(lead, agent)
+
+      # Lead progressed to :customer while assignment was still open
+      Saleflow.Repo.query!(
+        "UPDATE leads SET status = 'customer' WHERE id = $1",
+        [Ecto.UUID.dump!(lead.id)]
+      )
+
+      backdate_assignment!(assignment.id, 35)
+
+      assert :ok = AutoReleaseWorker.perform(%Oban.Job{})
+
+      {:ok, refreshed_lead} = Sales.get_lead(lead.id)
+      assert refreshed_lead.status == :customer
+    end
   end
 end

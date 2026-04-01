@@ -1,0 +1,11 @@
+{
+  "skip_files": [
+    "test/support/conn_case.ex",
+    "test/support/data_case.ex",
+    "lib/saleflow_web/gettext.ex",
+    "lib/saleflow_web/endpoint.ex",
+    "lib/saleflow.ex",
+    "lib/saleflow/accounts/token.ex",
+    "lib/saleflow/audit/audit_log.ex"
+  ]
+}

@@ -22,6 +22,22 @@ defmodule Saleflow.Workers.QuarantineReleaseWorkerTest do
     lead
   end
 
+  defp create_user! do
+    unique = System.unique_integer([:positive])
+
+    {:ok, user} =
+      Saleflow.Accounts.User
+      |> Ash.Changeset.for_create(:register_with_password, %{
+        email: "qrw#{unique}@test.se",
+        name: "QR Worker Agent #{unique}",
+        password: "Password123!",
+        password_confirmation: "Password123!"
+      })
+      |> Ash.create()
+
+    user
+  end
+
   defp quarantine_lead_expired!(lead) do
     # Set quarantine_until to 1 hour in the past (expired)
     past = DateTime.add(DateTime.utc_now(), -3600, :second)
@@ -132,6 +148,38 @@ defmodule Saleflow.Workers.QuarantineReleaseWorkerTest do
       assert :ok = QuarantineReleaseWorker.perform(%Oban.Job{})
 
       # Verify lead is now :new (eligible for queue)
+      {:ok, refreshed} = Sales.get_lead(lead.id)
+      assert refreshed.status == :new
+    end
+
+    test "clearing quarantine_until sets it to nil in database" do
+      lead = create_lead!()
+      quarantine_lead_expired!(lead)
+
+      assert :ok = QuarantineReleaseWorker.perform(%Oban.Job{})
+
+      {:ok, refreshed} = Sales.get_lead(lead.id)
+      assert is_nil(refreshed.quarantine_until)
+    end
+
+    test "expired quarantine lead becomes available in next-lead queue" do
+      lead = create_lead!()
+      agent = create_user!()
+
+      quarantine_lead_expired!(lead)
+
+      assert :ok = QuarantineReleaseWorker.perform(%Oban.Job{})
+
+      # lead should be :new now, so it's queueable
+      {:ok, next} = Sales.get_next_lead(agent)
+      assert next != nil
+      assert next.id == lead.id
+    end
+
+    test "handles leads with nil quarantine_until (status check)" do
+      lead = create_lead!()
+      # lead is :new with nil quarantine_until — worker should not touch it
+      assert :ok = QuarantineReleaseWorker.perform(%Oban.Job{})
       {:ok, refreshed} = Sales.get_lead(lead.id)
       assert refreshed.status == :new
     end
