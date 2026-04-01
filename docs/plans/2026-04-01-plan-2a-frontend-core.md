@@ -34,7 +34,6 @@ frontend/
 │   │   ├── lead-info.tsx           # Company info display (left column of card)
 │   │   ├── outcome-panel.tsx       # Outcome buttons + notes + callback picker
 │   │   ├── history-timeline.tsx    # Call/audit log timeline
-│   │   ├── meeting-form.tsx        # Meeting creation form
 │   │   └── protected-route.tsx     # Auth guard wrapper
 │   ├── pages/
 │   │   ├── login.tsx               # Login page
@@ -49,6 +48,8 @@ frontend/
 ├── vite.config.ts
 ├── tsconfig.json
 └── package.json
+
+> **Note:** No `components.json` — shadcn components are hand-rolled to avoid CLI dependency on components.json.
 ```
 
 ---
@@ -161,7 +162,6 @@ git commit -m "feat: scaffold frontend with Vite + React + Tailwind + TanStack Q
 - Create: `frontend/src/design/tokens.ts`
 - Create: `frontend/tailwind.css`
 - Create: `frontend/src/lib/cn.ts`
-- Create: `frontend/components.json` (shadcn config)
 - Create: `frontend/src/components/ui/button.tsx`
 - Create: `frontend/src/components/ui/input.tsx`
 - Create: `frontend/src/components/ui/card.tsx`
@@ -191,7 +191,7 @@ export const colors = {
   },
   status: {
     success: "#059669",  // emerald-600
-    warning: "#D97706",  // amber-600
+    warning: "#F59E0B",  // amber-500
     danger: "#DC2626",   // rose-600
   },
   border: {
@@ -200,7 +200,7 @@ export const colors = {
   },
   outcome: {
     meeting_booked: "#059669",  // emerald-600
-    callback: "#D97706",        // amber-600
+    callback: "#F59E0B",        // amber-500
     not_interested: "#DC2626",  // rose-600
     no_answer: "#64748B",       // slate-500
     bad_number: "#1E293B",      // slate-800
@@ -263,7 +263,7 @@ Create `frontend/tailwind.css`:
   --color-accent: #4F46E5;
   --color-accent-hover: #4338CA;
   --color-success: #059669;
-  --color-warning: #D97706;
+  --color-warning: #F59E0B;
   --color-danger: #DC2626;
   --color-border: #E2E8F0;
   --color-border-input: #CBD5E1;
@@ -272,6 +272,10 @@ Create `frontend/tailwind.css`:
   --spacing-card: 20px;
   --spacing-section: 24px;
   --spacing-element: 12px;
+  --spacing-button-x: 16px;
+  --spacing-button-y: 10px;
+  --spacing-input-x: 12px;
+  --spacing-input-y: 8px;
 }
 
 @layer base {
@@ -327,7 +331,7 @@ const variantStyles: Record<ButtonVariant, string> = {
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  default: "h-9 px-[var(--spacing-element)] py-[10px]",
+  default: "h-9 px-[var(--spacing-button-x)] py-[var(--spacing-button-y)]",
   lg: "h-12 px-6 text-base",
 };
 
@@ -364,7 +368,7 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
       ref={ref}
       className={cn(
         "flex h-9 w-full rounded-md border border-[var(--color-border-input)] bg-white",
-        "px-[var(--spacing-element)] py-[8px] text-sm",
+        "px-[var(--spacing-input-x)] py-[var(--spacing-input-y)] text-sm",
         "placeholder:text-[var(--color-text-secondary)]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
         "disabled:cursor-not-allowed disabled:opacity-50",
@@ -580,13 +584,14 @@ export interface Meeting {
 }
 
 export interface Stats {
-  total_leads: number;
   new: number;
   assigned: number;
   meeting_booked: number;
   quarantine: number;
   customer: number;
   bad_number: number;
+  calls_today: number;
+  leads_remaining: number;
 }
 
 export interface ImportResult {
@@ -736,7 +741,7 @@ import type { Lead, CallLog, AuditLog, Outcome } from "./types";
 
 export function useLeads(search?: string) {
   return useQuery({
-    queryKey: ["leads", search],
+    queryKey: ["leads", "list", search],
     queryFn: async () => {
       const params = search ? `?q=${encodeURIComponent(search)}` : "";
       const data = await api<{ leads: Lead[] }>(`/leads${params}`);
@@ -747,7 +752,7 @@ export function useLeads(search?: string) {
 
 export function useLeadDetail(id: string) {
   return useQuery({
-    queryKey: ["leads", id],
+    queryKey: ["leads", "detail", id],
     queryFn: async () => {
       const data = await api<{
         lead: Lead;
@@ -771,7 +776,7 @@ export function useNextLead() {
       return data.lead;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["leads", "list"] });
     },
   });
 }
@@ -780,10 +785,21 @@ export interface OutcomeParams {
   outcome: Outcome;
   notes?: string;
   callback_at?: string;
-  meeting_title?: string;
+  title?: string;
   meeting_date?: string;
   meeting_time?: string;
   meeting_notes?: string;
+}
+
+export function useAdminStats() {
+  return useQuery({
+    queryKey: ["stats"],
+    queryFn: async () => {
+      const data = await api<{ stats: import("./types").Stats }>("/stats");
+      return data.stats;
+    },
+    staleTime: 60 * 1000,
+  });
 }
 
 export function useSubmitOutcome(leadId: string) {
@@ -796,8 +812,9 @@ export function useSubmitOutcome(leadId: string) {
         body: JSON.stringify(params),
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leads"] });
+    onSuccess: (_, params) => {
+      queryClient.invalidateQueries({ queryKey: ["leads", "list"] });
+      queryClient.invalidateQueries({ queryKey: ["leads", "detail", leadId] });
       queryClient.invalidateQueries({ queryKey: ["meetings"] });
     },
   });
@@ -889,17 +906,19 @@ import { NavLink } from "react-router-dom";
 import { useMe } from "@/api/auth";
 import { cn } from "@/lib/cn";
 
+// Plan 2A routes: /dashboard, /dialer, /leads/:id
+// Plan 2B routes (disabled until implemented): /meetings, /history, /admin/*
 const agentLinks = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/dialer", label: "Ringare" },
-  { to: "/meetings", label: "Möten" },
-  { to: "/history", label: "Historik" },
+  { to: "/dashboard", label: "Dashboard", enabled: true },
+  { to: "/dialer", label: "Ringare", enabled: true },
+  { to: "/meetings", label: "Möten", enabled: false },      // Plan 2B
+  { to: "/history", label: "Historik", enabled: false },    // Plan 2B
 ];
 
 const adminLinks = [
-  { to: "/admin/users", label: "Användare" },
-  { to: "/admin/import", label: "Importera leads" },
-  { to: "/admin/stats", label: "Statistik" },
+  { to: "/admin/users", label: "Användare", enabled: false },     // Plan 2B
+  { to: "/admin/import", label: "Importera leads", enabled: false }, // Plan 2B
+  { to: "/admin/stats", label: "Statistik", enabled: false },     // Plan 2B
 ];
 
 export function Sidebar() {
@@ -919,9 +938,13 @@ export function Sidebar() {
           <p className="px-3 mb-2 text-xs font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
             Säljare
           </p>
-          {agentLinks.map((link) => (
-            <SidebarLink key={link.to} to={link.to} label={link.label} />
-          ))}
+          {agentLinks.map((link) =>
+            link.enabled ? (
+              <SidebarLink key={link.to} to={link.to} label={link.label} />
+            ) : (
+              <SidebarLinkDisabled key={link.to} label={link.label} />
+            )
+          )}
         </div>
 
         {user?.role === "admin" && (
@@ -929,9 +952,13 @@ export function Sidebar() {
             <p className="px-3 mb-2 text-xs font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
               Admin
             </p>
-            {adminLinks.map((link) => (
-              <SidebarLink key={link.to} to={link.to} label={link.label} />
-            ))}
+            {adminLinks.map((link) =>
+              link.enabled ? (
+                <SidebarLink key={link.to} to={link.to} label={link.label} />
+              ) : (
+                <SidebarLinkDisabled key={link.to} label={link.label} />
+              )
+            )}
           </div>
         )}
       </nav>
@@ -954,6 +981,18 @@ function SidebarLink({ to, label }: { to: string; label: string }) {
     >
       {label}
     </NavLink>
+  );
+}
+
+// Disabled stub for Plan 2B routes — not yet implemented
+function SidebarLinkDisabled({ label }: { label: string }) {
+  return (
+    <span
+      className="block px-3 py-2 rounded-md text-sm font-medium text-[var(--color-border-input)] cursor-not-allowed"
+      title="Kommer i Plan 2B"
+    >
+      {label}
+    </span>
   );
 }
 ```
@@ -1022,10 +1061,13 @@ export function Layout() {
 Create `frontend/src/components/protected-route.tsx`:
 
 ```typescript
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { useMe } from "@/api/auth";
 
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+// Used as a layout route wrapper — renders <Outlet /> for nested routes.
+// React Router v7: wrap protected routes as children of this route element,
+// not as JSX children prop.
+export function ProtectedRoute() {
   const { data: user, isLoading } = useMe();
 
   if (isLoading) {
@@ -1038,17 +1080,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  return <>{children}</>;
-}
-
-export function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { data: user, isLoading } = useMe();
-
-  if (isLoading) return null;
-  if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "admin") return <Navigate to="/dashboard" replace />;
-
-  return <>{children}</>;
+  return <Outlet />;
 }
 ```
 
@@ -1081,17 +1113,14 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/dialer" element={<DialerPage />} />
-            <Route path="/leads/:id" element={<LeadDetailPage />} />
-            {/* More pages will be added in Plan 2B */}
+          {/* ProtectedRoute renders <Outlet /> — Layout is nested inside it */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<Layout />}>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/dialer" element={<DialerPage />} />
+              <Route path="/leads/:id" element={<LeadDetailPage />} />
+              {/* More pages will be added in Plan 2B */}
+            </Route>
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
@@ -1323,28 +1352,49 @@ export function StatCard({ label, value, color }: StatCardProps) {
 Create `frontend/src/pages/dashboard.tsx`:
 
 ```typescript
+import { useNavigate } from "react-router-dom";
 import { useMeetings } from "@/api/meetings";
+import { useLeads, useAdminStats, useNextLead } from "@/api/leads";
 import { Card, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/stat-card";
 import { Badge } from "@/components/ui/badge";
-import { formatTime } from "@/lib/format";
+import { Button } from "@/components/ui/button";
+import { formatTime, formatDateTime } from "@/lib/format";
 
 export function DashboardPage() {
+  const navigate = useNavigate();
   const { data: meetings } = useMeetings();
+  const { data: stats } = useAdminStats();
+  const { data: callbackLeads } = useLeads();
+  const nextLead = useNextLead();
 
   const todaysMeetings = meetings?.filter(
     (m) => m.meeting_date === new Date().toISOString().split("T")[0]
   );
 
+  const upcomingCallbacks = callbackLeads?.filter((l) => l.status === "callback") ?? [];
+
+  async function handleNextLead() {
+    const lead = await nextLead.mutateAsync();
+    if (lead) {
+      navigate("/dialer");
+    }
+  }
+
   return (
     <div className="space-y-[var(--spacing-section)]">
-      <h1 className="text-2xl font-semibold">Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <Button size="lg" onClick={handleNextLead} disabled={nextLead.isPending}>
+          {nextLead.isPending ? "Hämtar..." : "Nästa kund"}
+        </Button>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-[var(--spacing-element)]">
+        <StatCard label="Samtal idag" value={stats?.calls_today ?? 0} color="var(--color-accent)" />
+        <StatCard label="Leads kvar" value={stats?.leads_remaining ?? 0} />
         <StatCard label="Möten idag" value={todaysMeetings?.length ?? 0} color="var(--color-success)" />
-        <StatCard label="Kommande möten" value={meetings?.length ?? 0} />
-        <StatCard label="Status" value="Redo" color="var(--color-accent)" />
       </div>
 
       {/* Today's meetings */}
@@ -1372,10 +1422,29 @@ export function DashboardPage() {
         )}
       </Card>
 
-      {/* Upcoming callbacks — placeholder, will be populated when backend adds callback list endpoint */}
+      {/* Upcoming callbacks — real data from useLeads filtered by status=callback */}
       <Card>
         <CardTitle className="mb-[var(--spacing-element)]">Kommande återuppringningar</CardTitle>
-        <p className="text-sm text-[var(--color-text-secondary)]">Inga planerade återuppringningar</p>
+        {upcomingCallbacks.length === 0 ? (
+          <p className="text-sm text-[var(--color-text-secondary)]">Inga planerade återuppringningar</p>
+        ) : (
+          <div className="space-y-2">
+            {upcomingCallbacks.map((lead) => (
+              <div
+                key={lead.id}
+                className="flex items-center justify-between py-2 border-b border-[var(--color-border)] last:border-0"
+              >
+                <div>
+                  <p className="text-sm font-medium">{lead.företag}</p>
+                  <p className="text-xs text-[var(--color-text-secondary)]">
+                    {lead.callback_at ? formatDateTime(lead.callback_at) : "Ingen tid angiven"}
+                  </p>
+                </div>
+                <Badge status={lead.status} />
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );
@@ -1503,8 +1572,27 @@ export function OutcomePanel({ leadId, companyName, onOutcomeSubmitted }: Outcom
   const [meetingDate, setMeetingDate] = useState("");
   const [meetingTime, setMeetingTime] = useState("");
   const [selectedOutcome, setSelectedOutcome] = useState<Outcome | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   async function handleSubmit(outcome: Outcome) {
+    setValidationError(null);
+
+    // Validation
+    if (outcome === "callback" && !callbackDate) {
+      setValidationError("Ange datum för återuppringning");
+      return;
+    }
+    if (outcome === "meeting_booked") {
+      if (!meetingDate) {
+        setValidationError("Ange mötesdatum");
+        return;
+      }
+      if (!meetingTime) {
+        setValidationError("Ange mötestid");
+        return;
+      }
+    }
+
     const params: OutcomeParams = { outcome, notes };
 
     if (outcome === "callback" && callbackDate) {
@@ -1512,14 +1600,18 @@ export function OutcomePanel({ leadId, companyName, onOutcomeSubmitted }: Outcom
     }
 
     if (outcome === "meeting_booked") {
-      params.meeting_title = `Möte med ${companyName}`;
+      params.title = `Möte med ${companyName}`;
       params.meeting_date = meetingDate;
       params.meeting_time = meetingTime + ":00";
       params.meeting_notes = notes;
     }
 
-    await submitOutcome.mutateAsync(params);
-    onOutcomeSubmitted?.();
+    try {
+      await submitOutcome.mutateAsync(params);
+      onOutcomeSubmitted?.();
+    } catch {
+      setValidationError("Något gick fel. Försök igen.");
+    }
   }
 
   return (
@@ -1604,6 +1696,12 @@ export function OutcomePanel({ leadId, companyName, onOutcomeSubmitted }: Outcom
           </Button>
         ))}
       </div>
+
+      {validationError && (
+        <p className="text-sm text-[var(--color-danger)] mt-2">
+          {validationError}
+        </p>
+      )}
 
       {submitOutcome.isPending && (
         <p className="text-sm text-[var(--color-text-secondary)] mt-2 text-center">
@@ -1714,9 +1812,10 @@ import { Card } from "@/components/ui/card";
 export function DialerPage() {
   const [currentLeadId, setCurrentLeadId] = useState<string | null>(null);
   const nextLead = useNextLead();
-  const { data, isLoading } = useLeadDetail(currentLeadId!);
+  const { data, isLoading } = useLeadDetail(currentLeadId ?? "");
 
   async function handleGetNext() {
+    if (nextLead.isPending) return;
     const lead = await nextLead.mutateAsync();
     if (lead) {
       setCurrentLeadId(lead.id);
@@ -1726,6 +1825,7 @@ export function DialerPage() {
   }
 
   function handleOutcomeSubmitted() {
+    if (nextLead.isPending) return;
     // After outcome, auto-fetch next
     handleGetNext();
   }
@@ -1818,13 +1918,24 @@ import { HistoryTimeline } from "@/components/history-timeline";
 
 export function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { data, isLoading, error } = useLeadDetail(id!);
+  const { data, isLoading, error } = useLeadDetail(id ?? "");
 
   if (isLoading) {
     return <p className="text-[var(--color-text-secondary)]">Laddar kundkort...</p>;
   }
 
-  if (error || !data) {
+  if (error) {
+    return (
+      <div className="space-y-[var(--spacing-section)]">
+        <p className="text-[var(--color-danger)]">
+          Kunde inte ladda kundkortet. Kontrollera att länken stämmer.
+        </p>
+        <Navigate to="/dashboard" replace />
+      </div>
+    );
+  }
+
+  if (!data) {
     return <Navigate to="/dashboard" replace />;
   }
 
