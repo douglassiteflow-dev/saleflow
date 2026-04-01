@@ -1,10 +1,17 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "../tailwind.css";
 
-createRoot(document.getElementById('root')!).render(
+function App() {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <p className="text-[var(--color-text-secondary)]">SaleFlow — loading…</p>
+    </div>
+  );
+}
+
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />
   </StrictMode>,
-)
+);
