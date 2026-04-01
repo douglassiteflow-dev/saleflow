@@ -176,8 +176,6 @@ defmodule Saleflow.Sales do
     |> case do
       {:ok, [assignment | _]} -> {:ok, assignment}
       {:ok, []} -> {:ok, nil}
-      # coveralls-ignore-next-line
-      {:error, error} -> {:error, error}
     end
   end
 
@@ -394,24 +392,14 @@ defmodule Saleflow.Sales do
     end)
   end
 
-  # Decodes a UUID that may come back from a raw Postgres query as either a
-  # binary (16-byte) or already as a string (depends on Ecto/Postgrex version).
   defp decode_uuid(value) when is_binary(value) and byte_size(value) == 16 do
     Ecto.UUID.load!(value)
   end
-
-  # coveralls-ignore-start
-  defp decode_uuid(value) when is_binary(value) do
-    value
-  end
-  # coveralls-ignore-stop
 
   defp release_active_assignment(agent) do
     case get_active_assignment(agent) do
       {:ok, nil} -> :ok
       {:ok, assignment} -> release_assignment(assignment, :manual)
-      # coveralls-ignore-next-line
-      _ -> :ok
     end
   end
 end

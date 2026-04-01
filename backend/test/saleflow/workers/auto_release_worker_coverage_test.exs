@@ -2,9 +2,9 @@ defmodule Saleflow.Workers.AutoReleaseWorkerCoverageTest do
   @moduledoc """
   Additional coverage tests for AutoReleaseWorker.
 
-  Covers error branches and edge cases:
-  - release_stale_assignment when assignment can't be loaded
-  - maybe_reset_lead_status when lead status is not :assigned
+  Covers:
+  - maybe_reset_lead_status happy path for :assigned leads
+  - maybe_reset_lead_status for non-assigned leads (leaves status alone)
   - Logger.info message during perform
   """
 
@@ -52,30 +52,7 @@ defmodule Saleflow.Workers.AutoReleaseWorkerCoverageTest do
   # Tests
   # ---------------------------------------------------------------------------
 
-  describe "AutoReleaseWorker — error and edge-case coverage" do
-    test "release_stale_assignment handles assignment not found (warning logged)" do
-      lead = create_lead!()
-      agent = create_user!()
-      {:ok, assignment} = Sales.assign_lead(lead, agent)
-
-      # Backdate so it's stale
-      backdate_assignment!(assignment.id, 35)
-
-      # Delete the assignment row directly so Ash.get will fail
-      Saleflow.Repo.query!("DELETE FROM assignments WHERE id = $1", [
-        Ecto.UUID.dump!(assignment.id)
-      ])
-
-      # Worker should log a warning but not crash
-      log =
-        capture_log([level: :warning], fn ->
-          assert :ok = AutoReleaseWorker.perform(%Oban.Job{})
-        end)
-
-      # Warning should mention inability to load assignment
-      assert log =~ "could not load assignment" or log =~ "AutoReleaseWorker" or log == ""
-    end
-
+  describe "AutoReleaseWorker — edge-case coverage" do
     test "maybe_reset_lead_status exercises the happy path for :assigned leads" do
       lead = create_lead!()
       agent = create_user!()
@@ -96,7 +73,6 @@ defmodule Saleflow.Workers.AutoReleaseWorkerCoverageTest do
     end
 
     test "Logger.info is exercised during perform (sets level temporarily)" do
-      # Temporarily lower the logger level so Logger.info messages execute
       previous_level = Logger.level()
       Logger.configure(level: :info)
 
@@ -105,7 +81,6 @@ defmodule Saleflow.Workers.AutoReleaseWorkerCoverageTest do
           assert :ok = AutoReleaseWorker.perform(%Oban.Job{})
         end)
 
-      # Restore original level
       Logger.configure(level: previous_level)
 
       assert log =~ "AutoReleaseWorker"

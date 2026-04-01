@@ -8,27 +8,13 @@ defmodule SaleflowWeb.LeadController do
   List or search leads. Pass `?q=term` to search by company name.
   """
   def index(conn, %{"q" => q}) when is_binary(q) and byte_size(q) > 0 do
-    case Sales.search_leads(q) do
-      {:ok, leads} ->
-        json(conn, %{leads: Enum.map(leads, &serialize_lead/1)})
-
-      # coveralls-ignore-start
-      {:error, _} ->
-        conn |> put_status(:internal_server_error) |> json(%{error: "Failed to search leads"})
-      # coveralls-ignore-stop
-    end
+    {:ok, leads} = Sales.search_leads(q)
+    json(conn, %{leads: Enum.map(leads, &serialize_lead/1)})
   end
 
   def index(conn, _params) do
-    case Sales.list_leads() do
-      {:ok, leads} ->
-        json(conn, %{leads: Enum.map(leads, &serialize_lead/1)})
-
-      # coveralls-ignore-start
-      {:error, _} ->
-        conn |> put_status(:internal_server_error) |> json(%{error: "Failed to list leads"})
-      # coveralls-ignore-stop
-    end
+    {:ok, leads} = Sales.list_leads()
+    json(conn, %{leads: Enum.map(leads, &serialize_lead/1)})
   end
 
   @doc """
@@ -61,11 +47,6 @@ defmodule SaleflowWeb.LeadController do
 
       {:ok, lead} ->
         json(conn, %{lead: serialize_lead(lead)})
-
-      # coveralls-ignore-start
-      {:error, _} ->
-        conn |> put_status(:internal_server_error) |> json(%{error: "Failed to get next lead"})
-      # coveralls-ignore-stop
     end
   end
 
@@ -102,15 +83,12 @@ defmodule SaleflowWeb.LeadController do
 
   defp release_active(user) do
     case Sales.get_active_assignment(user) do
-      {:ok, nil} -> :ok
+      {:ok, nil} ->
+        :ok
+
       {:ok, assignment} ->
-        case Sales.release_assignment(assignment, :outcome_logged) do
-          {:ok, _} -> :ok
-          # coveralls-ignore-next-line
-          error -> error
-        end
-      # coveralls-ignore-next-line
-      error -> error
+        {:ok, _} = Sales.release_assignment(assignment, :outcome_logged)
+        :ok
     end
   end
 
@@ -130,11 +108,8 @@ defmodule SaleflowWeb.LeadController do
           do: Map.put(meeting_params, :notes, params["meeting_notes"]),
           else: meeting_params
 
-      case Sales.create_meeting(meeting_params) do
-        {:ok, _meeting} -> {:ok, updated_lead}
-        # coveralls-ignore-next-line
-        error -> error
-      end
+      {:ok, _meeting} = Sales.create_meeting(meeting_params)
+      {:ok, updated_lead}
     end
   end
 
@@ -150,15 +125,12 @@ defmodule SaleflowWeb.LeadController do
 
   defp apply_outcome(lead, "not_interested", user, _params) do
     with {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :quarantine}) do
-      case Sales.create_quarantine(%{
+      {:ok, _q} = Sales.create_quarantine(%{
         lead_id: lead.id,
         user_id: user.id,
         reason: "Not interested"
-      }) do
-        {:ok, _q} -> {:ok, updated_lead}
-        # coveralls-ignore-next-line
-        error -> error
-      end
+      })
+      {:ok, updated_lead}
     end
   end
 

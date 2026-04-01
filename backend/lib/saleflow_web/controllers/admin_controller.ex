@@ -8,15 +8,8 @@ defmodule SaleflowWeb.AdminController do
   List all users (admin only).
   """
   def users(conn, _params) do
-    case Accounts.list_users() do
-      {:ok, users} ->
-        json(conn, %{users: Enum.map(users, &serialize_user/1)})
-
-      # coveralls-ignore-start
-      {:error, _} ->
-        conn |> put_status(:internal_server_error) |> json(%{error: "Failed to list users"})
-      # coveralls-ignore-stop
-    end
+    {:ok, users} = Accounts.list_users()
+    json(conn, %{users: Enum.map(users, &serialize_user/1)})
   end
 
   @doc """
@@ -55,20 +48,14 @@ defmodule SaleflowWeb.AdminController do
     ORDER BY status
     """
 
-    case Repo.query(query) do
-      {:ok, %{rows: rows}} ->
-        stats =
-          Enum.into(rows, %{}, fn [status, count] ->
-            {status, count}
-          end)
+    {:ok, %{rows: rows}} = Repo.query(query)
 
-        json(conn, %{stats: stats})
+    stats =
+      Enum.into(rows, %{}, fn [status, count] ->
+        {status, count}
+      end)
 
-      # coveralls-ignore-start
-      {:error, _} ->
-        conn |> put_status(:internal_server_error) |> json(%{error: "Failed to fetch stats"})
-      # coveralls-ignore-stop
-    end
+    json(conn, %{stats: stats})
   end
 
   # ---------------------------------------------------------------------------

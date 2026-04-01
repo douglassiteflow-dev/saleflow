@@ -98,10 +98,8 @@ defmodule Saleflow.Sales.Import do
         Xlsxir.close(table_id)
 
         case rows do
-          # coveralls-ignore-start
           [] ->
             {:ok, []}
-          # coveralls-ignore-stop
 
           [headers | data_rows] ->
             string_headers = Enum.map(headers, &to_string_value/1)
@@ -124,15 +122,8 @@ defmodule Saleflow.Sales.Import do
 
   # Fetches all existing telefon values from the database as a MapSet.
   defp fetch_existing_phones do
-    case Repo.query("SELECT telefon FROM leads WHERE telefon IS NOT NULL") do
-      {:ok, %{rows: rows}} ->
-        rows |> Enum.map(fn [phone] -> phone end) |> MapSet.new()
-
-      # coveralls-ignore-start
-      {:error, _} ->
-        MapSet.new()
-      # coveralls-ignore-stop
-    end
+    {:ok, %{rows: rows}} = Repo.query("SELECT telefon FROM leads WHERE telefon IS NOT NULL")
+    rows |> Enum.map(fn [phone] -> phone end) |> MapSet.new()
   end
 
   defp process_row(row, seen_phones, existing_phones, now) do
@@ -140,17 +131,9 @@ defmodule Saleflow.Sales.Import do
          phone = params.telefon,
          false <- MapSet.member?(seen_phones, phone),
          false <- MapSet.member?(existing_phones, phone) do
-      case Sales.create_lead(Map.put(params, :imported_at, now)) do
-        {:ok, lead} ->
-          log_import(lead)
-          {:ok, phone}
-
-        # coveralls-ignore-start
-        {:error, reason} ->
-          Logger.warning("Import: failed to create lead: #{inspect(reason)}")
-        # coveralls-ignore-stop
-          :skip
-      end
+      {:ok, lead} = Sales.create_lead(Map.put(params, :imported_at, now))
+      log_import(lead)
+      {:ok, phone}
     else
       _ -> :skip
     end
@@ -183,14 +166,10 @@ defmodule Saleflow.Sales.Import do
   end
 
   defp blank?(nil), do: true
-  # coveralls-ignore-next-line
-  defp blank?(""), do: true
   defp blank?(_), do: false
 
-  # coveralls-ignore-next-line
   defp to_string_value(nil), do: nil
   defp to_string_value(v) when is_binary(v), do: v
-  # coveralls-ignore-next-line
   defp to_string_value(v), do: to_string(v)
 
   defp log_import(lead) do

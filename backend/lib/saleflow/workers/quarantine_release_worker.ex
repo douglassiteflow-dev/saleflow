@@ -47,59 +47,27 @@ defmodule Saleflow.Workers.QuarantineReleaseWorker do
       AND quarantine_until < $1
     """
 
-    case Repo.query(query, [now]) do
-      {:ok, %{rows: rows}} ->
-        Enum.map(rows, fn [id_binary] -> decode_uuid(id_binary) end)
-
-      # coveralls-ignore-start
-      {:error, reason} ->
-        Logger.error(
-          "QuarantineReleaseWorker: failed to query expired quarantines: #{inspect(reason)}"
-        )
-
-        []
-      # coveralls-ignore-stop
-    end
+    {:ok, %{rows: rows}} = Repo.query(query, [now])
+    Enum.map(rows, fn [id_binary] -> decode_uuid(id_binary) end)
   end
 
   defp release_quarantine(lead_id) do
-    case Sales.get_lead(lead_id) do
-      {:ok, lead} ->
-        case Sales.update_lead_status(lead, %{status: :new, quarantine_until: nil}) do
-          {:ok, _updated} ->
-            Saleflow.Audit.create_log(%{
-              action: "lead.quarantine_released",
-              resource_type: "Lead",
-              resource_id: lead_id,
-              changes: %{
-                "status" => %{"from" => "quarantine", "to" => "new"},
-                "quarantine_until" => %{"from" => to_string(lead.quarantine_until), "to" => nil}
-              },
-              metadata: %{"worker" => "QuarantineReleaseWorker"}
-            })
+    {:ok, lead} = Sales.get_lead(lead_id)
+    {:ok, _updated} = Sales.update_lead_status(lead, %{status: :new, quarantine_until: nil})
 
-          # coveralls-ignore-start
-          {:error, reason} ->
-            Logger.warning(
-              "QuarantineReleaseWorker: failed to release lead #{lead_id}: #{inspect(reason)}"
-            )
-          # coveralls-ignore-stop
-        end
-
-      # coveralls-ignore-start
-      {:error, reason} ->
-        Logger.warning(
-          "QuarantineReleaseWorker: could not load lead #{lead_id}: #{inspect(reason)}"
-        )
-      # coveralls-ignore-stop
-    end
+    Saleflow.Audit.create_log(%{
+      action: "lead.quarantine_released",
+      resource_type: "Lead",
+      resource_id: lead_id,
+      changes: %{
+        "status" => %{"from" => "quarantine", "to" => "new"},
+        "quarantine_until" => %{"from" => to_string(lead.quarantine_until), "to" => nil}
+      },
+      metadata: %{"worker" => "QuarantineReleaseWorker"}
+    })
   end
 
   defp decode_uuid(value) when is_binary(value) and byte_size(value) == 16 do
     Ecto.UUID.load!(value)
   end
-
-  # coveralls-ignore-start
-  defp decode_uuid(value) when is_binary(value), do: value
-  # coveralls-ignore-stop
 end

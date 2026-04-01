@@ -7,15 +7,8 @@ defmodule SaleflowWeb.MeetingController do
   List upcoming meetings (status = :scheduled, date >= today).
   """
   def index(conn, _params) do
-    case Sales.list_upcoming_meetings() do
-      {:ok, meetings} ->
-        json(conn, %{meetings: Enum.map(meetings, &serialize_meeting/1)})
-
-      # coveralls-ignore-start
-      {:error, _} ->
-        conn |> put_status(:internal_server_error) |> json(%{error: "Failed to list meetings"})
-      # coveralls-ignore-stop
-    end
+    {:ok, meetings} = Sales.list_upcoming_meetings()
+    json(conn, %{meetings: Enum.map(meetings, &serialize_meeting/1)})
   end
 
   @doc """
@@ -56,11 +49,6 @@ defmodule SaleflowWeb.MeetingController do
     else
       {:error, :not_found} ->
         conn |> put_status(:not_found) |> json(%{error: "Meeting not found"})
-
-      # coveralls-ignore-start
-      {:error, _} ->
-        conn |> put_status(:unprocessable_entity) |> json(%{error: "Failed to cancel meeting"})
-      # coveralls-ignore-stop
     end
   end
 

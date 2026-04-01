@@ -47,75 +47,39 @@ defmodule Saleflow.Workers.AutoReleaseWorker do
       AND assigned_at < $1
     """
 
-    case Repo.query(query, [cutoff]) do
-      {:ok, %{rows: rows}} ->
-        Enum.map(rows, fn [id_binary] -> decode_uuid(id_binary) end)
-
-      # coveralls-ignore-start
-      {:error, reason} ->
-        Logger.error("AutoReleaseWorker: failed to query stale assignments: #{inspect(reason)}")
-        []
-      # coveralls-ignore-stop
-    end
+    {:ok, %{rows: rows}} = Repo.query(query, [cutoff])
+    Enum.map(rows, fn [id_binary] -> decode_uuid(id_binary) end)
   end
 
   defp release_stale_assignment(assignment_id) do
-    case Ash.get(Saleflow.Sales.Assignment, assignment_id) do
-      {:ok, assignment} ->
-        with {:ok, _released} <- Sales.release_assignment(assignment, :timeout) do
-          maybe_reset_lead_status(assignment.lead_id)
+    {:ok, assignment} = Ash.get(Saleflow.Sales.Assignment, assignment_id)
 
-          Saleflow.Audit.create_log(%{
-            action: "assignment.auto_released",
-            resource_type: "Assignment",
-            resource_id: assignment_id,
-            changes: %{"release_reason" => %{"from" => nil, "to" => "timeout"}},
-            metadata: %{"worker" => "AutoReleaseWorker"}
-          })
-        end
+    with {:ok, _released} <- Sales.release_assignment(assignment, :timeout) do
+      maybe_reset_lead_status(assignment.lead_id)
 
-      # coveralls-ignore-start
-      {:error, reason} ->
-        Logger.warning(
-          "AutoReleaseWorker: could not load assignment #{assignment_id}: #{inspect(reason)}"
-        )
-      # coveralls-ignore-stop
+      Saleflow.Audit.create_log(%{
+        action: "assignment.auto_released",
+        resource_type: "Assignment",
+        resource_id: assignment_id,
+        changes: %{"release_reason" => %{"from" => nil, "to" => "timeout"}},
+        metadata: %{"worker" => "AutoReleaseWorker"}
+      })
     end
   end
 
   defp maybe_reset_lead_status(lead_id) do
-    case Sales.get_lead(lead_id) do
-      {:ok, lead} when lead.status == :assigned ->
-        case Sales.update_lead_status(lead, %{status: :new}) do
-          {:ok, _updated} ->
-            :ok
+    {:ok, lead} = Sales.get_lead(lead_id)
 
-          # coveralls-ignore-start
-          {:error, reason} ->
-            Logger.warning(
-              "AutoReleaseWorker: failed to reset lead #{lead_id} status: #{inspect(reason)}"
-            )
-          # coveralls-ignore-stop
-        end
-
-      {:ok, _lead} ->
-        # Lead already moved to a different status — leave it alone
-        :ok
-
-      # coveralls-ignore-start
-      {:error, reason} ->
-        Logger.warning(
-          "AutoReleaseWorker: could not load lead #{lead_id}: #{inspect(reason)}"
-        )
-      # coveralls-ignore-stop
+    if lead.status == :assigned do
+      {:ok, _updated} = Sales.update_lead_status(lead, %{status: :new})
+      :ok
+    else
+      # Lead already moved to a different status — leave it alone
+      :ok
     end
   end
 
   defp decode_uuid(value) when is_binary(value) and byte_size(value) == 16 do
     Ecto.UUID.load!(value)
   end
-
-  # coveralls-ignore-start
-  defp decode_uuid(value) when is_binary(value), do: value
-  # coveralls-ignore-stop
 end

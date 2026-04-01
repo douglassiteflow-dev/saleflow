@@ -4,7 +4,7 @@ defmodule Saleflow.Workers.QuarantineReleaseWorkerCoverageTest do
 
   Covers:
   - Logger.info message during perform
-  - release_quarantine happy path (already covered, but exercises log lines)
+  - release_quarantine audit log creation path
   """
 
   use Saleflow.DataCase, async: false

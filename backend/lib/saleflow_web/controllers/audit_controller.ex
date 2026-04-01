@@ -12,15 +12,8 @@ defmodule SaleflowWeb.AuditController do
       |> maybe_put(:user_id, params["user_id"])
       |> maybe_put(:action, params["action"])
 
-    case Audit.list_logs(filters) do
-      {:ok, logs} ->
-        json(conn, %{audit_logs: Enum.map(logs, &serialize_audit_log/1)})
-
-      # coveralls-ignore-start
-      {:error, _} ->
-        conn |> put_status(:internal_server_error) |> json(%{error: "Failed to list audit logs"})
-      # coveralls-ignore-stop
-    end
+    {:ok, logs} = Audit.list_logs(filters)
+    json(conn, %{audit_logs: Enum.map(logs, &serialize_audit_log/1)})
   end
 
   # ---------------------------------------------------------------------------
