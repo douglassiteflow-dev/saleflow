@@ -13,6 +13,7 @@ defmodule Saleflow.Application do
       {DNSCluster, query: Application.get_env(:saleflow, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Saleflow.PubSub},
       {AshAuthentication.Supervisor, otp_app: :saleflow},
+      Saleflow.Auth.GeoIP,
       # Start a worker by calling: Saleflow.Worker.start_link(arg)
       # {Saleflow.Worker, arg},
       # Start to serve requests, typically the last entry

@@ -69,7 +69,9 @@ defmodule Saleflow.MixProject do
       # CORS
       {:cors_plug, "~> 3.0"},
       # Test coverage
-      {:excoveralls, "~> 0.18", only: :test}
+      {:excoveralls, "~> 0.18", only: :test},
+      # Mocking for tests
+      {:mox, "~> 1.0", only: :test}
     ]
   end
 

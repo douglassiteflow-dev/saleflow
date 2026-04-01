@@ -31,6 +31,7 @@ defmodule Saleflow.Accounts do
     resource Saleflow.Accounts.User
     resource Saleflow.Accounts.Token
     resource Saleflow.Accounts.OtpCode
+    resource Saleflow.Accounts.LoginSession
   end
 
   @doc """
@@ -148,6 +149,116 @@ defmodule Saleflow.Accounts do
     end
 
     :ok
+  end
+
+  # ---------------------------------------------------------------------------
+  # Session management
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Creates a login session for the given user, parsing UA and looking up GeoIP.
+
+  `conn_info` should be a map with `:ip_address` and `:user_agent` keys.
+  """
+  @spec create_login_session(Saleflow.Accounts.User.t(), map()) ::
+          {:ok, Saleflow.Accounts.LoginSession.t()} | {:error, term()}
+  def create_login_session(user, conn_info) do
+    ua = Saleflow.Auth.UserAgentParser.parse(conn_info[:user_agent] || conn_info.user_agent)
+
+    geo =
+      case Saleflow.Auth.GeoIP.lookup(conn_info[:ip_address] || conn_info.ip_address) do
+        {:ok, g} -> g
+        _ -> %{city: nil, country: nil}
+      end
+
+    Saleflow.Accounts.LoginSession
+    |> Ash.Changeset.for_create(:create, %{
+      user_id: user.id,
+      ip_address: conn_info[:ip_address] || conn_info.ip_address,
+      user_agent: conn_info[:user_agent] || conn_info.user_agent || "",
+      device_type: ua.device_type,
+      browser: ua.browser,
+      city: geo.city,
+      country: geo.country
+    })
+    |> Ash.create()
+  end
+
+  @doc """
+  Finds a login session by its session token.
+
+  Returns `{:ok, session}` if found, `{:ok, nil}` if not found.
+  """
+  @spec find_session_by_token(String.t()) ::
+          {:ok, Saleflow.Accounts.LoginSession.t() | nil} | {:error, term()}
+  def find_session_by_token(token) do
+    require Ash.Query
+
+    Saleflow.Accounts.LoginSession
+    |> Ash.Query.filter(session_token == ^token)
+    |> Ash.read_one()
+  end
+
+  @doc """
+  Updates the `last_active_at` timestamp on a session to now.
+  """
+  @spec touch_session(Saleflow.Accounts.LoginSession.t()) ::
+          {:ok, Saleflow.Accounts.LoginSession.t()} | {:error, term()}
+  def touch_session(session) do
+    session |> Ash.Changeset.for_update(:touch, %{}) |> Ash.update()
+  end
+
+  @doc """
+  Marks a session as logged out by setting `logged_out_at`.
+  """
+  @spec logout_session(Saleflow.Accounts.LoginSession.t()) ::
+          {:ok, Saleflow.Accounts.LoginSession.t()} | {:error, term()}
+  def logout_session(session) do
+    session |> Ash.Changeset.for_update(:logout, %{}) |> Ash.update()
+  end
+
+  @doc """
+  Force-logs-out a session (admin action). Sets both `logged_out_at` and
+  `force_logged_out = true`.
+  """
+  @spec force_logout_session(Saleflow.Accounts.LoginSession.t()) ::
+          {:ok, Saleflow.Accounts.LoginSession.t()} | {:error, term()}
+  def force_logout_session(session) do
+    session |> Ash.Changeset.for_update(:force_logout, %{}) |> Ash.update()
+  end
+
+  @doc """
+  Force-logs-out all active sessions for a user.
+
+  Always returns `:ok` (individual failures are silently ignored).
+  """
+  @spec force_logout_all(Ecto.UUID.t()) :: :ok
+  def force_logout_all(user_id) do
+    {:ok, active} = list_active_sessions(user_id)
+    for s <- active, do: force_logout_session(s)
+    :ok
+  end
+
+  @doc """
+  Returns all active (not yet logged-out) sessions for a user.
+  """
+  @spec list_active_sessions(Ecto.UUID.t()) ::
+          {:ok, list(Saleflow.Accounts.LoginSession.t())} | {:error, term()}
+  def list_active_sessions(user_id) do
+    Saleflow.Accounts.LoginSession
+    |> Ash.Query.for_read(:list_active_for_user, %{user_id: user_id})
+    |> Ash.read()
+  end
+
+  @doc """
+  Returns all sessions (active and logged-out) for a user.
+  """
+  @spec list_all_sessions(Ecto.UUID.t()) ::
+          {:ok, list(Saleflow.Accounts.LoginSession.t())} | {:error, term()}
+  def list_all_sessions(user_id) do
+    Saleflow.Accounts.LoginSession
+    |> Ash.Query.for_read(:list_all_for_user, %{user_id: user_id})
+    |> Ash.read()
   end
 
   # ---------------------------------------------------------------------------
