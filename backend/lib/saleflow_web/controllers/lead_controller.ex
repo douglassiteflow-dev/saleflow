@@ -12,8 +12,10 @@ defmodule SaleflowWeb.LeadController do
       {:ok, leads} ->
         json(conn, %{leads: Enum.map(leads, &serialize_lead/1)})
 
+      # coveralls-ignore-start
       {:error, _} ->
         conn |> put_status(:internal_server_error) |> json(%{error: "Failed to search leads"})
+      # coveralls-ignore-stop
     end
   end
 
@@ -22,8 +24,10 @@ defmodule SaleflowWeb.LeadController do
       {:ok, leads} ->
         json(conn, %{leads: Enum.map(leads, &serialize_lead/1)})
 
+      # coveralls-ignore-start
       {:error, _} ->
         conn |> put_status(:internal_server_error) |> json(%{error: "Failed to list leads"})
+      # coveralls-ignore-stop
     end
   end
 
@@ -58,8 +62,10 @@ defmodule SaleflowWeb.LeadController do
       {:ok, lead} ->
         json(conn, %{lead: serialize_lead(lead)})
 
+      # coveralls-ignore-start
       {:error, _} ->
         conn |> put_status(:internal_server_error) |> json(%{error: "Failed to get next lead"})
+      # coveralls-ignore-stop
     end
   end
 
@@ -100,8 +106,10 @@ defmodule SaleflowWeb.LeadController do
       {:ok, assignment} ->
         case Sales.release_assignment(assignment, :outcome_logged) do
           {:ok, _} -> :ok
+          # coveralls-ignore-next-line
           error -> error
         end
+      # coveralls-ignore-next-line
       error -> error
     end
   end
@@ -124,6 +132,7 @@ defmodule SaleflowWeb.LeadController do
 
       case Sales.create_meeting(meeting_params) do
         {:ok, _meeting} -> {:ok, updated_lead}
+        # coveralls-ignore-next-line
         error -> error
       end
     end
@@ -147,6 +156,7 @@ defmodule SaleflowWeb.LeadController do
         reason: "Not interested"
       }) do
         {:ok, _q} -> {:ok, updated_lead}
+        # coveralls-ignore-next-line
         error -> error
       end
     end

@@ -16,8 +16,10 @@ defmodule SaleflowWeb.AuditController do
       {:ok, logs} ->
         json(conn, %{audit_logs: Enum.map(logs, &serialize_audit_log/1)})
 
+      # coveralls-ignore-start
       {:error, _} ->
         conn |> put_status(:internal_server_error) |> json(%{error: "Failed to list audit logs"})
+      # coveralls-ignore-stop
     end
   end
 

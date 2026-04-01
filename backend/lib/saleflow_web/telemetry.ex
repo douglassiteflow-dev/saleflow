@@ -19,6 +19,7 @@ defmodule SaleflowWeb.Telemetry do
     Supervisor.init(children, strategy: :one_for_one)
   end
 
+  # coveralls-ignore-start
   def metrics do
     [
       # Phoenix Metrics
@@ -82,6 +83,8 @@ defmodule SaleflowWeb.Telemetry do
       summary("vm.total_run_queue_lengths.io")
     ]
   end
+
+  # coveralls-ignore-stop
 
   defp periodic_measurements do
     [

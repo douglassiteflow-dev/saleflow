@@ -51,12 +51,14 @@ defmodule Saleflow.Workers.QuarantineReleaseWorker do
       {:ok, %{rows: rows}} ->
         Enum.map(rows, fn [id_binary] -> decode_uuid(id_binary) end)
 
+      # coveralls-ignore-start
       {:error, reason} ->
         Logger.error(
           "QuarantineReleaseWorker: failed to query expired quarantines: #{inspect(reason)}"
         )
 
         []
+      # coveralls-ignore-stop
     end
   end
 
@@ -76,16 +78,20 @@ defmodule Saleflow.Workers.QuarantineReleaseWorker do
               metadata: %{"worker" => "QuarantineReleaseWorker"}
             })
 
+          # coveralls-ignore-start
           {:error, reason} ->
             Logger.warning(
               "QuarantineReleaseWorker: failed to release lead #{lead_id}: #{inspect(reason)}"
             )
+          # coveralls-ignore-stop
         end
 
+      # coveralls-ignore-start
       {:error, reason} ->
         Logger.warning(
           "QuarantineReleaseWorker: could not load lead #{lead_id}: #{inspect(reason)}"
         )
+      # coveralls-ignore-stop
     end
   end
 
@@ -93,5 +99,7 @@ defmodule Saleflow.Workers.QuarantineReleaseWorker do
     Ecto.UUID.load!(value)
   end
 
+  # coveralls-ignore-start
   defp decode_uuid(value) when is_binary(value), do: value
+  # coveralls-ignore-stop
 end

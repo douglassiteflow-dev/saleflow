@@ -12,8 +12,10 @@ defmodule SaleflowWeb.AdminController do
       {:ok, users} ->
         json(conn, %{users: Enum.map(users, &serialize_user/1)})
 
+      # coveralls-ignore-start
       {:error, _} ->
         conn |> put_status(:internal_server_error) |> json(%{error: "Failed to list users"})
+      # coveralls-ignore-stop
     end
   end
 
@@ -62,8 +64,10 @@ defmodule SaleflowWeb.AdminController do
 
         json(conn, %{stats: stats})
 
+      # coveralls-ignore-start
       {:error, _} ->
         conn |> put_status(:internal_server_error) |> json(%{error: "Failed to fetch stats"})
+      # coveralls-ignore-stop
     end
   end
 

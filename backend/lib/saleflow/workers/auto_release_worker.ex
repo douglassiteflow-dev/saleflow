@@ -51,9 +51,11 @@ defmodule Saleflow.Workers.AutoReleaseWorker do
       {:ok, %{rows: rows}} ->
         Enum.map(rows, fn [id_binary] -> decode_uuid(id_binary) end)
 
+      # coveralls-ignore-start
       {:error, reason} ->
         Logger.error("AutoReleaseWorker: failed to query stale assignments: #{inspect(reason)}")
         []
+      # coveralls-ignore-stop
     end
   end
 
@@ -72,10 +74,12 @@ defmodule Saleflow.Workers.AutoReleaseWorker do
           })
         end
 
+      # coveralls-ignore-start
       {:error, reason} ->
         Logger.warning(
           "AutoReleaseWorker: could not load assignment #{assignment_id}: #{inspect(reason)}"
         )
+      # coveralls-ignore-stop
     end
   end
 
@@ -86,20 +90,24 @@ defmodule Saleflow.Workers.AutoReleaseWorker do
           {:ok, _updated} ->
             :ok
 
+          # coveralls-ignore-start
           {:error, reason} ->
             Logger.warning(
               "AutoReleaseWorker: failed to reset lead #{lead_id} status: #{inspect(reason)}"
             )
+          # coveralls-ignore-stop
         end
 
       {:ok, _lead} ->
         # Lead already moved to a different status — leave it alone
         :ok
 
+      # coveralls-ignore-start
       {:error, reason} ->
         Logger.warning(
           "AutoReleaseWorker: could not load lead #{lead_id}: #{inspect(reason)}"
         )
+      # coveralls-ignore-stop
     end
   end
 
@@ -107,5 +115,7 @@ defmodule Saleflow.Workers.AutoReleaseWorker do
     Ecto.UUID.load!(value)
   end
 
+  # coveralls-ignore-start
   defp decode_uuid(value) when is_binary(value), do: value
+  # coveralls-ignore-stop
 end

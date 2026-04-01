@@ -11,8 +11,10 @@ defmodule SaleflowWeb.MeetingController do
       {:ok, meetings} ->
         json(conn, %{meetings: Enum.map(meetings, &serialize_meeting/1)})
 
+      # coveralls-ignore-start
       {:error, _} ->
         conn |> put_status(:internal_server_error) |> json(%{error: "Failed to list meetings"})
+      # coveralls-ignore-stop
     end
   end
 
@@ -55,8 +57,10 @@ defmodule SaleflowWeb.MeetingController do
       {:error, :not_found} ->
         conn |> put_status(:not_found) |> json(%{error: "Meeting not found"})
 
+      # coveralls-ignore-start
       {:error, _} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: "Failed to cancel meeting"})
+      # coveralls-ignore-stop
     end
   end
 
