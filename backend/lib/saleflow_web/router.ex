@@ -20,6 +20,7 @@ defmodule SaleflowWeb.Router do
     pipe_through :api
 
     post "/auth/sign-in", AuthController, :sign_in
+    post "/auth/verify-otp", AuthController, :verify_otp
   end
 
   # Authenticated
@@ -28,6 +29,8 @@ defmodule SaleflowWeb.Router do
 
     get "/auth/me", AuthController, :me
     post "/auth/sign-out", AuthController, :sign_out
+    get "/auth/sessions", SessionController, :index
+    post "/auth/sessions/logout-all", SessionController, :logout_all
 
     get "/leads", LeadController, :index
     get "/leads/:id", LeadController, :show
@@ -49,5 +52,8 @@ defmodule SaleflowWeb.Router do
     post "/users", AdminController, :create_user
     get "/stats", AdminController, :stats
     post "/import", ImportController, :create
+    get "/users/:user_id/sessions", AdminController, :user_sessions
+    post "/users/:user_id/force-logout", AdminController, :force_logout_user
+    post "/sessions/:id/force-logout", AdminController, :force_logout_session_action
   end
 end

@@ -129,6 +129,29 @@ defmodule SaleflowWeb.AdminControllerTest do
       assert %{"user" => user} = json_response(conn, 201)
       assert user["role"] == "agent"
     end
+
+    test "sends welcome email (sandbox log) on user creation", %{conn: conn, admin: admin} do
+      import ExUnit.CaptureLog
+
+      log =
+        capture_log(fn ->
+          conn
+          |> log_in_user(admin)
+          |> post("/api/admin/users", %{
+            email: "welcome-test@example.com",
+            name: "Welcome User",
+            password: "password123",
+            password_confirmation: "password123",
+            role: "agent"
+          })
+
+          # Give the async task time to complete
+          Process.sleep(50)
+        end)
+
+      assert log =~ "sandbox"
+      assert log =~ "welcome-test@example.com"
+    end
   end
 
   # -------------------------------------------------------------------------

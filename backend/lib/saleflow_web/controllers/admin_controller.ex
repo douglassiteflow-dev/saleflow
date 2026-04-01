@@ -13,7 +13,7 @@ defmodule SaleflowWeb.AdminController do
   end
 
   @doc """
-  Create a new user (admin only).
+  Create a new user (admin only). Sends a welcome email after creation.
   """
   def create_user(conn, params) do
     user_params = %{
@@ -26,6 +26,14 @@ defmodule SaleflowWeb.AdminController do
 
     case Accounts.register(user_params) do
       {:ok, user} ->
+        {subject, html} =
+          Saleflow.Notifications.Templates.render_welcome(
+            user.name,
+            "http://localhost:5173/login"
+          )
+
+        Saleflow.Notifications.Mailer.send_email_async(to_string(user.email), subject, html)
+
         conn
         |> put_status(:created)
         |> json(%{user: serialize_user(user)})
@@ -34,6 +42,64 @@ defmodule SaleflowWeb.AdminController do
         conn
         |> put_status(:unprocessable_entity)
         |> json(%{error: "Failed to create user"})
+    end
+  end
+
+  @doc """
+  List all sessions for a user (admin only). Includes ip_address.
+  """
+  def user_sessions(conn, %{"user_id" => user_id}) do
+    {:ok, sessions} = Accounts.list_all_sessions(user_id)
+    json(conn, %{sessions: Enum.map(sessions, &serialize_session_admin/1)})
+  end
+
+  @doc """
+  Force-logout all sessions for a user (admin only). Sends force_logout email.
+  """
+  def force_logout_user(conn, %{"user_id" => user_id}) do
+    case Ash.get(Saleflow.Accounts.User, user_id) do
+      {:ok, user} when not is_nil(user) ->
+        Accounts.force_logout_all(user_id)
+
+        {subject, html} =
+          Saleflow.Notifications.Templates.render_force_logout(user.name)
+
+        Saleflow.Notifications.Mailer.send_email_async(to_string(user.email), subject, html)
+
+        json(conn, %{ok: true})
+
+      _ ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: "User not found"})
+    end
+  end
+
+  @doc """
+  Force-logout a single session by ID (admin only). Sends force_logout email to session owner.
+  """
+  def force_logout_session_action(conn, %{"id" => session_id}) do
+    case Ash.get(Saleflow.Accounts.LoginSession, session_id) do
+      {:ok, session} when not is_nil(session) ->
+        Accounts.force_logout_session(session)
+
+        case Ash.get(Saleflow.Accounts.User, session.user_id) do
+          {:ok, user} when not is_nil(user) ->
+            {subject, html} =
+              Saleflow.Notifications.Templates.render_force_logout(user.name)
+
+            Saleflow.Notifications.Mailer.send_email_async(to_string(user.email), subject, html)
+
+          _ ->
+            :ok
+        end
+
+        json(conn, %{ok: true})
+
+      _ ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: "Session not found"})
     end
   end
 
@@ -68,6 +134,21 @@ defmodule SaleflowWeb.AdminController do
       email: to_string(user.email),
       name: user.name,
       role: user.role
+    }
+  end
+
+  defp serialize_session_admin(session) do
+    %{
+      id: session.id,
+      device_type: session.device_type,
+      browser: session.browser,
+      ip_address: session.ip_address,
+      city: session.city,
+      country: session.country,
+      logged_in_at: session.logged_in_at,
+      last_active_at: session.last_active_at,
+      logged_out_at: session.logged_out_at,
+      force_logged_out: session.force_logged_out
     }
   end
 
