@@ -63,9 +63,9 @@ defmodule Saleflow.Accounts.UserTest do
 
     test "does not expose hashed_password in result" do
       assert {:ok, user} = Accounts.register(@valid_params)
-      # hashed_password is sensitive and should not be in the loaded struct
-      assert user.hashed_password in [:forbidden, nil] or
-               (is_binary(user.hashed_password) and user.hashed_password != "password123")
+      # hashed_password must never be the plaintext password and must be a bcrypt hash
+      assert user.hashed_password != "password123"
+      assert String.starts_with?(user.hashed_password, "$2b$")
     end
   end
 

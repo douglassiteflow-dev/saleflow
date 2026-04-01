@@ -37,21 +37,28 @@ defmodule Saleflow.Audit.Changes.CreateAuditLogTest do
 
   describe "format_value/1 — exercised via resource actions" do
     test "Ash.CiString values are formatted as plain strings in audit changes" do
-      # User email is stored as Ash.CiString — when audit log change fires,
-      # the before-value (nil) and after-value (CiString) are formatted correctly.
-      {:ok, user} =
-        Saleflow.Accounts.User
-        |> Ash.Changeset.for_create(:register_with_password, %{
-          email: "cistring_test@example.com",
-          name: "CI String User",
-          password: "Password123!",
-          password_confirmation: "Password123!"
+      # Test that the format_value function correctly converts CiString to string.
+      # We verify this by creating a lead (which has CreateAuditLog) and checking
+      # that all values in the audit log changes are plain types (string, nil),
+      # not Ash structs.
+      {:ok, lead} =
+        Sales.create_lead(%{
+          företag: "CiString Lead AB",
+          telefon: "+46701999099"
         })
-        |> Ash.create()
 
-      refute is_nil(user.id)
-      # No assertion on audit log content needed — just that creation succeeded
-      # and that the CiString formatting path was exercised.
+      {:ok, logs} = Audit.list_for_resource("Lead", lead.id)
+      created_logs = Enum.filter(logs, fn l -> l.action == "lead.created" end)
+      assert length(created_logs) >= 1
+
+      log = hd(created_logs)
+
+      # Verify all values in the changes map are plain types (string, nil, number)
+      # and not Ash structs like %Ash.CiString{}
+      for {_field, %{"from" => from, "to" => to}} <- log.changes do
+        refute is_struct(from), "Expected plain value for 'from', got struct: #{inspect(from)}"
+        refute is_struct(to), "Expected plain value for 'to', got struct: #{inspect(to)}"
+      end
     end
 
     test "atom status values are serialized as strings in audit changes" do
@@ -93,6 +100,33 @@ defmodule Saleflow.Audit.Changes.CreateAuditLogTest do
         from_val = get_in(log.changes, ["status", "from"])
         assert is_nil(from_val)
       end
+    end
+  end
+
+  describe "format_value/1 — direct unit tests" do
+    test "returns nil for nil" do
+      assert CreateAuditLog.format_value(nil) == nil
+    end
+
+    test "converts atom to string" do
+      assert CreateAuditLog.format_value(:active) == "active"
+    end
+
+    test "converts Ash.CiString to plain string" do
+      ci = Ash.CiString.new("Test@Example.COM")
+      result = CreateAuditLog.format_value(ci)
+      assert is_binary(result)
+      refute is_struct(result)
+      # CiString stores original casing; to_string preserves it
+      assert result == "Test@Example.COM"
+    end
+
+    test "passes through plain strings unchanged" do
+      assert CreateAuditLog.format_value("hello") == "hello"
+    end
+
+    test "passes through integers unchanged" do
+      assert CreateAuditLog.format_value(42) == 42
     end
   end
 end

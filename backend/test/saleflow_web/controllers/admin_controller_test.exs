@@ -183,9 +183,9 @@ defmodule SaleflowWeb.AdminControllerTest do
         |> post("/api/admin/import", %{file: upload})
 
       assert %{"created" => created, "skipped" => skipped} = json_response(conn, 201)
-      assert is_integer(created)
-      assert is_integer(skipped)
-      assert created > 0
+      # leads.xlsx fixture contains exactly 2 data rows
+      assert created == 2
+      assert skipped == 0
     end
 
     test "returns 400 when no file is provided", %{conn: conn, admin: admin} do

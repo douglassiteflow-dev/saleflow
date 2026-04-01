@@ -388,6 +388,9 @@ defmodule Saleflow.Sales do
 
         {:ok, %{rows: []}} ->
           nil
+
+        {:error, error} ->
+          Saleflow.Repo.rollback(error)
       end
     end)
   end

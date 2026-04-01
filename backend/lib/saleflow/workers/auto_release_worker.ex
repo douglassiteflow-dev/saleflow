@@ -40,21 +40,29 @@ defmodule Saleflow.Workers.AutoReleaseWorker do
   # Private helpers
   # ---------------------------------------------------------------------------
 
-  defp fetch_stale_assignments(cutoff) do
+  @doc false
+  def fetch_stale_assignments(cutoff) do
     query = """
     SELECT id FROM assignments
     WHERE released_at IS NULL
       AND assigned_at < $1
     """
 
-    {:ok, %{rows: rows}} = Repo.query(query, [cutoff])
-    Enum.map(rows, fn [id_binary] -> decode_uuid(id_binary) end)
+    case Repo.query(query, [cutoff]) do
+      {:ok, %{rows: rows}} ->
+        Enum.map(rows, fn [id_binary] -> decode_uuid(id_binary) end)
+
+      {:error, error} ->
+        Logger.warning("AutoReleaseWorker: failed to fetch stale assignments: #{inspect(error)}")
+        []
+    end
   end
 
-  defp release_stale_assignment(assignment_id) do
-    {:ok, assignment} = Ash.get(Saleflow.Sales.Assignment, assignment_id)
-
-    with {:ok, _released} <- Sales.release_assignment(assignment, :timeout) do
+  @doc false
+  def release_stale_assignment(assignment_id) do
+    with {:ok, assignment} when not is_nil(assignment) <-
+           Ash.get(Saleflow.Sales.Assignment, assignment_id),
+         {:ok, _released} <- Sales.release_assignment(assignment, :timeout) do
       maybe_reset_lead_status(assignment.lead_id)
 
       Saleflow.Audit.create_log(%{
@@ -64,6 +72,13 @@ defmodule Saleflow.Workers.AutoReleaseWorker do
         changes: %{"release_reason" => %{"from" => nil, "to" => "timeout"}},
         metadata: %{"worker" => "AutoReleaseWorker"}
       })
+    else
+      error ->
+        Logger.warning(
+          "AutoReleaseWorker: failed to release assignment #{assignment_id}: #{inspect(error)}"
+        )
+
+        :ok
     end
   end
 

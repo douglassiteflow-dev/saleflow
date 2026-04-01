@@ -40,15 +40,25 @@ defmodule Saleflow.Workers.QuarantineReleaseWorker do
   # Private helpers
   # ---------------------------------------------------------------------------
 
-  defp fetch_expired_quarantine_ids(now) do
+  @doc false
+  def fetch_expired_quarantine_ids(now) do
     query = """
     SELECT id FROM leads
     WHERE status = 'quarantine'
       AND quarantine_until < $1
     """
 
-    {:ok, %{rows: rows}} = Repo.query(query, [now])
-    Enum.map(rows, fn [id_binary] -> decode_uuid(id_binary) end)
+    case Repo.query(query, [now]) do
+      {:ok, %{rows: rows}} ->
+        Enum.map(rows, fn [id_binary] -> decode_uuid(id_binary) end)
+
+      {:error, error} ->
+        Logger.warning(
+          "QuarantineReleaseWorker: failed to fetch expired quarantines: #{inspect(error)}"
+        )
+
+        []
+    end
   end
 
   defp release_quarantine(lead_id) do

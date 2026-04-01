@@ -102,6 +102,14 @@ defmodule SaleflowWeb.AuthControllerTest do
         |> post("/api/auth/sign-out")
 
       assert %{"ok" => true} = json_response(conn, 200)
+
+      # Verify session is cleared by making an authenticated request
+      conn_after =
+        conn
+        |> recycle()
+        |> get("/api/auth/me")
+
+      assert json_response(conn_after, 401)
     end
   end
 end

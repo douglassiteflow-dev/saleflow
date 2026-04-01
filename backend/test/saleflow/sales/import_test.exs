@@ -244,11 +244,8 @@ defmodule Saleflow.Sales.ImportTest do
     end
 
     test "returns ok with empty list for xlsx with only headers" do
-      # The fixture file has data rows, so we test the logic path via the module
-      # A real empty-data xlsx test would need a fixture — we verify the structure handles it
-      path = Path.join(@fixtures_dir, "leads.xlsx")
-      assert {:ok, rows} = Import.parse_xlsx(path)
-      assert is_list(rows)
+      path = Path.join(@fixtures_dir, "empty.xlsx")
+      assert {:ok, []} = Import.parse_xlsx(path)
     end
   end
 end

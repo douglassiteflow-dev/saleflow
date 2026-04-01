@@ -192,14 +192,19 @@ defmodule Saleflow.Sales.CallLogTest do
       user = create_user!()
 
       call1 = log_call!(lead, user, outcome: :no_answer)
+
+      # Backdate call1's called_at by 1 hour so timestamps differ
+      Saleflow.Repo.query!(
+        "UPDATE call_logs SET called_at = called_at - INTERVAL '1 hour' WHERE id = $1",
+        [Ecto.UUID.dump!(call1.id)]
+      )
+
       call2 = log_call!(lead, user, outcome: :callback)
 
       assert {:ok, calls} = Sales.list_calls_for_lead(lead.id)
-      ids = Enum.map(calls, & &1.id)
-      # Both are valid orderings in theory given same-second timestamps;
-      # just assert both are present.
-      assert call1.id in ids
-      assert call2.id in ids
+      assert length(calls) == 2
+      # call2 is newer, so it should be first (descending order)
+      assert hd(calls).id == call2.id
     end
   end
 

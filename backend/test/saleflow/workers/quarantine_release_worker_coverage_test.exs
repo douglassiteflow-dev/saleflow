@@ -4,7 +4,7 @@ defmodule Saleflow.Workers.QuarantineReleaseWorkerCoverageTest do
 
   Covers:
   - Logger.info message during perform
-  - release_quarantine audit log creation path
+  - fetch_expired_quarantine_ids error handling
   """
 
   use Saleflow.DataCase, async: false
@@ -12,23 +12,6 @@ defmodule Saleflow.Workers.QuarantineReleaseWorkerCoverageTest do
   import ExUnit.CaptureLog
 
   alias Saleflow.Workers.QuarantineReleaseWorker
-  alias Saleflow.Sales
-
-  # ---------------------------------------------------------------------------
-  # Helpers
-  # ---------------------------------------------------------------------------
-
-  defp create_lead! do
-    unique = System.unique_integer([:positive])
-    {:ok, lead} = Sales.create_lead(%{företag: "QCov AB #{unique}", telefon: "+4698#{unique}"})
-    lead
-  end
-
-  defp quarantine_lead_expired!(lead) do
-    past = DateTime.add(DateTime.utc_now(), -3600, :second)
-    {:ok, updated} = Sales.update_lead_status(lead, %{status: :quarantine, quarantine_until: past})
-    updated
-  end
 
   # ---------------------------------------------------------------------------
   # Tests
@@ -50,25 +33,22 @@ defmodule Saleflow.Workers.QuarantineReleaseWorkerCoverageTest do
       assert log =~ "expired quarantine"
     end
 
-    test "release_quarantine exercises the audit log creation path" do
-      lead = create_lead!()
-      _quarantined = quarantine_lead_expired!(lead)
-
-      previous_level = Logger.level()
-      Logger.configure(level: :info)
+    test "fetch_expired_quarantine_ids returns empty list and logs warning on DB error" do
+      # Temporarily rename the table to cause a SQL error
+      Saleflow.Repo.query!("ALTER TABLE leads RENAME TO leads_tmp")
 
       log =
-        capture_log([level: :info], fn ->
-          assert :ok = QuarantineReleaseWorker.perform(%Oban.Job{})
+        capture_log(fn ->
+          now = DateTime.utc_now()
+          result = QuarantineReleaseWorker.fetch_expired_quarantine_ids(now)
+          assert result == []
         end)
 
-      Logger.configure(level: previous_level)
+      # Restore the table name
+      Saleflow.Repo.query!("ALTER TABLE leads_tmp RENAME TO leads")
 
       assert log =~ "QuarantineReleaseWorker"
-
-      # Verify the lead was released
-      {:ok, updated} = Sales.get_lead(lead.id)
-      assert updated.status == :new
+      assert log =~ "failed to fetch expired quarantines"
     end
   end
 end

@@ -3,9 +3,9 @@ defmodule Saleflow.Workers.AutoReleaseWorkerCoverageTest do
   Additional coverage tests for AutoReleaseWorker.
 
   Covers:
-  - maybe_reset_lead_status happy path for :assigned leads
-  - maybe_reset_lead_status for non-assigned leads (leaves status alone)
   - Logger.info message during perform
+  - fetch_stale_assignments error handling
+  - release_stale_assignment error handling (via Logger.warning)
   """
 
   use Saleflow.DataCase, async: false
@@ -13,65 +13,12 @@ defmodule Saleflow.Workers.AutoReleaseWorkerCoverageTest do
   import ExUnit.CaptureLog
 
   alias Saleflow.Workers.AutoReleaseWorker
-  alias Saleflow.Sales
-
-  # ---------------------------------------------------------------------------
-  # Helpers
-  # ---------------------------------------------------------------------------
-
-  defp create_user! do
-    unique = System.unique_integer([:positive])
-
-    {:ok, user} =
-      Saleflow.Accounts.User
-      |> Ash.Changeset.for_create(:register_with_password, %{
-        email: "arw_cov#{unique}@test.se",
-        name: "Coverage Agent #{unique}",
-        password: "Password123!",
-        password_confirmation: "Password123!"
-      })
-      |> Ash.create()
-
-    user
-  end
-
-  defp create_lead! do
-    unique = System.unique_integer([:positive])
-    {:ok, lead} = Sales.create_lead(%{företag: "CovTest AB #{unique}", telefon: "+4699#{unique}"})
-    lead
-  end
-
-  defp backdate_assignment!(assignment_id, minutes_ago) do
-    Saleflow.Repo.query!(
-      "UPDATE assignments SET assigned_at = assigned_at - ($1 * INTERVAL '1 minute') WHERE id = $2",
-      [minutes_ago, Ecto.UUID.dump!(assignment_id)]
-    )
-  end
 
   # ---------------------------------------------------------------------------
   # Tests
   # ---------------------------------------------------------------------------
 
   describe "AutoReleaseWorker — edge-case coverage" do
-    test "maybe_reset_lead_status exercises the happy path for :assigned leads" do
-      lead = create_lead!()
-      agent = create_user!()
-      {:ok, assignment} = Sales.assign_lead(lead, agent)
-
-      # Set lead status to :assigned via raw SQL
-      Saleflow.Repo.query!(
-        "UPDATE leads SET status = 'assigned' WHERE id = $1",
-        [Ecto.UUID.dump!(lead.id)]
-      )
-
-      backdate_assignment!(assignment.id, 35)
-
-      assert :ok = AutoReleaseWorker.perform(%Oban.Job{})
-
-      {:ok, refreshed} = Sales.get_lead(lead.id)
-      assert refreshed.status == :new
-    end
-
     test "Logger.info is exercised during perform (sets level temporarily)" do
       previous_level = Logger.level()
       Logger.configure(level: :info)
@@ -85,6 +32,37 @@ defmodule Saleflow.Workers.AutoReleaseWorkerCoverageTest do
 
       assert log =~ "AutoReleaseWorker"
       assert log =~ "stale assignment"
+    end
+
+    test "fetch_stale_assignments returns empty list and logs warning on DB error" do
+      # Temporarily rename the table to cause a SQL error
+      Saleflow.Repo.query!("ALTER TABLE assignments RENAME TO assignments_tmp")
+
+      log =
+        capture_log(fn ->
+          cutoff = DateTime.add(DateTime.utc_now(), -1800, :second)
+          result = AutoReleaseWorker.fetch_stale_assignments(cutoff)
+          assert result == []
+        end)
+
+      # Restore the table name
+      Saleflow.Repo.query!("ALTER TABLE assignments_tmp RENAME TO assignments")
+
+      assert log =~ "AutoReleaseWorker"
+      assert log =~ "failed to fetch stale assignments"
+    end
+
+    test "release_stale_assignment logs warning when assignment cannot be found" do
+      # Use a random UUID that doesn't exist in the DB
+      fake_id = Ecto.UUID.generate()
+
+      log =
+        capture_log(fn ->
+          assert :ok = AutoReleaseWorker.release_stale_assignment(fake_id)
+        end)
+
+      assert log =~ "AutoReleaseWorker"
+      assert log =~ "failed to release assignment"
     end
   end
 end

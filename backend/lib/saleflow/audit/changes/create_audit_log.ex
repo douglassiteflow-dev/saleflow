@@ -61,7 +61,17 @@ defmodule Saleflow.Audit.Changes.CreateAuditLog do
         metadata: %{}
       }
 
-      {:ok, _log} = Saleflow.Audit.create_log(params)
+      case Saleflow.Audit.create_log(params) do
+        {:ok, _log} ->
+          :ok
+
+        {:error, error} ->
+          require Logger
+
+          Logger.warning(
+            "CreateAuditLog failed for #{action_name} on #{resource_type}/#{resource_id}: #{inspect(error)}"
+          )
+      end
 
       {:ok, result}
     end)
@@ -82,7 +92,9 @@ defmodule Saleflow.Audit.Changes.CreateAuditLog do
     end)
   end
 
-  defp format_value(nil), do: nil
-  defp format_value(v) when is_atom(v), do: to_string(v)
-  defp format_value(v), do: v
+  @doc false
+  def format_value(nil), do: nil
+  def format_value(v) when is_atom(v), do: to_string(v)
+  def format_value(%Ash.CiString{} = v), do: to_string(v)
+  def format_value(v), do: v
 end

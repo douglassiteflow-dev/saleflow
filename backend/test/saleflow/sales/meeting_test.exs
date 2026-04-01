@@ -218,14 +218,17 @@ defmodule Saleflow.Sales.MeetingTest do
     end
 
     test "returns empty list when no upcoming meetings" do
-      assert {:ok, meetings} = Sales.list_upcoming_meetings()
-      # We can't assert empty because other tests may have created meetings,
-      # but we can assert all returned meetings are scheduled with future dates.
-      today = Date.utc_today()
+      assert {:ok, []} = Sales.list_upcoming_meetings()
+    end
 
-      assert Enum.all?(meetings, fn m ->
-               m.status == :scheduled and Date.compare(m.meeting_date, today) in [:gt, :eq]
-             end)
+    test "includes meetings scheduled for today" do
+      lead = create_lead!()
+      user = create_user!()
+      meeting = create_meeting!(lead, user, meeting_date: Date.utc_today())
+
+      assert {:ok, upcoming} = Sales.list_upcoming_meetings()
+      ids = Enum.map(upcoming, & &1.id)
+      assert meeting.id in ids
     end
   end
 

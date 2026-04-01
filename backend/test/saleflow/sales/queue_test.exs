@@ -395,4 +395,23 @@ defmodule Saleflow.Sales.QueueTest do
       assert third.id == lead_c.id, "Expected newest lead C last"
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Error handling
+  # ---------------------------------------------------------------------------
+
+  describe "get_next_lead/1 — error handling" do
+    test "returns {:error, _} when the SQL query fails" do
+      agent = create_user!()
+
+      # Temporarily rename the leads table to cause a SQL error
+      Saleflow.Repo.query!("ALTER TABLE leads RENAME TO leads_tmp")
+
+      result = Sales.get_next_lead(agent)
+      assert {:error, _} = result
+
+      # Restore the table name
+      Saleflow.Repo.query!("ALTER TABLE leads_tmp RENAME TO leads")
+    end
+  end
 end
