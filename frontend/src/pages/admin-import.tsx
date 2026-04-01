@@ -27,7 +27,7 @@ export function AdminImportPage() {
     try {
       const res = await importLeads.mutateAsync(formData);
       setResult(res);
-      if (fileRef.current) fileRef.current.value = "";
+      fileRef.current!.value = "";
     } catch (err) {
       setError((err as Error).message ?? "Import misslyckades.");
     }

@@ -100,8 +100,6 @@ export function OutcomePanel({ leadId, onOutcomeSubmitted }: OutcomePanelProps) 
       }
     }
 
-    if (submitOutcome.isPending) return;
-
     submitOutcome.mutate(
       {
         outcome,

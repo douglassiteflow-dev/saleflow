@@ -8,7 +8,7 @@ interface NavItemProps {
   disabled?: boolean;
 }
 
-function NavItem({ to, label, disabled }: NavItemProps) {
+export function NavItem({ to, label, disabled }: NavItemProps) {
   if (disabled) {
     return (
       <span
