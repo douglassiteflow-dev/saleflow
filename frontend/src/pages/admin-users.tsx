@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useAdminUsers, useCreateUser } from "@/api/admin";
+import { useUserSessions, useForceLogoutUser, useForceLogoutSession } from "@/api/sessions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardTitle } from "@/components/ui/card";
+import { SessionList } from "@/components/session-list";
 import type { UserRole } from "@/api/types";
 
 function UserForm({ onCancel }: { onCancel: () => void }) {
@@ -143,9 +145,58 @@ function UserForm({ onCancel }: { onCancel: () => void }) {
   );
 }
 
+function UserSessionsRow({ userId }: { userId: string }) {
+  const { data: sessions, isLoading } = useUserSessions(userId);
+  const forceLogoutUser = useForceLogoutUser();
+  const forceLogoutSession = useForceLogoutSession();
+
+  function handleSessionLogout(sessionId: string) {
+    forceLogoutSession.mutate(sessionId);
+  }
+
+  function handleLogoutAll() {
+    forceLogoutUser.mutate(userId);
+  }
+
+  return (
+    <div className="px-4 py-3 bg-slate-50">
+      <div className="flex items-center justify-between mb-3">
+        <p
+          className="font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
+          style={{ fontSize: "12px" }}
+        >
+          Sessioner
+        </p>
+        <Button
+          variant="danger"
+          size="default"
+          onClick={handleLogoutAll}
+          disabled={forceLogoutUser.isPending}
+        >
+          {forceLogoutUser.isPending ? "Loggar ut..." : "Logga ut alla"}
+        </Button>
+      </div>
+      {isLoading ? (
+        <p className="text-sm text-[var(--color-text-secondary)]">Laddar sessioner...</p>
+      ) : (
+        <SessionList
+          sessions={sessions ?? []}
+          onLogout={handleSessionLogout}
+          showForceLogout
+        />
+      )}
+    </div>
+  );
+}
+
 export function AdminUsersPage() {
   const [showForm, setShowForm] = useState(false);
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const { data: users, isLoading } = useAdminUsers();
+
+  function toggleSessions(userId: string) {
+    setExpandedUserId((prev) => (prev === userId ? null : userId));
+  }
 
   return (
     <div className="space-y-6">
@@ -200,23 +251,38 @@ export function AdminUsersPage() {
                     className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
                     style={{ fontSize: "12px" }}
                   >
-                    Status
+                    Åtgärder
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((user, i) => (
-                  <tr
-                    key={user.id}
-                    className={i !== users.length - 1 ? "border-b border-slate-200" : ""}
-                  >
-                    <td className="px-4 py-3 font-medium text-[var(--color-text-primary)]">
+                  <tr key={user.id}>
+                    <td
+                      className={`px-4 py-3 font-medium text-[var(--color-text-primary)]${
+                        expandedUserId !== user.id && i !== users.length - 1
+                          ? " border-b border-slate-200"
+                          : ""
+                      }`}
+                    >
                       {user.name}
                     </td>
-                    <td className="px-4 py-3 text-[var(--color-text-secondary)]">
+                    <td
+                      className={`px-4 py-3 text-[var(--color-text-secondary)]${
+                        expandedUserId !== user.id && i !== users.length - 1
+                          ? " border-b border-slate-200"
+                          : ""
+                      }`}
+                    >
                       {user.email}
                     </td>
-                    <td className="px-4 py-3">
+                    <td
+                      className={`px-4 py-3${
+                        expandedUserId !== user.id && i !== users.length - 1
+                          ? " border-b border-slate-200"
+                          : ""
+                      }`}
+                    >
                       <span
                         className={
                           user.role === "admin"
@@ -227,21 +293,30 @@ export function AdminUsersPage() {
                         {user.role === "admin" ? "Admin" : "Agent"}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={
-                          user.active
-                            ? "text-emerald-600 text-xs font-medium"
-                            : "text-slate-400 text-xs font-medium"
-                        }
+                    <td
+                      className={`px-4 py-3${
+                        expandedUserId !== user.id && i !== users.length - 1
+                          ? " border-b border-slate-200"
+                          : ""
+                      }`}
+                    >
+                      <Button
+                        variant="secondary"
+                        size="default"
+                        onClick={() => toggleSessions(user.id)}
                       >
-                        {user.active ? "Aktiv" : "Inaktiv"}
-                      </span>
+                        {expandedUserId === user.id ? "Dölj sessioner" : "Sessioner"}
+                      </Button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
+            {/* Expanded sessions panel outside the table for better layout */}
+            {expandedUserId && (
+              <UserSessionsRow userId={expandedUserId} />
+            )}
           </div>
         )}
       </Card>

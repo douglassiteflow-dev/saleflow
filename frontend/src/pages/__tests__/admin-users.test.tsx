@@ -7,10 +7,25 @@ import { AdminUsersPage } from "../admin-users";
 const mutateAsyncMock = vi.fn();
 const useAdminUsersMock = vi.fn();
 const useCreateUserMock = vi.fn();
+const useUserSessionsMock = vi.fn();
+const forceLogoutUserMutateMock = vi.fn();
+const forceLogoutSessionMutateMock = vi.fn();
 
 vi.mock("@/api/admin", () => ({
   useAdminUsers: () => useAdminUsersMock(),
   useCreateUser: () => useCreateUserMock(),
+}));
+
+vi.mock("@/api/sessions", () => ({
+  useUserSessions: () => useUserSessionsMock(),
+  useForceLogoutUser: () => ({
+    mutate: forceLogoutUserMutateMock,
+    isPending: false,
+  }),
+  useForceLogoutSession: () => ({
+    mutate: forceLogoutSessionMutateMock,
+    isPending: false,
+  }),
 }));
 
 function Wrapper({ children }: { children: React.ReactNode }) {
@@ -30,9 +45,13 @@ describe("AdminUsersPage", () => {
     });
     useAdminUsersMock.mockReturnValue({
       data: [
-        { id: "1", email: "admin@test.se", name: "AdminUser", role: "admin", active: true, created_at: "", updated_at: "" },
-        { id: "2", email: "agent@test.se", name: "AgentUser", role: "agent", active: false, created_at: "", updated_at: "" },
+        { id: "1", email: "admin@test.se", name: "AdminUser", role: "admin", created_at: "", updated_at: "" },
+        { id: "2", email: "agent@test.se", name: "AgentUser", role: "agent", created_at: "", updated_at: "" },
       ],
+      isLoading: false,
+    });
+    useUserSessionsMock.mockReturnValue({
+      data: [],
       isLoading: false,
     });
   });
@@ -51,16 +70,14 @@ describe("AdminUsersPage", () => {
 
   it("renders role badges", () => {
     render(<AdminUsersPage />, { wrapper: Wrapper });
-    // Admin role badge
     expect(screen.getByText("Admin")).toBeInTheDocument();
-    // Agent role badge
     expect(screen.getByText("Agent")).toBeInTheDocument();
   });
 
-  it("renders active/inactive status", () => {
+  it("renders sessions button per user", () => {
     render(<AdminUsersPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Aktiv")).toBeInTheDocument();
-    expect(screen.getByText("Inaktiv")).toBeInTheDocument();
+    const sessionButtons = screen.getAllByText("Sessioner");
+    expect(sessionButtons.length).toBe(2);
   });
 
   it("toggles user form on button click", () => {
@@ -210,5 +227,56 @@ describe("AdminUsersPage", () => {
     render(<AdminUsersPage />, { wrapper: Wrapper });
     expect(screen.getByText("admin@test.se")).toBeInTheDocument();
     expect(screen.getByText("agent@test.se")).toBeInTheDocument();
+  });
+
+  // --- Expandable sessions ---
+
+  it("expands sessions panel when Sessioner button is clicked", () => {
+    useUserSessionsMock.mockReturnValue({
+      data: [
+        {
+          id: "s1",
+          device_type: "desktop",
+          browser: "Chrome",
+          city: "Stockholm",
+          country: "Sverige",
+          logged_in_at: "2026-03-31T10:00:00Z",
+          last_active_at: "2026-03-31T10:00:00Z",
+          force_logged_out: false,
+          current: false,
+        },
+      ],
+      isLoading: false,
+    });
+
+    render(<AdminUsersPage />, { wrapper: Wrapper });
+    const sessionButtons = screen.getAllByText("Sessioner");
+    fireEvent.click(sessionButtons[0]!);
+
+    expect(screen.getByText("Dölj sessioner")).toBeInTheDocument();
+    expect(screen.getByText("Logga ut alla")).toBeInTheDocument();
+    expect(screen.getByText("Chrome")).toBeInTheDocument();
+  });
+
+  it("collapses sessions panel when toggle is clicked again", () => {
+    render(<AdminUsersPage />, { wrapper: Wrapper });
+    const sessionButtons = screen.getAllByText("Sessioner");
+    fireEvent.click(sessionButtons[0]!);
+    expect(screen.getByText("Dölj sessioner")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Dölj sessioner"));
+    expect(screen.queryByText("Logga ut alla")).not.toBeInTheDocument();
+  });
+
+  it("shows loading state for sessions", () => {
+    useUserSessionsMock.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+    });
+
+    render(<AdminUsersPage />, { wrapper: Wrapper });
+    const sessionButtons = screen.getAllByText("Sessioner");
+    fireEvent.click(sessionButtons[0]!);
+
+    expect(screen.getByText("Laddar sessioner...")).toBeInTheDocument();
   });
 });

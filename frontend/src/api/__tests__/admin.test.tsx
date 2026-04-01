@@ -37,7 +37,7 @@ describe("useAdminUsers", () => {
   afterEach(() => { globalThis.fetch = originalFetch; });
 
   it("fetches all users", async () => {
-    const users = [{ id: "1", email: "a@b.se", name: "A", role: "admin", active: true }];
+    const users = [{ id: "1", email: "a@b.se", name: "A", role: "admin" }];
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(users),

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useMe, useLogout } from "@/api/auth";
 import { Button } from "@/components/ui/button";
 
@@ -17,9 +18,9 @@ export function Topbar() {
       <div />
       <div className="flex items-center gap-4">
         {user && (
-          <span className="text-sm text-[var(--color-text-secondary)]">
+          <Link to="/profile" className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors duration-150">
             {user.name}
-          </span>
+          </Link>
         )}
         <Button
           variant="secondary"

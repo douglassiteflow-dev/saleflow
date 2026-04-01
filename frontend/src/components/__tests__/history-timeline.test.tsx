@@ -7,7 +7,7 @@ const callLog: CallLog = {
   id: "c1",
   lead_id: "l1",
   user_id: "u1",
-  user: { id: "u1", email: "test@test.se", name: "Agent A", role: "agent", active: true, created_at: "", updated_at: "" },
+  user: { id: "u1", email: "test@test.se", name: "Agent A", role: "agent", created_at: "", updated_at: "" },
   outcome: "meeting_booked",
   notes: "Called and booked",
   duration_seconds: 120,

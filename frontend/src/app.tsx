@@ -11,6 +11,7 @@ import { HistoryPage } from "@/pages/history";
 import { AdminUsersPage } from "@/pages/admin-users";
 import { AdminImportPage } from "@/pages/admin-import";
 import { AdminStatsPage } from "@/pages/admin-stats";
+import { ProfilePage } from "@/pages/profile";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -29,6 +30,7 @@ export function App() {
               <Route path="/leads/:id" element={<LeadDetailPage />} />
               <Route path="/meetings" element={<MeetingsPage />} />
               <Route path="/history" element={<HistoryPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<AdminUsersPage />} />
                 <Route path="/admin/import" element={<AdminImportPage />} />

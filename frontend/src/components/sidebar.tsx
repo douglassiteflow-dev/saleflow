@@ -60,6 +60,7 @@ export function Sidebar() {
         <NavItem to="/dialer" label="Ringare" />
         <NavItem to="/meetings" label="Möten" />
         <NavItem to="/history" label="Historik" />
+        <NavItem to="/profile" label="Profil" />
 
         {isAdmin && (
           <>

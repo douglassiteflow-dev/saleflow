@@ -71,3 +71,25 @@ export function formatDateTime(isoDatetime: string): string {
     minute: "2-digit",
   });
 }
+
+/**
+ * Format an ISO datetime string as relative time in Swedish.
+ * E.g. "Just nu", "5 min sedan", "2 tim sedan", "3 dagar sedan"
+ */
+export function formatRelativeTime(isoDatetime: string): string {
+  const d = new Date(isoDatetime);
+  if (isNaN(d.getTime())) return isoDatetime;
+
+  const now = Date.now();
+  const diffMs = now - d.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHrs = Math.floor(diffMin / 60);
+  const diffDays = Math.floor(diffHrs / 24);
+
+  if (diffSec < 60) return "Just nu";
+  if (diffMin < 60) return `${diffMin} min sedan`;
+  if (diffHrs < 24) return `${diffHrs} tim sedan`;
+  if (diffDays === 1) return "1 dag sedan";
+  return `${diffDays} dagar sedan`;
+}
