@@ -7,7 +7,8 @@ export function useMe() {
     queryKey: ["auth", "me"],
     queryFn: async () => {
       try {
-        return await api<User>("/api/auth/me");
+        const data = await api<{ user: User }>("/api/auth/me");
+        return data.user;
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
           return null;
