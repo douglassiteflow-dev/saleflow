@@ -199,6 +199,29 @@ defmodule Saleflow.Sales.LeadTest do
   end
 
   # ---------------------------------------------------------------------------
+  # mark_lead_callback_reminded/1
+  # ---------------------------------------------------------------------------
+
+  describe "mark_lead_callback_reminded/1" do
+    test "callback_reminded_at field is nil by default" do
+      assert {:ok, lead} = Sales.create_lead(@valid_params)
+      assert is_nil(lead.callback_reminded_at)
+    end
+
+    test "sets callback_reminded_at to now" do
+      assert {:ok, lead} = Sales.create_lead(@valid_params)
+
+      before = DateTime.utc_now()
+      assert {:ok, reminded} = Sales.mark_lead_callback_reminded(lead)
+      after_time = DateTime.utc_now()
+
+      refute is_nil(reminded.callback_reminded_at)
+      assert DateTime.compare(reminded.callback_reminded_at, before) != :lt
+      assert DateTime.compare(reminded.callback_reminded_at, after_time) != :gt
+    end
+  end
+
+  # ---------------------------------------------------------------------------
   # Audit log integration
   # ---------------------------------------------------------------------------
 

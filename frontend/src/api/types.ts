@@ -41,6 +41,7 @@ export interface Lead {
   notes: string | null;
   priority: number;
   callback_at: string | null;
+  callback_reminded_at: string | null;
   do_not_call: boolean;
   list_name: string | null;
   created_at: string;
@@ -79,6 +80,7 @@ export interface Meeting {
   scheduled_at: string;
   notes: string | null;
   status: "scheduled" | "completed" | "cancelled";
+  reminded_at: string | null;
   created_at: string;
   updated_at: string;
 }

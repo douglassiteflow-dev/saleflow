@@ -123,6 +123,17 @@ defmodule Saleflow.Sales do
   end
 
   @doc """
+  Sets `callback_reminded_at` to now on a lead.
+  """
+  @spec mark_lead_callback_reminded(Saleflow.Sales.Lead.t()) ::
+          {:ok, Saleflow.Sales.Lead.t()} | {:error, Ash.Error.t()}
+  def mark_lead_callback_reminded(lead) do
+    lead
+    |> Ash.Changeset.for_update(:mark_callback_reminded, %{})
+    |> Ash.update()
+  end
+
+  @doc """
   Gets a lead by ID.
 
   Returns `{:ok, lead}` or `{:error, %Ash.Error.Query.NotFound{}}`.
@@ -260,6 +271,17 @@ defmodule Saleflow.Sales do
   def complete_meeting(meeting) do
     meeting
     |> Ash.Changeset.for_update(:complete, %{})
+    |> Ash.update()
+  end
+
+  @doc """
+  Sets `reminded_at` to now on a meeting.
+  """
+  @spec mark_meeting_reminded(Saleflow.Sales.Meeting.t()) ::
+          {:ok, Saleflow.Sales.Meeting.t()} | {:error, Ash.Error.t()}
+  def mark_meeting_reminded(meeting) do
+    meeting
+    |> Ash.Changeset.for_update(:mark_reminded, %{})
     |> Ash.update()
   end
 

@@ -233,6 +233,34 @@ defmodule Saleflow.Sales.MeetingTest do
   end
 
   # ---------------------------------------------------------------------------
+  # mark_meeting_reminded/1
+  # ---------------------------------------------------------------------------
+
+  describe "mark_meeting_reminded/1" do
+    test "reminded_at field is nil by default" do
+      lead = create_lead!()
+      user = create_user!()
+      meeting = create_meeting!(lead, user)
+
+      assert is_nil(meeting.reminded_at)
+    end
+
+    test "sets reminded_at to now" do
+      lead = create_lead!()
+      user = create_user!()
+      meeting = create_meeting!(lead, user)
+
+      before = DateTime.utc_now()
+      assert {:ok, reminded} = Sales.mark_meeting_reminded(meeting)
+      after_time = DateTime.utc_now()
+
+      refute is_nil(reminded.reminded_at)
+      assert DateTime.compare(reminded.reminded_at, before) != :lt
+      assert DateTime.compare(reminded.reminded_at, after_time) != :gt
+    end
+  end
+
+  # ---------------------------------------------------------------------------
   # list_meetings_for_lead/1
   # ---------------------------------------------------------------------------
 

@@ -66,6 +66,11 @@ defmodule Saleflow.Sales.Meeting do
       public? true
     end
 
+    attribute :reminded_at, :utc_datetime_usec do
+      allow_nil? true
+      public? true
+    end
+
     create_timestamp :inserted_at
     update_timestamp :updated_at
   end
@@ -100,6 +105,15 @@ defmodule Saleflow.Sales.Meeting do
       end
 
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "meeting.completed"}
+    end
+
+    update :mark_reminded do
+      description "Set reminded_at to now"
+      require_atomic? false
+
+      change fn changeset, _context ->
+        Ash.Changeset.force_change_attribute(changeset, :reminded_at, DateTime.utc_now())
+      end
     end
   end
 end

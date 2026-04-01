@@ -120,6 +120,11 @@ defmodule Saleflow.Sales.Lead do
       public? true
     end
 
+    attribute :callback_reminded_at, :utc_datetime_usec do
+      allow_nil? true
+      public? true
+    end
+
     attribute :imported_at, :utc_datetime_usec do
       allow_nil? true
       public? true
@@ -182,6 +187,15 @@ defmodule Saleflow.Sales.Lead do
       end
 
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "lead.status_changed"}
+    end
+
+    update :mark_callback_reminded do
+      description "Set callback_reminded_at to now"
+      require_atomic? false
+
+      change fn changeset, _context ->
+        Ash.Changeset.force_change_attribute(changeset, :callback_reminded_at, DateTime.utc_now())
+      end
     end
   end
 end
