@@ -2,9 +2,8 @@ defmodule Saleflow.Sales do
   @moduledoc """
   Sales domain for SaleFlow.
 
-  Manages leads and the full sales workflow. Currently exposes the Lead
-  resource. Assignment, CallLog, Meeting, and Quarantine resources will be
-  added in Task 5.
+  Manages leads and the full sales workflow. Exposes the Lead, Assignment,
+  CallLog, Meeting, and Quarantine resources.
 
   ## Usage
 
@@ -28,17 +27,46 @@ defmodule Saleflow.Sales do
 
       # Update status to quarantine — quarantine_until is set automatically
       {:ok, lead} = Saleflow.Sales.update_lead_status(lead, %{status: :quarantine})
+
+      # Assign a lead to a user
+      {:ok, assignment} = Saleflow.Sales.assign_lead(lead, user)
+
+      # Release an assignment
+      {:ok, assignment} = Saleflow.Sales.release_assignment(assignment, :manual)
+
+      # Log a call
+      {:ok, call} = Saleflow.Sales.log_call(%{lead_id: lead.id, user_id: user.id, outcome: :callback})
+
+      # Book a meeting
+      {:ok, meeting} = Saleflow.Sales.create_meeting(%{
+        lead_id: lead.id,
+        user_id: user.id,
+        title: "Demo",
+        meeting_date: ~D[2026-05-01],
+        meeting_time: ~T[10:00:00]
+      })
+
+      # Quarantine a lead
+      {:ok, q} = Saleflow.Sales.create_quarantine(%{
+        lead_id: lead.id,
+        user_id: user.id,
+        reason: "Do not call — requested by prospect"
+      })
   """
 
   use Ash.Domain
 
   resources do
     resource Saleflow.Sales.Lead
-    # Saleflow.Sales.Assignment    — added in Task 5
-    # Saleflow.Sales.CallLog       — added in Task 5
-    # Saleflow.Sales.Meeting       — added in Task 5
-    # Saleflow.Sales.Quarantine    — added in Task 5
+    resource Saleflow.Sales.Assignment
+    resource Saleflow.Sales.CallLog
+    resource Saleflow.Sales.Meeting
+    resource Saleflow.Sales.Quarantine
   end
+
+  # ---------------------------------------------------------------------------
+  # Lead functions
+  # ---------------------------------------------------------------------------
 
   @doc """
   Creates a new lead.
@@ -103,5 +131,201 @@ defmodule Saleflow.Sales do
   def get_lead(id) do
     Saleflow.Sales.Lead
     |> Ash.get(id)
+  end
+
+  # ---------------------------------------------------------------------------
+  # Assignment functions
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Assigns a lead to a user, creating an Assignment record.
+  """
+  @spec assign_lead(Saleflow.Sales.Lead.t(), Saleflow.Accounts.User.t()) ::
+          {:ok, Saleflow.Sales.Assignment.t()} | {:error, Ash.Error.t()}
+  def assign_lead(lead, user) do
+    Saleflow.Sales.Assignment
+    |> Ash.Changeset.for_create(:assign, %{lead_id: lead.id, user_id: user.id})
+    |> Ash.create()
+  end
+
+  @doc """
+  Releases an assignment, recording the reason.
+
+  `reason` must be one of: `:outcome_logged`, `:timeout`, `:manual`
+  """
+  @spec release_assignment(Saleflow.Sales.Assignment.t(), atom()) ::
+          {:ok, Saleflow.Sales.Assignment.t()} | {:error, Ash.Error.t()}
+  def release_assignment(assignment, reason) do
+    assignment
+    |> Ash.Changeset.for_update(:release, %{release_reason: reason})
+    |> Ash.update()
+  end
+
+  @doc """
+  Returns the active (unreleased) assignment for a given user, or `nil` if none.
+  """
+  @spec get_active_assignment(Saleflow.Accounts.User.t()) ::
+          {:ok, Saleflow.Sales.Assignment.t() | nil} | {:error, Ash.Error.t()}
+  def get_active_assignment(user) do
+    require Ash.Query
+
+    Saleflow.Sales.Assignment
+    |> Ash.Query.filter(user_id == ^user.id and is_nil(released_at))
+    |> Ash.Query.limit(1)
+    |> Ash.read()
+    |> case do
+      {:ok, [assignment | _]} -> {:ok, assignment}
+      {:ok, []} -> {:ok, nil}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # CallLog functions
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Logs a call attempt against a lead.
+
+  Required params: `:lead_id`, `:user_id`, `:outcome`
+  Optional params: `:notes`
+  """
+  @spec log_call(map()) :: {:ok, Saleflow.Sales.CallLog.t()} | {:error, Ash.Error.t()}
+  def log_call(params) do
+    Saleflow.Sales.CallLog
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create()
+  end
+
+  @doc """
+  Returns all call logs for a given lead, sorted by `called_at` descending (newest first).
+  """
+  @spec list_calls_for_lead(Ecto.UUID.t()) ::
+          {:ok, list(Saleflow.Sales.CallLog.t())} | {:error, Ash.Error.t()}
+  def list_calls_for_lead(lead_id) do
+    require Ash.Query
+
+    Saleflow.Sales.CallLog
+    |> Ash.Query.filter(lead_id == ^lead_id)
+    |> Ash.Query.sort(called_at: :desc)
+    |> Ash.read()
+  end
+
+  @doc """
+  Returns all call logs made by a given user.
+  """
+  @spec list_calls_for_user(Ecto.UUID.t()) ::
+          {:ok, list(Saleflow.Sales.CallLog.t())} | {:error, Ash.Error.t()}
+  def list_calls_for_user(user_id) do
+    require Ash.Query
+
+    Saleflow.Sales.CallLog
+    |> Ash.Query.filter(user_id == ^user_id)
+    |> Ash.Query.sort(called_at: :desc)
+    |> Ash.read()
+  end
+
+  # ---------------------------------------------------------------------------
+  # Meeting functions
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Creates a new meeting.
+
+  Required params: `:lead_id`, `:user_id`, `:title`, `:meeting_date`, `:meeting_time`
+  Optional params: `:notes`
+  """
+  @spec create_meeting(map()) :: {:ok, Saleflow.Sales.Meeting.t()} | {:error, Ash.Error.t()}
+  def create_meeting(params) do
+    Saleflow.Sales.Meeting
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create()
+  end
+
+  @doc """
+  Cancels a meeting, setting its status to `:cancelled`.
+  """
+  @spec cancel_meeting(Saleflow.Sales.Meeting.t()) ::
+          {:ok, Saleflow.Sales.Meeting.t()} | {:error, Ash.Error.t()}
+  def cancel_meeting(meeting) do
+    meeting
+    |> Ash.Changeset.for_update(:cancel, %{})
+    |> Ash.update()
+  end
+
+  @doc """
+  Marks a meeting as completed, setting its status to `:completed`.
+  """
+  @spec complete_meeting(Saleflow.Sales.Meeting.t()) ::
+          {:ok, Saleflow.Sales.Meeting.t()} | {:error, Ash.Error.t()}
+  def complete_meeting(meeting) do
+    meeting
+    |> Ash.Changeset.for_update(:complete, %{})
+    |> Ash.update()
+  end
+
+  @doc """
+  Returns all upcoming scheduled meetings (status = `:scheduled`, date >= today),
+  sorted by meeting_date ascending.
+  """
+  @spec list_upcoming_meetings() ::
+          {:ok, list(Saleflow.Sales.Meeting.t())} | {:error, Ash.Error.t()}
+  def list_upcoming_meetings do
+    require Ash.Query
+
+    today = Date.utc_today()
+
+    Saleflow.Sales.Meeting
+    |> Ash.Query.filter(status == :scheduled and meeting_date >= ^today)
+    |> Ash.Query.sort(meeting_date: :asc)
+    |> Ash.read()
+  end
+
+  @doc """
+  Returns all meetings for a given lead, sorted by meeting_date ascending.
+  """
+  @spec list_meetings_for_lead(Ecto.UUID.t()) ::
+          {:ok, list(Saleflow.Sales.Meeting.t())} | {:error, Ash.Error.t()}
+  def list_meetings_for_lead(lead_id) do
+    require Ash.Query
+
+    Saleflow.Sales.Meeting
+    |> Ash.Query.filter(lead_id == ^lead_id)
+    |> Ash.Query.sort(meeting_date: :asc)
+    |> Ash.read()
+  end
+
+  # ---------------------------------------------------------------------------
+  # Quarantine functions
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Creates a quarantine record for a lead.
+
+  Required params: `:lead_id`, `:user_id`, `:reason`
+
+  `quarantined_at` is set to now and `released_at` to now + 7 days automatically.
+  """
+  @spec create_quarantine(map()) :: {:ok, Saleflow.Sales.Quarantine.t()} | {:error, Ash.Error.t()}
+  def create_quarantine(params) do
+    Saleflow.Sales.Quarantine
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create()
+  end
+
+  @doc """
+  Returns all active quarantine records (where `released_at` is in the future).
+  """
+  @spec list_active_quarantines() ::
+          {:ok, list(Saleflow.Sales.Quarantine.t())} | {:error, Ash.Error.t()}
+  def list_active_quarantines do
+    require Ash.Query
+
+    now = DateTime.utc_now()
+
+    Saleflow.Sales.Quarantine
+    |> Ash.Query.filter(released_at > ^now)
+    |> Ash.Query.sort(released_at: :asc)
+    |> Ash.read()
   end
 end
