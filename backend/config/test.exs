@@ -35,3 +35,7 @@ config :saleflow, Oban, testing: :inline
 
 # Speed up bcrypt in tests (DO NOT use in production)
 config :bcrypt_elixir, log_rounds: 1
+
+# Mailer sandbox — no real API calls in tests
+config :saleflow, :resend_api_key, "re_test_sandbox"
+config :saleflow, :mailer_sandbox, true

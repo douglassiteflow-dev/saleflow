@@ -34,7 +34,8 @@ config :phoenix, :json_library, Jason
 config :saleflow, :ash_domains, [
   Saleflow.Accounts,
   Saleflow.Sales,
-  Saleflow.Audit
+  Saleflow.Audit,
+  Saleflow.Notifications
 ]
 
 # Token signing secret
@@ -50,6 +51,11 @@ config :saleflow, Oban,
       {"0 * * * *", Saleflow.Workers.QuarantineReleaseWorker}
     ]}
   ]
+
+# Resend mailer
+config :saleflow, :resend_api_key, System.get_env("RESEND_API_KEY")
+config :saleflow, :resend_from, "SaleFlow <noreply@saleflow.se>"
+config :saleflow, :mailer_sandbox, false
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

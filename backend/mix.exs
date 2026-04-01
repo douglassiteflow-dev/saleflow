@@ -64,6 +64,8 @@ defmodule Saleflow.MixProject do
       {:oban, "~> 2.20"},
       # XLSX parsing
       {:xlsxir, "~> 1.6"},
+      # HTTP client
+      {:req, "~> 0.5"},
       # CORS
       {:cors_plug, "~> 3.0"},
       # Test coverage

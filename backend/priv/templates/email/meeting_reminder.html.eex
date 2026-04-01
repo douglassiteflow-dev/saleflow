@@ -1,0 +1,41 @@
+<h2 style="margin:0 0 8px;font-size:22px;font-weight:600;color:#0f172a;">
+  Påminnelse om möte
+</h2>
+<p style="margin:0 0 24px;font-size:15px;color:#64748b;line-height:1.6;">
+  Du har ett inbokat möte som börjar snart.
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="background-color:#f8fafc;border-radius:8px;margin-bottom:32px;">
+  <tr>
+    <td style="padding:24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="padding-bottom:12px;">
+            <span style="font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;
+                         letter-spacing:0.05em;">Möte</span><br />
+            <span style="font-size:17px;font-weight:600;color:#0f172a;"><%= @title %></span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding-bottom:12px;">
+            <span style="font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;
+                         letter-spacing:0.05em;">Datum &amp; tid</span><br />
+            <span style="font-size:15px;color:#334155;"><%= @date %> kl. <%= @time %></span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <span style="font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;
+                         letter-spacing:0.05em;">Företag</span><br />
+            <span style="font-size:15px;color:#334155;"><%= @company %></span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0;font-size:13px;color:#94a3b8;line-height:1.6;">
+  Logga in på SaleFlow för att se fullständig information och uppdatera mötet.
+</p>

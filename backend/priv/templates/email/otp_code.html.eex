@@ -1,0 +1,19 @@
+<h2 style="margin:0 0 8px;font-size:22px;font-weight:600;color:#0f172a;">
+  Din inloggningskod
+</h2>
+<p style="margin:0 0 32px;font-size:15px;color:#64748b;line-height:1.6;">
+  Använd koden nedan för att logga in på SaleFlow. Koden gäller i 10 minuter.
+</p>
+
+<div style="text-align:center;margin:0 0 32px;">
+  <span style="display:inline-block;background-color:#f1f5f9;border-radius:8px;
+               padding:20px 40px;font-size:40px;font-weight:700;
+               font-family:'Courier New',Courier,monospace;letter-spacing:8px;color:#4F46E5;">
+    <%= @code %>
+  </span>
+</div>
+
+<p style="margin:0;font-size:13px;color:#94a3b8;line-height:1.6;">
+  Om du inte försökte logga in kan du ignorera detta mail.
+  Dela aldrig din kod med någon annan.
+</p>

@@ -1,0 +1,43 @@
+<h2 style="margin:0 0 8px;font-size:22px;font-weight:600;color:#0f172a;">
+  Påminnelse om återuppringning
+</h2>
+<p style="margin:0 0 24px;font-size:15px;color:#64748b;line-height:1.6;">
+  Du har en inbokad återuppringning som snart är dags.
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="background-color:#f8fafc;border-radius:8px;margin-bottom:32px;">
+  <tr>
+    <td style="padding:24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="padding-bottom:12px;">
+            <span style="font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;
+                         letter-spacing:0.05em;">Företag</span><br />
+            <span style="font-size:17px;font-weight:600;color:#0f172a;"><%= @company %></span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding-bottom:12px;">
+            <span style="font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;
+                         letter-spacing:0.05em;">Telefon</span><br />
+            <span style="font-size:15px;color:#334155;">
+              <a href="tel:<%= @phone %>" style="color:#4F46E5;text-decoration:none;"><%= @phone %></a>
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <span style="font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;
+                         letter-spacing:0.05em;">Tid</span><br />
+            <span style="font-size:15px;color:#334155;"><%= @callback_time %></span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0;font-size:13px;color:#94a3b8;line-height:1.6;">
+  Logga in på SaleFlow för att se fullständig information om leadet.
+</p>
