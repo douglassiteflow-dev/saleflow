@@ -14,8 +14,7 @@ defmodule Saleflow.Application do
       {Phoenix.PubSub, name: Saleflow.PubSub},
       {AshAuthentication.Supervisor, otp_app: :saleflow},
       Saleflow.Auth.GeoIP,
-      # Start a worker by calling: Saleflow.Worker.start_link(arg)
-      # {Saleflow.Worker, arg},
+      {Oban, Application.fetch_env!(:saleflow, Oban)},
       # Start to serve requests, typically the last entry
       SaleflowWeb.Endpoint
     ]

@@ -48,7 +48,9 @@ config :saleflow, Oban,
   plugins: [
     {Oban.Plugins.Cron, crontab: [
       {"*/5 * * * *", Saleflow.Workers.AutoReleaseWorker},
-      {"0 * * * *", Saleflow.Workers.QuarantineReleaseWorker}
+      {"0 * * * *", Saleflow.Workers.QuarantineReleaseWorker},
+      {"*/5 * * * *", Saleflow.Workers.MeetingReminderWorker},
+      {"*/5 * * * *", Saleflow.Workers.CallbackReminderWorker}
     ]}
   ]
 
