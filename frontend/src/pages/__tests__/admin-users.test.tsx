@@ -16,12 +16,11 @@ vi.mock("@/api/admin", () => ({
   useCreateUser: () => useCreateUserMock(),
 }));
 
+const useForceLogoutUserMock = vi.fn();
+
 vi.mock("@/api/sessions", () => ({
   useUserSessions: () => useUserSessionsMock(),
-  useForceLogoutUser: () => ({
-    mutate: forceLogoutUserMutateMock,
-    isPending: false,
-  }),
+  useForceLogoutUser: () => useForceLogoutUserMock(),
   useForceLogoutSession: () => ({
     mutate: forceLogoutSessionMutateMock,
     isPending: false,
@@ -39,6 +38,10 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 
 describe("AdminUsersPage", () => {
   beforeEach(() => {
+    useForceLogoutUserMock.mockReturnValue({
+      mutate: forceLogoutUserMutateMock,
+      isPending: false,
+    });
     useCreateUserMock.mockReturnValue({
       mutateAsync: mutateAsyncMock,
       isPending: false,
@@ -278,5 +281,90 @@ describe("AdminUsersPage", () => {
     fireEvent.click(sessionButtons[0]!);
 
     expect(screen.getByText("Laddar sessioner...")).toBeInTheDocument();
+  });
+
+  it("calls forceLogoutSession when individual session logout is clicked", () => {
+    useUserSessionsMock.mockReturnValue({
+      data: [
+        {
+          id: "sess-1",
+          device_type: "desktop",
+          browser: "Chrome",
+          city: "Stockholm",
+          country: "Sverige",
+          logged_in_at: "2026-03-31T10:00:00Z",
+          last_active_at: "2026-03-31T10:00:00Z",
+          force_logged_out: false,
+          current: false,
+        },
+      ],
+      isLoading: false,
+    });
+
+    render(<AdminUsersPage />, { wrapper: Wrapper });
+    const sessionButtons = screen.getAllByText("Sessioner");
+    fireEvent.click(sessionButtons[0]!);
+
+    // Click the force-logout button on the session (from SessionList's showForceLogout)
+    const logoutBtn = screen.getByRole("button", { name: "Logga ut" });
+    fireEvent.click(logoutBtn);
+    expect(forceLogoutSessionMutateMock).toHaveBeenCalledWith("sess-1");
+  });
+
+  it("calls forceLogoutUser when 'Logga ut alla' is clicked", () => {
+    useUserSessionsMock.mockReturnValue({
+      data: [
+        {
+          id: "sess-1",
+          device_type: "desktop",
+          browser: "Chrome",
+          city: null,
+          country: null,
+          logged_in_at: "2026-03-31T10:00:00Z",
+          last_active_at: "2026-03-31T10:00:00Z",
+          force_logged_out: false,
+          current: false,
+        },
+      ],
+      isLoading: false,
+    });
+
+    render(<AdminUsersPage />, { wrapper: Wrapper });
+    const sessionButtons = screen.getAllByText("Sessioner");
+    fireEvent.click(sessionButtons[0]!);
+
+    fireEvent.click(screen.getByText("Logga ut alla"));
+    expect(forceLogoutUserMutateMock).toHaveBeenCalledWith("1");
+  });
+
+  it("shows 'Loggar ut...' text when forceLogoutUser is pending", () => {
+    useForceLogoutUserMock.mockReturnValue({
+      mutate: forceLogoutUserMutateMock,
+      isPending: true,
+    });
+    useUserSessionsMock.mockReturnValue({
+      data: [],
+      isLoading: false,
+    });
+
+    render(<AdminUsersPage />, { wrapper: Wrapper });
+    const sessionButtons = screen.getAllByText("Sessioner");
+    fireEvent.click(sessionButtons[0]!);
+
+    expect(screen.getByText("Loggar ut...")).toBeInTheDocument();
+  });
+
+  it("renders sessions panel with null sessions data (fallback to empty)", () => {
+    useUserSessionsMock.mockReturnValue({
+      data: null,
+      isLoading: false,
+    });
+
+    render(<AdminUsersPage />, { wrapper: Wrapper });
+    const sessionButtons = screen.getAllByText("Sessioner");
+    fireEvent.click(sessionButtons[0]!);
+
+    // Should render without crash - empty SessionList
+    expect(screen.getByText("Logga ut alla")).toBeInTheDocument();
   });
 });

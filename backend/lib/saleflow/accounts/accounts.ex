@@ -165,11 +165,7 @@ defmodule Saleflow.Accounts do
   def create_login_session(user, conn_info) do
     ua = Saleflow.Auth.UserAgentParser.parse(conn_info[:user_agent] || conn_info.user_agent)
 
-    geo =
-      case Saleflow.Auth.GeoIP.lookup(conn_info[:ip_address] || conn_info.ip_address) do
-        {:ok, g} -> g
-        _ -> %{city: nil, country: nil}
-      end
+    {:ok, geo} = Saleflow.Auth.GeoIP.lookup(conn_info[:ip_address] || conn_info.ip_address)
 
     Saleflow.Accounts.LoginSession
     |> Ash.Changeset.for_create(:create, %{
@@ -276,7 +272,6 @@ defmodule Saleflow.Accounts do
          |> Ash.read_one() do
       {:ok, nil} -> {:error, :invalid_code}
       {:ok, otp} -> {:ok, otp}
-      error -> error
     end
   end
 

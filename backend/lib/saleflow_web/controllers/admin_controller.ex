@@ -83,15 +83,12 @@ defmodule SaleflowWeb.AdminController do
       {:ok, session} when not is_nil(session) ->
         Accounts.force_logout_session(session)
 
-        case Ash.get(Saleflow.Accounts.User, session.user_id) do
-          {:ok, user} when not is_nil(user) ->
-            {subject, html} =
-              Saleflow.Notifications.Templates.render_force_logout(user.name)
+        with {:ok, user} when not is_nil(user) <-
+               Ash.get(Saleflow.Accounts.User, session.user_id) do
+          {subject, html} =
+            Saleflow.Notifications.Templates.render_force_logout(user.name)
 
-            Saleflow.Notifications.Mailer.send_email_async(to_string(user.email), subject, html)
-
-          _ ->
-            :ok
+          Saleflow.Notifications.Mailer.send_email_async(to_string(user.email), subject, html)
         end
 
         json(conn, %{ok: true})

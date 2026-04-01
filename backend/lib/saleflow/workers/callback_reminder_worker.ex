@@ -56,17 +56,8 @@ defmodule Saleflow.Workers.CallbackReminderWorker do
       AND callback_reminded_at IS NULL
     """
 
-    case Repo.query(query, [now_naive, cutoff_naive]) do
-      {:ok, %{rows: rows}} ->
-        Enum.map(rows, fn [id_binary] -> decode_uuid(id_binary) end)
-
-      {:error, error} ->
-        Logger.warning(
-          "CallbackReminderWorker: failed to fetch callback leads: #{inspect(error)}"
-        )
-
-        []
-    end
+    {:ok, %{rows: rows}} = Repo.query(query, [now_naive, cutoff_naive])
+    Enum.map(rows, fn [id_binary] -> decode_uuid(id_binary) end)
   end
 
   defp send_reminder(lead_id) do
@@ -122,13 +113,8 @@ defmodule Saleflow.Workers.CallbackReminderWorker do
 
       {:ok, %{rows: []}} ->
         {:ok, nil}
-
-      {:error, error} ->
-        {:error, error}
     end
   end
-
-  defp format_datetime(nil), do: "okänt"
 
   defp format_datetime(%DateTime{} = dt) do
     Calendar.strftime(dt, "%Y-%m-%d %H:%M")

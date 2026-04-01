@@ -8,6 +8,7 @@ const useMeMock = vi.fn();
 const useMySessionsMock = vi.fn();
 const logoutAllMutateMock = vi.fn();
 const forceLogoutSessionMutateMock = vi.fn();
+const useLogoutAllMock = vi.fn();
 
 vi.mock("@/api/auth", () => ({
   useMe: () => useMeMock(),
@@ -15,10 +16,7 @@ vi.mock("@/api/auth", () => ({
 
 vi.mock("@/api/sessions", () => ({
   useMySessions: () => useMySessionsMock(),
-  useLogoutAll: () => ({
-    mutate: logoutAllMutateMock,
-    isPending: false,
-  }),
+  useLogoutAll: () => useLogoutAllMock(),
   useForceLogoutSession: () => ({
     mutate: forceLogoutSessionMutateMock,
     isPending: false,
@@ -36,6 +34,10 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 
 describe("ProfilePage", () => {
   beforeEach(() => {
+    useLogoutAllMock.mockReturnValue({
+      mutate: logoutAllMutateMock,
+      isPending: false,
+    });
     useMeMock.mockReturnValue({
       data: { id: "1", email: "test@test.se", name: "Test User", role: "agent" },
     });
@@ -137,5 +139,35 @@ describe("ProfilePage", () => {
     const logoutButton = screen.getByRole("button", { name: "Logga ut" });
     fireEvent.click(logoutButton);
     expect(forceLogoutSessionMutateMock).toHaveBeenCalledWith("s2");
+  });
+
+  it("shows 'Loggar ut...' when logoutAll is pending", () => {
+    useLogoutAllMock.mockReturnValue({
+      mutate: logoutAllMutateMock,
+      isPending: true,
+    });
+
+    render(<ProfilePage />, { wrapper: Wrapper });
+    expect(screen.getByText("Loggar ut...")).toBeInTheDocument();
+  });
+
+  it("renders with null sessions (fallback to empty array)", () => {
+    useMySessionsMock.mockReturnValue({
+      data: null,
+      isLoading: false,
+    });
+    render(<ProfilePage />, { wrapper: Wrapper });
+    // SessionList should render without error (empty list)
+    expect(screen.getByText("Mina sessioner")).toBeInTheDocument();
+  });
+
+  it("renders with undefined sessions (fallback to empty array)", () => {
+    useMySessionsMock.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+    });
+    render(<ProfilePage />, { wrapper: Wrapper });
+    // SessionList should render without error (empty list)
+    expect(screen.getByText("Mina sessioner")).toBeInTheDocument();
   });
 });

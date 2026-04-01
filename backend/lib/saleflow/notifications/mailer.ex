@@ -72,7 +72,8 @@ defmodule Saleflow.Notifications.Mailer do
   # Private helpers
   # ---------------------------------------------------------------------------
 
-  defp do_send(to, subject, html_body) do
+  @doc false
+  def do_send(to, subject, html_body) do
     api_key = Application.get_env(:saleflow, :resend_api_key)
     from = Application.get_env(:saleflow, :resend_from, "SaleFlow <noreply@saleflow.se>")
 
@@ -83,7 +84,7 @@ defmodule Saleflow.Notifications.Mailer do
       html: html_body
     }
 
-    case Req.post(@resend_url,
+    case http_post(@resend_url,
            json: payload,
            headers: [{"authorization", "Bearer #{api_key}"}]
          ) do
@@ -97,6 +98,14 @@ defmodule Saleflow.Notifications.Mailer do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp http_post(url, opts) do
+    http_client().post(url, opts)
+  end
+
+  defp http_client do
+    Application.get_env(:saleflow, :http_client, Req)
   end
 
   defp sandbox? do

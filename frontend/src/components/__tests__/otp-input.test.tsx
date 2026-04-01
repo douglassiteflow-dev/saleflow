@@ -111,6 +111,63 @@ describe("OtpInput", () => {
     }
   });
 
+  it("ignores input changes when disabled", () => {
+    const onComplete = vi.fn();
+    render(<OtpInput onComplete={onComplete} disabled />);
+    const inputs = screen.getAllByRole("textbox");
+
+    fireEvent.change(inputs[0]!, { target: { value: "5" } });
+    expect(inputs[0]).toHaveValue("");
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it("ignores keyDown when disabled", () => {
+    const onComplete = vi.fn();
+    render(<OtpInput onComplete={onComplete} disabled />);
+    const inputs = screen.getAllByRole("textbox");
+
+    fireEvent.keyDown(inputs[0]!, { key: "Backspace" });
+    // Nothing should change
+    expect(inputs[0]).toHaveValue("");
+  });
+
+  it("ignores paste when disabled", () => {
+    const onComplete = vi.fn();
+    render(<OtpInput onComplete={onComplete} disabled />);
+    const inputs = screen.getAllByRole("textbox");
+
+    fireEvent.paste(inputs[0]!, {
+      clipboardData: { getData: () => "123456" },
+    });
+    expect(inputs[0]).toHaveValue("");
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it("ignores non-Backspace keys in handleKeyDown", () => {
+    const onComplete = vi.fn();
+    render(<OtpInput onComplete={onComplete} />);
+    const inputs = screen.getAllByRole("textbox");
+
+    fireEvent.change(inputs[0]!, { target: { value: "1" } });
+    // Press a non-Backspace key (e.g., ArrowRight) on the first input
+    fireEvent.keyDown(inputs[0]!, { key: "ArrowRight" });
+    // Value should remain unchanged
+    expect(inputs[0]).toHaveValue("1");
+  });
+
+  it("handles paste of non-digit content (empty after strip)", () => {
+    const onComplete = vi.fn();
+    render(<OtpInput onComplete={onComplete} />);
+    const inputs = screen.getAllByRole("textbox");
+
+    fireEvent.paste(inputs[0]!, {
+      clipboardData: { getData: () => "abcdef" },
+    });
+    // Should not change any values since no digits were pasted
+    expect(inputs[0]).toHaveValue("");
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
   it("does not show error when error is null", () => {
     const onComplete = vi.fn();
     render(<OtpInput onComplete={onComplete} error={null} />);

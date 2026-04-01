@@ -58,17 +58,8 @@ defmodule Saleflow.Workers.MeetingReminderWorker do
       AND (meeting_date + meeting_time)::timestamp <= $2
     """
 
-    case Repo.query(query, [now_naive, cutoff_naive]) do
-      {:ok, %{rows: rows}} ->
-        Enum.map(rows, fn [id_binary] -> decode_uuid(id_binary) end)
-
-      {:error, error} ->
-        Logger.warning(
-          "MeetingReminderWorker: failed to fetch meetings: #{inspect(error)}"
-        )
-
-        []
-    end
+    {:ok, %{rows: rows}} = Repo.query(query, [now_naive, cutoff_naive])
+    Enum.map(rows, fn [id_binary] -> decode_uuid(id_binary) end)
   end
 
   defp send_reminder(meeting_id) do

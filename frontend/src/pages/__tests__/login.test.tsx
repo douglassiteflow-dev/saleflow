@@ -252,6 +252,66 @@ describe("LoginPage", () => {
     expect(screen.getByText("Verifieringen misslyckades")).toBeInTheDocument();
   });
 
+  it("calls verifyOtp with user_id and code on OTP complete", () => {
+    useMeMock.mockReturnValue({ data: null, isLoading: false });
+    loginMutateMock.mockImplementation(
+      (_params: unknown, opts: { onSuccess?: (data: { otp_sent: boolean; user_id: string }) => void }) => {
+        opts?.onSuccess?.({ otp_sent: true, user_id: "u-456" });
+      },
+    );
+
+    render(<LoginPage />, { wrapper: Wrapper });
+    fireEvent.change(screen.getByLabelText(/E-post/i), { target: { value: "test@test.se" } });
+    fireEvent.change(screen.getByLabelText(/Lösenord/i), { target: { value: "pass123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Logga in" }));
+
+    // Now on OTP step, fill in all 6 digits
+    const inputs = screen.getAllByRole("textbox");
+    fireEvent.change(inputs[0]!, { target: { value: "1" } });
+    fireEvent.change(inputs[1]!, { target: { value: "2" } });
+    fireEvent.change(inputs[2]!, { target: { value: "3" } });
+    fireEvent.change(inputs[3]!, { target: { value: "4" } });
+    fireEvent.change(inputs[4]!, { target: { value: "5" } });
+    fireEvent.change(inputs[5]!, { target: { value: "6" } });
+
+    expect(verifyOtpMutateMock).toHaveBeenCalledWith(
+      { user_id: "u-456", code: "123456" },
+      expect.any(Object),
+    );
+  });
+
+  it("navigates to dashboard on successful OTP verification", () => {
+    useMeMock.mockReturnValue({ data: null, isLoading: false });
+    loginMutateMock.mockImplementation(
+      (_params: unknown, opts: { onSuccess?: (data: { otp_sent: boolean; user_id: string }) => void }) => {
+        opts?.onSuccess?.({ otp_sent: true, user_id: "u-789" });
+      },
+    );
+    // Make verifyOtp immediately call onSuccess
+    verifyOtpMutateMock.mockImplementation(
+      (_params: unknown, opts: { onSuccess?: () => void }) => {
+        opts?.onSuccess?.();
+      },
+    );
+
+    render(<LoginPage />, { wrapper: Wrapper });
+    fireEvent.change(screen.getByLabelText(/E-post/i), { target: { value: "test@test.se" } });
+    fireEvent.change(screen.getByLabelText(/Lösenord/i), { target: { value: "pass123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Logga in" }));
+
+    // Fill in OTP
+    const inputs = screen.getAllByRole("textbox");
+    fireEvent.change(inputs[0]!, { target: { value: "1" } });
+    fireEvent.change(inputs[1]!, { target: { value: "2" } });
+    fireEvent.change(inputs[2]!, { target: { value: "3" } });
+    fireEvent.change(inputs[3]!, { target: { value: "4" } });
+    fireEvent.change(inputs[4]!, { target: { value: "5" } });
+    fireEvent.change(inputs[5]!, { target: { value: "6" } });
+
+    // Should navigate to dashboard
+    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+  });
+
   it("shows resend success message", () => {
     useMeMock.mockReturnValue({ data: null, isLoading: false });
     loginMutateMock.mockImplementation(

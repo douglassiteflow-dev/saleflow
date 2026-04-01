@@ -37,8 +37,8 @@ defmodule SaleflowWeb.ConnCase do
   end
 
   @doc """
-  Creates a test user and returns an authenticated connection with the
-  user_id set in the session.
+  Creates a test user and returns an authenticated connection with a
+  session_token set in the session (backed by a real LoginSession).
   """
   def register_and_log_in_user(conn, attrs \\ %{}) do
     user_attrs =
@@ -54,20 +54,24 @@ defmodule SaleflowWeb.ConnCase do
 
     {:ok, user} = Saleflow.Accounts.register(user_attrs)
 
-    conn =
-      conn
-      |> Plug.Test.init_test_session(%{})
-      |> Plug.Conn.put_session(:user_id, user.id)
+    conn = log_in_user(conn, user)
 
     {conn, user}
   end
 
   @doc """
-  Sets up an authenticated connection in the test context.
+  Sets up an authenticated connection by creating a LoginSession and
+  putting its session_token in the Phoenix session.
   """
   def log_in_user(conn, user) do
+    {:ok, session} =
+      Saleflow.Accounts.create_login_session(user, %{
+        ip_address: "127.0.0.1",
+        user_agent: "test-agent"
+      })
+
     conn
     |> Plug.Test.init_test_session(%{})
-    |> Plug.Conn.put_session(:user_id, user.id)
+    |> Plug.Conn.put_session(:session_token, session.session_token)
   end
 end

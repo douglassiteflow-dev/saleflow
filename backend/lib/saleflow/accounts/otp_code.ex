@@ -63,6 +63,19 @@ defmodule Saleflow.Accounts.OtpCode do
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "otp.created"}
     end
 
+    update :expire do
+      description "Force-expire an OTP (sets expires_at to the past). Used in tests."
+      require_atomic? false
+
+      change fn changeset, _context ->
+        Ash.Changeset.force_change_attribute(
+          changeset,
+          :expires_at,
+          DateTime.add(DateTime.utc_now(), -60, :second)
+        )
+      end
+    end
+
     update :mark_used do
       description "Mark an OTP code as used"
       require_atomic? false
