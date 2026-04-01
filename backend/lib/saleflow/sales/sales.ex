@@ -328,4 +328,86 @@ defmodule Saleflow.Sales do
     |> Ash.Query.sort(released_at: :asc)
     |> Ash.read()
   end
+
+  # ---------------------------------------------------------------------------
+  # Lead Queue
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Atomically dequeues the next available lead for the given agent.
+
+  Eligibility criteria (evaluated inside a single transaction with
+  `FOR UPDATE SKIP LOCKED` on the leads table row):
+
+  - `status = 'new'`, **or**
+  - `status = 'quarantine'` and `quarantine_until < NOW()`
+
+  AND there is no active (unreleased) assignment for that lead.
+
+  Leads are returned in `inserted_at ASC` order — oldest first.
+
+  Side-effects performed atomically within the same transaction:
+
+  1. Any existing active assignment for `agent` is released with reason
+     `:manual`.
+  2. A new `Assignment` record is created linking `agent` to the lead.
+  3. The lead's `status` is updated to `:assigned`.
+
+  Returns `{:ok, %Lead{}}` on success, `{:ok, nil}` when the queue is
+  empty, or `{:error, reason}` on failure.
+  """
+  @spec get_next_lead(Saleflow.Accounts.User.t()) ::
+          {:ok, Saleflow.Sales.Lead.t() | nil} | {:error, term()}
+  def get_next_lead(agent) do
+    Saleflow.Repo.transaction(fn ->
+      query = """
+      SELECT l.id FROM leads l
+      WHERE (l.status = 'new' OR (l.status = 'quarantine' AND l.quarantine_until < NOW()))
+        AND NOT EXISTS (
+          SELECT 1 FROM assignments a
+          WHERE a.lead_id = l.id AND a.released_at IS NULL
+        )
+      ORDER BY l.inserted_at ASC
+      LIMIT 1
+      FOR UPDATE OF l SKIP LOCKED
+      """
+
+      case Saleflow.Repo.query(query) do
+        {:ok, %{rows: [[lead_id_binary]]}} ->
+          lead_id = decode_uuid(lead_id_binary)
+          {:ok, lead} = get_lead(lead_id)
+
+          # Release any previous active assignment for this agent
+          release_active_assignment(agent)
+
+          # Create new assignment
+          {:ok, _assignment} = assign_lead(lead, agent)
+
+          # Update lead status to :assigned
+          {:ok, updated_lead} = update_lead_status(lead, %{status: :assigned})
+          updated_lead
+
+        {:ok, %{rows: []}} ->
+          nil
+      end
+    end)
+  end
+
+  # Decodes a UUID that may come back from a raw Postgres query as either a
+  # binary (16-byte) or already as a string (depends on Ecto/Postgrex version).
+  defp decode_uuid(value) when is_binary(value) and byte_size(value) == 16 do
+    Ecto.UUID.load!(value)
+  end
+
+  defp decode_uuid(value) when is_binary(value) do
+    value
+  end
+
+  defp release_active_assignment(agent) do
+    case get_active_assignment(agent) do
+      {:ok, nil} -> :ok
+      {:ok, assignment} -> release_assignment(assignment, :manual)
+      _ -> :ok
+    end
+  end
 end

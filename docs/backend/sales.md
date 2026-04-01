@@ -365,6 +365,73 @@ Returns quarantine records where `released_at > now`, sorted by `released_at` as
 
 ---
 
+## Lead Queue
+
+### `Saleflow.Sales.get_next_lead/1`
+
+Atomically dequeues the next available lead for a given agent.
+
+```elixir
+{:ok, lead} = Saleflow.Sales.get_next_lead(agent)   # lead or nil
+```
+
+#### Algorithm
+
+Everything executes inside a single `Repo.transaction/1`:
+
+1. **Lock & select** — a raw SQL query finds the oldest eligible lead and locks its row with `FOR UPDATE OF l SKIP LOCKED`. This prevents two concurrent agents from receiving the same lead.
+2. **Release previous assignment** — if the agent already has an active assignment it is released with reason `:manual`.
+3. **Create new assignment** — a new `Assignment` record is created linking the agent to the lead.
+4. **Update lead status** — the lead's `status` is set to `:assigned`.
+5. Returns the updated `%Lead{}`, or `nil` if the queue is empty.
+
+#### Eligibility criteria
+
+A lead enters the queue when:
+
+| Condition | SQL |
+|-----------|-----|
+| Status is `:new` | `l.status = 'new'` |
+| Status is `:quarantine` and quarantine has expired | `l.status = 'quarantine' AND l.quarantine_until < NOW()` |
+
+A lead is **excluded** if it already has an active (unreleased) assignment:
+
+```sql
+NOT EXISTS (
+  SELECT 1 FROM assignments a
+  WHERE a.lead_id = l.id AND a.released_at IS NULL
+)
+```
+
+#### Locking mechanism
+
+The query uses PostgreSQL's `FOR UPDATE OF l SKIP LOCKED`:
+
+- `FOR UPDATE` acquires a row-level write lock on the selected lead for the duration of the transaction.
+- `SKIP LOCKED` means that if another transaction has already locked a candidate row, this transaction silently skips it and picks the next eligible lead instead of blocking.
+
+This guarantees that two agents calling `get_next_lead/1` simultaneously will always receive **different** leads — no duplicates, no blocking.
+
+#### Status flow and queue re-entry
+
+| Outcome logged | Status set to | Re-enters queue? |
+|---------------|---------------|-----------------|
+| `:no_answer` | `:new` (manually reset) | Yes |
+| `:callback` | `:callback` | No (until manually reset) |
+| `:quarantine` | `:quarantine` (auto-sets `quarantine_until`) | After `quarantine_until` expires |
+| `:meeting_booked` | `:meeting_booked` | No |
+| `:customer` | `:customer` | No (terminal) |
+| `:bad_number` | `:bad_number` | No (terminal) |
+
+#### Concurrency guarantees
+
+- **Atomic** — the entire sequence (lock → release old → assign → update status) executes in one transaction. Partial application is impossible.
+- **Duplicate-free** — `FOR UPDATE SKIP LOCKED` ensures each lead is returned to at most one agent per dequeue cycle.
+- **FIFO** — leads are served `ORDER BY inserted_at ASC`; oldest leads are always prioritised.
+- **No starvation** — because `SKIP LOCKED` never blocks, agents always get a response immediately (either a lead or `nil`).
+
+---
+
 ## Audit Logging
 
 All mutating actions are automatically captured via `Saleflow.Audit.Changes.CreateAuditLog`:
