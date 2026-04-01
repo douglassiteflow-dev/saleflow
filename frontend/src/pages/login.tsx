@@ -1,0 +1,113 @@
+import { useState, type FormEvent } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { useMe, useLogin } from "@/api/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+
+export function LoginPage() {
+  const { data: user, isLoading } = useMe();
+  const login = useLogin();
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-[var(--color-text-secondary)]">Laddar...</p>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    login.mutate(
+      { email, password },
+      {
+        onSuccess: () => {
+          void navigate("/dashboard");
+        },
+      },
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+      <div style={{ width: "100%", maxWidth: "400px" }}>
+        <div className="mb-8 text-center">
+          <h1
+            className="text-2xl font-semibold text-indigo-600"
+            style={{ fontSize: "28px" }}
+          >
+            SaleFlow
+          </h1>
+          <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+            Logga in på ditt konto
+          </p>
+        </div>
+
+        <Card>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="email"
+                className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]"
+              >
+                E-post
+              </label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="namn@foretag.se"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="password"
+                className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]"
+              >
+                Lösenord
+              </label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+
+            {login.isError && (
+              <p className="text-sm text-[var(--color-danger)] bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                {login.error?.message ?? "Inloggningen misslyckades"}
+              </p>
+            )}
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              className="w-full"
+              disabled={login.isPending}
+            >
+              {login.isPending ? "Loggar in..." : "Logga in"}
+            </Button>
+          </form>
+        </Card>
+      </div>
+    </div>
+  );
+}
