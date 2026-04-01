@@ -5,19 +5,26 @@ import type { Lead } from "@/api/types";
 
 const baseLead: Lead = {
   id: "1",
-  first_name: "Anna",
-  last_name: "Svensson",
-  company: "Test AB",
-  phone: "+46701234567",
-  email: "anna@test.se",
+  företag: "Test AB",
+  telefon: "+46701234567",
+  epost: "anna@test.se",
+  hemsida: null,
+  adress: null,
+  postnummer: null,
+  stad: null,
+  bransch: null,
+  orgnr: null,
+  omsättning_tkr: null,
+  vinst_tkr: null,
+  anställda: null,
+  vd_namn: null,
+  bolagsform: null,
   status: "new",
-  assigned_to: null,
-  notes: "Some notes",
-  priority: 1,
+  quarantine_until: null,
   callback_at: null,
-  do_not_call: false,
-  list_name: null,
-  created_at: "2024-01-01T00:00:00Z",
+  callback_reminded_at: null,
+  imported_at: null,
+  inserted_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-01T00:00:00Z",
 };
 
@@ -25,11 +32,6 @@ describe("LeadInfo", () => {
   it("renders company name as title when present", () => {
     render(<LeadInfo lead={baseLead} />);
     expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent("Test AB");
-  });
-
-  it("renders full name when company is null", () => {
-    render(<LeadInfo lead={{ ...baseLead, company: null }} />);
-    expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent("Anna Svensson");
   });
 
   it("renders phone link", () => {
@@ -45,18 +47,8 @@ describe("LeadInfo", () => {
   });
 
   it("does not render email row when email is null", () => {
-    render(<LeadInfo lead={{ ...baseLead, email: null }} />);
+    render(<LeadInfo lead={{ ...baseLead, epost: null }} />);
     expect(screen.queryByText("anna@test.se")).not.toBeInTheDocument();
-  });
-
-  it("renders notes when present", () => {
-    render(<LeadInfo lead={baseLead} />);
-    expect(screen.getByText("Some notes")).toBeInTheDocument();
-  });
-
-  it("does not render notes row when notes is null", () => {
-    render(<LeadInfo lead={{ ...baseLead, notes: null }} />);
-    expect(screen.queryByText("Anteckningar")).not.toBeInTheDocument();
   });
 
   it("renders status badge", () => {
@@ -65,18 +57,18 @@ describe("LeadInfo", () => {
   });
 
   it("renders extended fields when present", () => {
-    const extLead = {
+    const extLead: Lead = {
       ...baseLead,
-      org_number: "556000-1234",
-      address: "Testgatan 1",
-      zip: "12345",
-      city: "Stockholm",
-      industry: "IT",
-      revenue: 5000000,
-      profit: 500000,
-      employees: 25,
-      ceo: "Erik CEO",
-      company_type: "AB",
+      orgnr: "556000-1234",
+      adress: "Testgatan 1",
+      postnummer: "12345",
+      stad: "Stockholm",
+      bransch: "IT",
+      omsättning_tkr: "5000",
+      vinst_tkr: "500",
+      anställda: "25",
+      vd_namn: "Erik CEO",
+      bolagsform: "AB",
     };
     render(<LeadInfo lead={extLead} />);
     expect(screen.getByText("556000-1234")).toBeInTheDocument();
@@ -90,7 +82,7 @@ describe("LeadInfo", () => {
   });
 
   it("skips InfoRow when value is empty string", () => {
-    const lead = { ...baseLead, org_number: "" };
+    const lead: Lead = { ...baseLead, orgnr: "" };
     render(<LeadInfo lead={lead} />);
     // "Org.nr" label should not render
     expect(screen.queryByText("Org.nr")).not.toBeInTheDocument();

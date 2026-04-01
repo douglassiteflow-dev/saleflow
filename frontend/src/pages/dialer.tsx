@@ -1,17 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { Lead, CallLog, AuditLog } from "@/api/types";
 import { useNextLead, useLeadDetail } from "@/api/leads";
 import { Button } from "@/components/ui/button";
 import { LeadInfo } from "@/components/lead-info";
 import { OutcomePanel } from "@/components/outcome-panel";
 import { HistoryTimeline } from "@/components/history-timeline";
-
-// The lead detail API may return these extra fields
-interface LeadDetail extends Lead {
-  call_logs?: CallLog[];
-  audit_logs?: AuditLog[];
-}
 
 export function DialerPage() {
   const navigate = useNavigate();
@@ -22,12 +15,14 @@ export function DialerPage() {
     currentLeadId ?? undefined,
   );
 
-  const lead = leadData as LeadDetail | undefined;
-
   function handleNextLead() {
     nextLeadMutation.mutate(undefined, {
       onSuccess: (newLead) => {
-        setCurrentLeadId(newLead.id);
+        if (newLead) {
+          setCurrentLeadId(newLead.id);
+        } else {
+          setCurrentLeadId(null);
+        }
       },
     });
   }
@@ -37,7 +32,6 @@ export function DialerPage() {
   }
 
   function handleOutcomeSubmitted() {
-    // Auto-fetch next lead after outcome
     handleNextLead();
   }
 
@@ -50,7 +44,9 @@ export function DialerPage() {
             className="font-semibold text-[var(--color-text-primary)] mb-2"
             style={{ fontSize: "22px" }}
           >
-            Redo att börja ringa?
+            {nextLeadMutation.data === null
+              ? "Inga fler leads i kön"
+              : "Redo att börja ringa?"}
           </h2>
           <p className="text-sm text-[var(--color-text-secondary)]">
             Tryck på knappen nedan för att hämta nästa kund i kön.
@@ -66,15 +62,15 @@ export function DialerPage() {
         </Button>
         {nextLeadMutation.isError && (
           <p className="text-sm text-[var(--color-danger)]">
-            {nextLeadMutation.error?.message ?? "Kunde inte hämta nästa kund."}
+            Kunde inte hämta nästa kund.
           </p>
         )}
       </div>
     );
   }
 
-  // State: loading lead detail
-  if (leadLoading) {
+  // State: loading
+  if (leadLoading || !leadData) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <p className="text-[var(--color-text-secondary)]">Laddar kund...</p>
@@ -82,14 +78,7 @@ export function DialerPage() {
     );
   }
 
-  // State: lead loaded
-  if (!lead) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-[var(--color-danger)]">Kunde inte ladda kunddata.</p>
-      </div>
-    );
-  }
+  const { lead, calls, audit_logs: auditLogs } = leadData;
 
   return (
     <div className="space-y-6">
@@ -99,7 +88,7 @@ export function DialerPage() {
           className="font-semibold text-[var(--color-text-primary)]"
           style={{ fontSize: "22px" }}
         >
-          {lead.company ?? `${lead.first_name} ${lead.last_name}`}
+          {lead.företag}
         </h1>
         <div className="flex items-center gap-3">
           <Button
@@ -111,7 +100,7 @@ export function DialerPage() {
             Hoppa över
           </Button>
           <Button
-            variant="primary"
+            variant="secondary"
             size="default"
             onClick={() => void navigate("/dashboard")}
           >
@@ -126,10 +115,10 @@ export function DialerPage() {
         <OutcomePanel leadId={lead.id} onOutcomeSubmitted={handleOutcomeSubmitted} />
       </div>
 
-      {/* History timeline below */}
+      {/* History timeline */}
       <HistoryTimeline
-        callLogs={lead.call_logs}
-        auditLogs={lead.audit_logs}
+        callLogs={calls}
+        auditLogs={auditLogs}
       />
     </div>
   );

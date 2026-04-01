@@ -19,39 +19,43 @@ vi.mock("@/api/audit", () => ({
 const defaultLogs = [
   {
     id: "a1",
-    lead_id: "l1",
     user_id: "u1",
-    user: { name: "Agent A" },
     action: "lead.created",
-    details: { source: "import" },
-    created_at: "2024-03-15T10:00:00Z",
+    resource_type: "lead",
+    resource_id: "l1",
+    changes: { source: { from: "", to: "import" } },
+    metadata: {},
+    inserted_at: "2024-03-15T10:00:00Z",
   },
   {
     id: "a2",
-    lead_id: "l2",
     user_id: null,
-    user: null,
     action: "call.logged",
-    details: null,
-    created_at: "2024-03-14T09:00:00Z",
+    resource_type: "call",
+    resource_id: "l2",
+    changes: {},
+    metadata: {},
+    inserted_at: "2024-03-14T09:00:00Z",
   },
   {
     id: "a3",
-    lead_id: "l3",
     user_id: null,
-    user: null,
     action: "meeting.created",
-    details: {},
-    created_at: "2024-03-13T09:00:00Z",
+    resource_type: "meeting",
+    resource_id: "l3",
+    changes: {},
+    metadata: {},
+    inserted_at: "2024-03-13T09:00:00Z",
   },
   {
     id: "a4",
-    lead_id: "l4",
     user_id: null,
-    user: null,
     action: "system.unknown",
-    details: null,
-    created_at: "2024-03-12T09:00:00Z",
+    resource_type: "system",
+    resource_id: "l4",
+    changes: {},
+    metadata: {},
+    inserted_at: "2024-03-12T09:00:00Z",
   },
 ];
 
@@ -87,12 +91,7 @@ describe("HistoryPage", () => {
     expect(screen.getAllByText("Samtal loggat").length).toBeGreaterThanOrEqual(2);
   });
 
-  it("renders user name when available", () => {
-    render(<HistoryPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Agent A")).toBeInTheDocument();
-  });
-
-  it("renders dash when user is null", () => {
+  it("renders dash for empty changes", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
     const dashes = screen.getAllByText("—");
     expect(dashes.length).toBeGreaterThan(0);
@@ -117,14 +116,15 @@ describe("HistoryPage", () => {
 
   it("filters by search text", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    const searchInput = screen.getByPlaceholderText("Sök händelse, lead-ID, användare...");
-    fireEvent.change(searchInput, { target: { value: "Agent A" } });
-    expect(screen.getByText("Agent A")).toBeInTheDocument();
+    const searchInput = screen.getByPlaceholderText("Sök händelse, resurs-ID...");
+    fireEvent.change(searchInput, { target: { value: "l1" } });
+    // a1 has resource_id "l1", should be shown (also in dropdown option)
+    expect(screen.getAllByText("Lead skapad").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders changes summary", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    expect(screen.getByText("source: import")).toBeInTheDocument();
+    expect(screen.getByText(/source:/)).toBeInTheDocument();
   });
 
   it("renders action filter dropdown", () => {
@@ -173,30 +173,23 @@ describe("HistoryPage", () => {
     expect(screen.getByDisplayValue("Lead skapad")).toBeInTheDocument();
   });
 
-  it("filters by details content in search", () => {
+  it("filters by changes content in search", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    const searchInput = screen.getByPlaceholderText("Sök händelse, lead-ID, användare...");
+    const searchInput = screen.getByPlaceholderText("Sök händelse, resurs-ID...");
     fireEvent.change(searchInput, { target: { value: "import" } });
-    expect(screen.getByText("source: import")).toBeInTheDocument();
+    expect(screen.getByText(/source:/)).toBeInTheDocument();
   });
 
-  it("filters by lead_id in search", () => {
+  it("filters by resource_id in search", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    const searchInput = screen.getByPlaceholderText("Sök händelse, lead-ID, användare...");
+    const searchInput = screen.getByPlaceholderText("Sök händelse, resurs-ID...");
     fireEvent.change(searchInput, { target: { value: "l1" } });
-    expect(screen.getByText("Agent A")).toBeInTheDocument();
+    expect(screen.getAllByText("Lead skapad").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("changes summary shows dash for null details", () => {
+  it("changes summary shows dash for empty changes", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    // a2 has null details and a4 has null details → "—" in changes column
-    const dashes = screen.getAllByText("—");
-    expect(dashes.length).toBeGreaterThan(0);
-  });
-
-  it("changes summary shows dash for empty details", () => {
-    render(<HistoryPage />, { wrapper: Wrapper });
-    // a3 has {} details → "—"
+    // a2, a3, a4 have empty changes → "—" in changes column
     const dashes = screen.getAllByText("—");
     expect(dashes.length).toBeGreaterThan(0);
   });
@@ -206,12 +199,13 @@ describe("HistoryPage", () => {
       data: [
         {
           id: "a1",
-          lead_id: "l1",
           user_id: "u1",
-          user: null,
           action: "lead.updated",
-          details: { a: "1", b: "2", c: "3", d: "4" },
-          created_at: "2024-03-15T10:00:00Z",
+          resource_type: "lead",
+          resource_id: "l1",
+          changes: { a: "1", b: "2", c: "3", d: "4" },
+          metadata: {},
+          inserted_at: "2024-03-15T10:00:00Z",
         },
       ],
       isLoading: false,

@@ -2,7 +2,8 @@
  * Format a phone number from +46... form to 070-xxx xx xx Swedish style.
  * Falls back to the original string if it doesn't match the expected pattern.
  */
-export function formatPhone(phone: string): string {
+export function formatPhone(phone: string | null | undefined): string {
+  if (!phone) return "";
   // Remove all spaces
   const cleaned = phone.replace(/\s/g, "");
 

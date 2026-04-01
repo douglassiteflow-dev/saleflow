@@ -9,7 +9,7 @@ type TimelineEntry =
 
 function getTimestamp(entry: TimelineEntry): string {
   if (entry.kind === "call") return entry.data.called_at;
-  return entry.data.created_at;
+  return entry.data.inserted_at;
 }
 
 interface HistoryTimelineProps {
@@ -79,11 +79,6 @@ export function HistoryTimeline({ callLogs = [], auditLogs = [] }: HistoryTimeli
                     <span className="text-[11px] font-mono text-[var(--color-text-secondary)]">
                       {formatDateTime(timestamp)}
                     </span>
-                    {isCall && entry.data.user && (
-                      <span className="text-[11px] text-[var(--color-text-secondary)]">
-                        av {entry.data.user.name}
-                      </span>
-                    )}
                   </div>
 
                   {isCall && entry.data.notes && (
@@ -93,10 +88,10 @@ export function HistoryTimeline({ callLogs = [], auditLogs = [] }: HistoryTimeli
                   )}
 
                   {!isCall &&
-                    entry.data.details &&
-                    Object.keys(entry.data.details).length > 0 && (
+                    entry.data.changes &&
+                    Object.keys(entry.data.changes).length > 0 && (
                       <p className="mt-1 text-[11px] font-mono text-[var(--color-text-secondary)] bg-[var(--color-bg-panel)] rounded px-2 py-1">
-                        {JSON.stringify(entry.data.details)}
+                        {JSON.stringify(entry.data.changes)}
                       </p>
                     )}
                 </div>

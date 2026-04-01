@@ -27,7 +27,7 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 describe("AdminStatsPage", () => {
   beforeEach(() => {
     useAdminStatsMock.mockReturnValue({
-      data: { calls_today: 15, leads_remaining: 100, meetings_booked: 8, conversion_rate: 0.12 },
+      data: { total_leads: 100, new: 50, assigned: 20, meeting_booked: 8, quarantine: 10, customer: 7, bad_number: 5 },
       isLoading: false,
     });
     useLeadsMock.mockReturnValue({
@@ -48,27 +48,28 @@ describe("AdminStatsPage", () => {
 
   it("renders stat cards", () => {
     render(<AdminStatsPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Samtal idag")).toBeInTheDocument();
-    expect(screen.getByText("15")).toBeInTheDocument();
-    expect(screen.getByText("Leads kvar")).toBeInTheDocument();
+    expect(screen.getByText("Totalt leads")).toBeInTheDocument();
     expect(screen.getByText("100")).toBeInTheDocument();
     expect(screen.getByText("Möten bokade")).toBeInTheDocument();
     expect(screen.getByText("8")).toBeInTheDocument();
-    expect(screen.getByText("Konvertering")).toBeInTheDocument();
-    expect(screen.getByText("12.0%")).toBeInTheDocument();
+    expect(screen.getByText("Kunder")).toBeInTheDocument();
+    expect(screen.getByText("7")).toBeInTheDocument();
   });
 
   it("renders lead status breakdown", () => {
     render(<AdminStatsPage />, { wrapper: Wrapper });
     expect(screen.getByText("Leads per status")).toBeInTheDocument();
-    expect(screen.getByText("Nya")).toBeInTheDocument();
+    // "Nya" appears in both stat card label and status breakdown
+    expect(screen.getAllByText("Nya").length).toBeGreaterThanOrEqual(1);
   });
 
   it("displays count and percentage for statuses", () => {
     render(<AdminStatsPage />, { wrapper: Wrapper });
-    // Find the "Nya" (new) row and verify count within it
-    const nyaLabel = screen.getByText("Nya");
-    const nyaRow = nyaLabel.closest(".space-y-1\\.5")!;
+    // Find the "Nya" (new) row in the status breakdown section
+    const nyaLabels = screen.getAllByText("Nya");
+    // The one inside the breakdown section (not the stat card)
+    const breakdownNya = nyaLabels.find((el) => el.closest(".space-y-1\\.5"));
+    const nyaRow = breakdownNya!.closest(".space-y-1\\.5")!;
     const nyaScope = within(nyaRow as HTMLElement);
     expect(nyaScope.getByText("2")).toBeInTheDocument();
     expect(nyaScope.getByText("(50.0%)")).toBeInTheDocument();
@@ -96,14 +97,13 @@ describe("AdminStatsPage", () => {
 
   it("renders all status labels", () => {
     render(<AdminStatsPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Nya")).toBeInTheDocument();
+    expect(screen.getAllByText("Nya").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Tilldelade")).toBeInTheDocument();
     expect(screen.getByText("Återuppringning")).toBeInTheDocument();
     expect(screen.getByText("Möte bokat")).toBeInTheDocument();
     expect(screen.getByText("Karantän")).toBeInTheDocument();
     expect(screen.getByText("Fel nummer")).toBeInTheDocument();
     expect(screen.getByText("Kund")).toBeInTheDocument();
-    expect(screen.getByText("Inte intresserad")).toBeInTheDocument();
   });
 
   it("handles null stats data", () => {
@@ -119,7 +119,7 @@ describe("AdminStatsPage", () => {
     render(<AdminStatsPage />, { wrapper: Wrapper });
     // All statuses show 0
     const zeroCounts = screen.getAllByText("0");
-    expect(zeroCounts.length).toBeGreaterThanOrEqual(8);
+    expect(zeroCounts.length).toBeGreaterThanOrEqual(7);
   });
 
   it("does not show percentages when total is 0", () => {

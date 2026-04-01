@@ -7,22 +7,20 @@ const callLog: CallLog = {
   id: "c1",
   lead_id: "l1",
   user_id: "u1",
-  user: { id: "u1", email: "test@test.se", name: "Agent A", role: "agent", created_at: "", updated_at: "" },
   outcome: "meeting_booked",
   notes: "Called and booked",
-  duration_seconds: 120,
   called_at: "2024-03-15T10:00:00Z",
-  created_at: "2024-03-15T10:00:00Z",
 };
 
 const auditLog: AuditLog = {
   id: "a1",
-  lead_id: "l1",
   user_id: "u1",
-  user: null,
   action: "lead.created",
-  details: { source: "import" },
-  created_at: "2024-03-14T09:00:00Z",
+  resource_type: "lead",
+  resource_id: "l1",
+  changes: { source: { from: "", to: "import" } },
+  metadata: {},
+  inserted_at: "2024-03-14T09:00:00Z",
 };
 
 describe("HistoryTimeline", () => {
@@ -46,19 +44,14 @@ describe("HistoryTimeline", () => {
     expect(screen.getByText("Called and booked")).toBeInTheDocument();
   });
 
-  it("renders user name for call logs", () => {
-    render(<HistoryTimeline callLogs={[callLog]} />);
-    expect(screen.getByText("av Agent A")).toBeInTheDocument();
-  });
-
   it("renders audit logs with action", () => {
     render(<HistoryTimeline auditLogs={[auditLog]} />);
     expect(screen.getByText("lead.created")).toBeInTheDocument();
   });
 
-  it("renders audit log details as JSON", () => {
+  it("renders audit log changes as JSON", () => {
     render(<HistoryTimeline auditLogs={[auditLog]} />);
-    expect(screen.getByText('{"source":"import"}')).toBeInTheDocument();
+    expect(screen.getByText(JSON.stringify(auditLog.changes))).toBeInTheDocument();
   });
 
   it("sorts entries by timestamp descending", () => {
@@ -71,7 +64,7 @@ describe("HistoryTimeline", () => {
   });
 
   it("renders call log with null outcome as 'Samtal'", () => {
-    const nullOutcomeLog: CallLog = { ...callLog, outcome: null };
+    const nullOutcomeLog = { ...callLog, outcome: null as unknown as CallLog["outcome"] };
     render(<HistoryTimeline callLogs={[nullOutcomeLog]} />);
     expect(screen.getByText("Samtal")).toBeInTheDocument();
   });
@@ -82,21 +75,9 @@ describe("HistoryTimeline", () => {
     expect(screen.queryByText("Called and booked")).not.toBeInTheDocument();
   });
 
-  it("skips details display when audit has null details", () => {
-    const noDetailsLog: AuditLog = { ...auditLog, details: null };
-    render(<HistoryTimeline auditLogs={[noDetailsLog]} />);
-    expect(screen.queryByText('{"source":"import"}')).not.toBeInTheDocument();
-  });
-
-  it("skips details display when audit has empty details", () => {
-    const emptyDetailsLog: AuditLog = { ...auditLog, details: {} };
-    render(<HistoryTimeline auditLogs={[emptyDetailsLog]} />);
+  it("skips changes display when audit has empty changes", () => {
+    const emptyChangesLog: AuditLog = { ...auditLog, changes: {} as AuditLog["changes"] };
+    render(<HistoryTimeline auditLogs={[emptyChangesLog]} />);
     expect(screen.queryByText("{}")).not.toBeInTheDocument();
-  });
-
-  it("does not show user for call without user", () => {
-    const noUserLog: CallLog = { ...callLog, user: undefined };
-    render(<HistoryTimeline callLogs={[noUserLog]} />);
-    expect(screen.queryByText("av Agent A")).not.toBeInTheDocument();
   });
 });

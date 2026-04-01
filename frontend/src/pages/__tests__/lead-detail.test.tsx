@@ -9,6 +9,35 @@ vi.mock("@/api/leads", () => ({
   useLeadDetail: () => useLeadDetailMock(),
 }));
 
+const mockLeadDetail = {
+  lead: {
+    id: "1",
+    företag: "Test AB",
+    telefon: "+46701234567",
+    epost: null,
+    hemsida: null,
+    adress: null,
+    postnummer: null,
+    stad: null,
+    bransch: null,
+    orgnr: null,
+    omsättning_tkr: null,
+    vinst_tkr: null,
+    anställda: null,
+    vd_namn: null,
+    bolagsform: null,
+    status: "new",
+    quarantine_until: null,
+    callback_at: null,
+    callback_reminded_at: null,
+    imported_at: null,
+    inserted_at: "2024-01-01T00:00:00Z",
+    updated_at: "2024-01-01T00:00:00Z",
+  },
+  calls: [],
+  audit_logs: [],
+};
+
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -49,25 +78,7 @@ describe("LeadDetailPage", () => {
 
   it("renders lead detail when loaded", () => {
     useLeadDetailMock.mockReturnValue({
-      data: {
-        id: "1",
-        first_name: "Anna",
-        last_name: "Svensson",
-        company: "Test AB",
-        phone: "+46701234567",
-        email: null,
-        status: "new",
-        assigned_to: null,
-        notes: null,
-        priority: 1,
-        callback_at: null,
-        do_not_call: false,
-        list_name: null,
-        created_at: "2024-01-01T00:00:00Z",
-        updated_at: "2024-01-01T00:00:00Z",
-        call_logs: [],
-        audit_logs: [],
-      },
+      data: mockLeadDetail,
       isLoading: false,
       isError: false,
       error: null,
@@ -76,36 +87,5 @@ describe("LeadDetailPage", () => {
     renderPage();
     // "Test AB" appears in page title h1 and card heading h3
     expect(screen.getAllByText("Test AB").length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("renders lead name when company is null", () => {
-    useLeadDetailMock.mockReturnValue({
-      data: {
-        id: "1",
-        first_name: "Anna",
-        last_name: "Svensson",
-        company: null,
-        phone: "+46701234567",
-        email: null,
-        status: "new",
-        assigned_to: null,
-        notes: null,
-        priority: 1,
-        callback_at: null,
-        do_not_call: false,
-        list_name: null,
-        created_at: "2024-01-01T00:00:00Z",
-        updated_at: "2024-01-01T00:00:00Z",
-        call_logs: [],
-        audit_logs: [],
-      },
-      isLoading: false,
-      isError: false,
-      error: null,
-    });
-
-    renderPage();
-    // h1 should show "Anna Svensson" instead of company
-    expect(screen.getAllByText("Anna Svensson").length).toBeGreaterThanOrEqual(1);
   });
 });

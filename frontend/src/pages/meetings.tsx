@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MeetingForm } from "@/components/meeting-form";
-import { formatDateTime } from "@/lib/format";
+import { formatDate, formatTime } from "@/lib/format";
 
 export function MeetingsPage() {
   const [showForm, setShowForm] = useState(false);
@@ -92,16 +92,10 @@ export function MeetingsPage() {
                     }
                   >
                     <td className="px-4 py-3 font-mono text-[var(--color-text-secondary)]">
-                      {formatDateTime(meeting.scheduled_at)}
+                      {formatDate(meeting.meeting_date)} {formatTime(meeting.meeting_time)}
                     </td>
                     <td className="px-4 py-3 text-[var(--color-text-primary)]">
                       <p className="font-medium">{meeting.title}</p>
-                      {meeting.lead && (
-                        <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
-                          {meeting.lead.company ??
-                            `${meeting.lead.first_name} ${meeting.lead.last_name}`}
-                        </p>
-                      )}
                     </td>
                     <td className="px-4 py-3">
                       <Badge status={meeting.status} />

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/stat-card";
-import { formatDateTime, formatPhone } from "@/lib/format";
+import { formatDate, formatTime, formatPhone } from "@/lib/format";
 
 function todayDateString(): string {
   return new Date().toISOString().slice(0, 10);
@@ -21,7 +21,7 @@ export function DashboardPage() {
   const today = todayDateString();
 
   const todaysMeetings = (meetings ?? []).filter(
-    (m) => m.scheduled_at.slice(0, 10) === today && m.status === "scheduled",
+    (m) => m.meeting_date === today && m.status === "scheduled",
   );
 
   const callbacks = (leads ?? []).filter((l) => l.status === "callback");
@@ -48,12 +48,12 @@ export function DashboardPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
-          label="Samtal idag"
-          value={statsLoading ? "—" : (stats?.calls_today ?? 0)}
+          label="Totalt leads"
+          value={statsLoading ? "—" : (stats?.total_leads ?? 0)}
         />
         <StatCard
-          label="Leads kvar"
-          value={statsLoading ? "—" : (stats?.leads_remaining ?? 0)}
+          label="Nya"
+          value={statsLoading ? "—" : (stats?.new ?? 0)}
         />
         <StatCard
           label="Möten"
@@ -77,16 +77,10 @@ export function DashboardPage() {
                     <p className="text-sm font-medium text-[var(--color-text-primary)]">
                       {meeting.title}
                     </p>
-                    {meeting.lead && (
-                      <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">
-                        {meeting.lead.company ??
-                          `${meeting.lead.first_name} ${meeting.lead.last_name}`}
-                      </p>
-                    )}
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <span className="text-sm font-mono text-[var(--color-text-secondary)]">
-                      {formatDateTime(meeting.scheduled_at)}
+                      {formatDate(meeting.meeting_date)} {formatTime(meeting.meeting_time)}
                     </span>
                     <Badge status={meeting.status} />
                   </div>
@@ -111,16 +105,16 @@ export function DashboardPage() {
                 <li key={lead.id} className="py-3 flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium text-[var(--color-text-primary)]">
-                      {lead.company ?? `${lead.first_name} ${lead.last_name}`}
+                      {lead.företag}
                     </p>
                     <p className="text-sm font-mono text-indigo-600 mt-0.5">
-                      {formatPhone(lead.phone)}
+                      {formatPhone(lead.telefon)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     {lead.callback_at && (
                       <span className="text-sm text-[var(--color-text-secondary)]">
-                        {formatDateTime(lead.callback_at)}
+                        {formatDate(lead.callback_at)}
                       </span>
                     )}
                     <Badge status={lead.status} />

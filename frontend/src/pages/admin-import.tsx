@@ -77,18 +77,9 @@ export function AdminImportPage() {
                 Import slutförd
               </p>
               <p className="text-sm text-emerald-700">
-                {result.imported} leads skapade, {result.skipped} hoppades
+                {result.created} leads skapade, {result.skipped} hoppades
                 över
               </p>
-              {result.errors.length > 0 && (
-                <ul className="mt-2 space-y-0.5">
-                  {result.errors.map((err, i) => (
-                    <li key={i} className="text-xs text-red-600">
-                      {err}
-                    </li>
-                  ))}
-                </ul>
-              )}
             </div>
           )}
 

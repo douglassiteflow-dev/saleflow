@@ -33,6 +33,35 @@ function Wrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
+const mockLeadDetail = {
+  lead: {
+    id: "lead-1",
+    företag: "Test AB",
+    telefon: "+46701234567",
+    epost: null,
+    hemsida: null,
+    adress: null,
+    postnummer: null,
+    stad: null,
+    bransch: null,
+    orgnr: null,
+    omsättning_tkr: null,
+    vinst_tkr: null,
+    anställda: null,
+    vd_namn: null,
+    bolagsform: null,
+    status: "new",
+    quarantine_until: null,
+    callback_at: null,
+    callback_reminded_at: null,
+    imported_at: null,
+    inserted_at: "",
+    updated_at: "",
+  },
+  calls: [],
+  audit_logs: [],
+};
+
 describe("DialerPage", () => {
   beforeEach(() => {
     navigateMock.mockClear();
@@ -66,7 +95,7 @@ describe("DialerPage", () => {
     });
 
     render(<DialerPage />, { wrapper: Wrapper });
-    expect(screen.getByText("No leads left")).toBeInTheDocument();
+    expect(screen.getByText("Kunde inte hämta nästa kund.")).toBeInTheDocument();
   });
 
   it("shows pending text when fetching next lead", () => {
@@ -82,20 +111,17 @@ describe("DialerPage", () => {
   });
 
   it("shows loading state when lead detail is loading", () => {
-    // Simulate that we have a currentLeadId set internally
-    // We need to trigger setCurrentLeadId by calling nextLead successfully
     nextLeadMutateMock.mockImplementation((_: unknown, opts: { onSuccess?: (lead: { id: string }) => void }) => {
       opts.onSuccess?.({ id: "lead-1" });
     });
     useLeadDetailMock.mockReturnValue({ data: undefined, isLoading: true });
 
     render(<DialerPage />, { wrapper: Wrapper });
-    // Click "Nästa kund" to set currentLeadId
     fireEvent.click(screen.getByText("Nästa kund"));
     expect(screen.getByText("Laddar kund...")).toBeInTheDocument();
   });
 
-  it("shows error when lead detail fails to load", () => {
+  it("shows loading when lead detail data is not yet available", () => {
     nextLeadMutateMock.mockImplementation((_: unknown, opts: { onSuccess?: (lead: { id: string }) => void }) => {
       opts.onSuccess?.({ id: "lead-1" });
     });
@@ -103,7 +129,7 @@ describe("DialerPage", () => {
 
     render(<DialerPage />, { wrapper: Wrapper });
     fireEvent.click(screen.getByText("Nästa kund"));
-    expect(screen.getByText("Kunde inte ladda kunddata.")).toBeInTheDocument();
+    expect(screen.getByText("Laddar kund...")).toBeInTheDocument();
   });
 
   it("renders lead detail when lead is loaded", () => {
@@ -111,25 +137,7 @@ describe("DialerPage", () => {
       opts.onSuccess?.({ id: "lead-1" });
     });
     useLeadDetailMock.mockReturnValue({
-      data: {
-        id: "lead-1",
-        first_name: "Anna",
-        last_name: "Svensson",
-        company: "Test AB",
-        phone: "+46701234567",
-        email: null,
-        status: "new",
-        assigned_to: null,
-        notes: null,
-        priority: 1,
-        callback_at: null,
-        do_not_call: false,
-        list_name: null,
-        created_at: "",
-        updated_at: "",
-        call_logs: [],
-        audit_logs: [],
-      },
+      data: mockLeadDetail,
       isLoading: false,
     });
 
@@ -146,23 +154,7 @@ describe("DialerPage", () => {
       opts.onSuccess?.({ id: "lead-1" });
     });
     useLeadDetailMock.mockReturnValue({
-      data: {
-        id: "lead-1",
-        first_name: "Anna",
-        last_name: "Svensson",
-        company: "Test AB",
-        phone: "+46701234567",
-        email: null,
-        status: "new",
-        assigned_to: null,
-        notes: null,
-        priority: 1,
-        callback_at: null,
-        do_not_call: false,
-        list_name: null,
-        created_at: "",
-        updated_at: "",
-      },
+      data: mockLeadDetail,
       isLoading: false,
     });
 
@@ -176,36 +168,6 @@ describe("DialerPage", () => {
     expect(screen.getByText("Redo att börja ringa?")).toBeInTheDocument();
   });
 
-  it("shows lead name without company", () => {
-    nextLeadMutateMock.mockImplementation((_: unknown, opts: { onSuccess?: (lead: { id: string }) => void }) => {
-      opts.onSuccess?.({ id: "lead-1" });
-    });
-    useLeadDetailMock.mockReturnValue({
-      data: {
-        id: "lead-1",
-        first_name: "Anna",
-        last_name: "Svensson",
-        company: null,
-        phone: "+46701234567",
-        email: null,
-        status: "new",
-        assigned_to: null,
-        notes: null,
-        priority: 1,
-        callback_at: null,
-        do_not_call: false,
-        list_name: null,
-        created_at: "",
-        updated_at: "",
-      },
-      isLoading: false,
-    });
-
-    render(<DialerPage />, { wrapper: Wrapper });
-    fireEvent.click(screen.getByText("Nästa kund"));
-    expect(screen.getAllByText("Anna Svensson").length).toBeGreaterThanOrEqual(1);
-  });
-
   it("fetches next lead after outcome is submitted", () => {
     nextLeadMutateMock.mockImplementation((_: unknown, opts: { onSuccess?: (lead: { id: string }) => void }) => {
       opts.onSuccess?.({ id: "lead-1" });
@@ -215,23 +177,7 @@ describe("DialerPage", () => {
       opts.onSuccess?.();
     });
     useLeadDetailMock.mockReturnValue({
-      data: {
-        id: "lead-1",
-        first_name: "Anna",
-        last_name: "Svensson",
-        company: "Test AB",
-        phone: "+46701234567",
-        email: null,
-        status: "new",
-        assigned_to: null,
-        notes: null,
-        priority: 1,
-        callback_at: null,
-        do_not_call: false,
-        list_name: null,
-        created_at: "",
-        updated_at: "",
-      },
+      data: mockLeadDetail,
       isLoading: false,
     });
 
@@ -243,7 +189,6 @@ describe("DialerPage", () => {
     fireEvent.click(screen.getByText("Bekräfta: Svarar ej"));
 
     // handleOutcomeSubmitted should call handleNextLead again
-    // (may be called multiple times due to cascading onSuccess)
     expect(nextLeadMutateMock.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -252,23 +197,7 @@ describe("DialerPage", () => {
       opts.onSuccess?.({ id: "lead-1" });
     });
     useLeadDetailMock.mockReturnValue({
-      data: {
-        id: "lead-1",
-        first_name: "Anna",
-        last_name: "Svensson",
-        company: "Test AB",
-        phone: "+46701234567",
-        email: null,
-        status: "new",
-        assigned_to: null,
-        notes: null,
-        priority: 1,
-        callback_at: null,
-        do_not_call: false,
-        list_name: null,
-        created_at: "",
-        updated_at: "",
-      },
+      data: mockLeadDetail,
       isLoading: false,
     });
 

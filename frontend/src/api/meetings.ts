@@ -5,14 +5,18 @@ import type { Meeting } from "./types";
 export function useMeetings() {
   return useQuery<Meeting[]>({
     queryKey: ["meetings"],
-    queryFn: () => api<Meeting[]>("/api/meetings"),
+    queryFn: async () => {
+      const data = await api<{ meetings: Meeting[] }>("/api/meetings");
+      return data.meetings;
+    },
   });
 }
 
 export interface CreateMeetingParams {
   lead_id: string;
   title: string;
-  scheduled_at: string;
+  meeting_date: string;
+  meeting_time: string;
   notes?: string;
 }
 

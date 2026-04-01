@@ -48,7 +48,7 @@ describe("AdminImportPage", () => {
   });
 
   it("shows success result after import", async () => {
-    mutateAsyncMock.mockResolvedValue({ imported: 10, skipped: 2, errors: [] });
+    mutateAsyncMock.mockResolvedValue({ created: 10, skipped: 2 });
 
     render(<AdminImportPage />, { wrapper: Wrapper });
 
@@ -61,22 +61,6 @@ describe("AdminImportPage", () => {
     await waitFor(() => {
       expect(screen.getByText("Import slutförd")).toBeInTheDocument();
       expect(screen.getByText(/10 leads skapade/)).toBeInTheDocument();
-    });
-  });
-
-  it("shows import errors", async () => {
-    mutateAsyncMock.mockResolvedValue({ imported: 5, skipped: 1, errors: ["Row 3: invalid phone"] });
-
-    render(<AdminImportPage />, { wrapper: Wrapper });
-
-    const fileInput = document.querySelector('input[type="file"]')!;
-    const file = new File(["test"], "leads.xlsx");
-    fireEvent.change(fileInput, { target: { files: [file] } });
-
-    fireEvent.click(screen.getByText("Importera"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Row 3: invalid phone")).toBeInTheDocument();
     });
   });
 
@@ -107,7 +91,7 @@ describe("AdminImportPage", () => {
   });
 
   it("clears file input after successful import", async () => {
-    mutateAsyncMock.mockResolvedValue({ imported: 5, skipped: 0, errors: [] });
+    mutateAsyncMock.mockResolvedValue({ created: 5, skipped: 0 });
 
     render(<AdminImportPage />, { wrapper: Wrapper });
 

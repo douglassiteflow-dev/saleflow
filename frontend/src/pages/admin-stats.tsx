@@ -12,7 +12,6 @@ const STATUS_LABELS: Record<LeadStatus, string> = {
   quarantine: "Karantän",
   bad_number: "Fel nummer",
   customer: "Kund",
-  not_interested: "Inte intresserad",
 };
 
 const STATUS_COLORS: Record<LeadStatus, string> = {
@@ -23,7 +22,6 @@ const STATUS_COLORS: Record<LeadStatus, string> = {
   quarantine: "bg-orange-500",
   bad_number: "bg-slate-400",
   customer: "bg-purple-500",
-  not_interested: "bg-red-400",
 };
 
 export function AdminStatsPage() {
@@ -59,24 +57,20 @@ export function AdminStatsPage() {
       {/* Overview stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Samtal idag"
-          value={isLoading ? "—" : (stats?.calls_today ?? 0)}
+          label="Totalt leads"
+          value={isLoading ? "—" : (stats?.total_leads ?? 0)}
         />
         <StatCard
-          label="Leads kvar"
-          value={isLoading ? "—" : (stats?.leads_remaining ?? 0)}
+          label="Nya"
+          value={isLoading ? "—" : (stats?.new ?? 0)}
         />
         <StatCard
           label="Möten bokade"
-          value={isLoading ? "—" : (stats?.meetings_booked ?? 0)}
+          value={isLoading ? "—" : (stats?.meeting_booked ?? 0)}
         />
         <StatCard
-          label="Konvertering"
-          value={
-            isLoading
-              ? "—"
-              : `${((stats?.conversion_rate ?? 0) * 100).toFixed(1)}%`
-          }
+          label="Kunder"
+          value={isLoading ? "—" : (stats?.customer ?? 0)}
         />
       </div>
 

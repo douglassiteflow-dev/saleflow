@@ -21,9 +21,9 @@ function actionLabel(action: string): string {
   return found?.label ?? action;
 }
 
-function changesSummary(details: Record<string, unknown> | null): string {
-  if (!details) return "—";
-  const entries = Object.entries(details);
+function changesSummary(changes: Record<string, unknown> | null): string {
+  if (!changes) return "—";
+  const entries = Object.entries(changes);
   if (entries.length === 0) return "—";
   return entries
     .slice(0, 3)
@@ -53,15 +53,14 @@ export function HistoryPage() {
     const q = search.toLowerCase();
     return (
       log.action.toLowerCase().includes(q) ||
-      log.lead_id.toLowerCase().includes(q) ||
-      (log.user?.name ?? "").toLowerCase().includes(q) ||
-      JSON.stringify(log.details ?? {}).toLowerCase().includes(q)
+      log.resource_id.toLowerCase().includes(q) ||
+      JSON.stringify(log.changes ?? {}).toLowerCase().includes(q)
     );
   });
 
   function handleRowClick(log: AuditLog) {
     if (log.action.startsWith("lead.") || log.action.startsWith("call.") || log.action.startsWith("meeting.")) {
-      void navigate(`/leads/${log.lead_id}`);
+      void navigate(`/leads/${log.resource_id}`);
     }
   }
 
@@ -82,7 +81,7 @@ export function HistoryPage() {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Sök händelse, lead-ID, användare..."
+          placeholder="Sök händelse, resurs-ID..."
           className="max-w-xs"
         />
         <select
@@ -139,12 +138,6 @@ export function HistoryPage() {
                   >
                     Ändringar
                   </th>
-                  <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
-                  >
-                    Användare
-                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -169,7 +162,7 @@ export function HistoryPage() {
                         .join(" ")}
                     >
                       <td className="px-4 py-3 font-mono text-xs text-[var(--color-text-secondary)] whitespace-nowrap">
-                        {formatDateTime(log.created_at)}
+                        {formatDateTime(log.inserted_at)}
                       </td>
                       <td className="px-4 py-3 text-[var(--color-text-primary)]">
                         {actionLabel(log.action)}
@@ -178,10 +171,7 @@ export function HistoryPage() {
                         {resourceLabel(log.action)}
                       </td>
                       <td className="px-4 py-3 text-[var(--color-text-secondary)] max-w-xs truncate">
-                        {changesSummary(log.details)}
-                      </td>
-                      <td className="px-4 py-3 text-[var(--color-text-secondary)]">
-                        {log.user?.name ?? "—"}
+                        {changesSummary(log.changes)}
                       </td>
                     </tr>
                   );

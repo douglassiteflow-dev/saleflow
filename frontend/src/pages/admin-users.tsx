@@ -40,7 +40,7 @@ function UserForm({ onCancel }: { onCancel: () => void }) {
     }
 
     try {
-      await createUser.mutateAsync({ email: email.trim(), name: name.trim(), password, role });
+      await createUser.mutateAsync({ email: email.trim(), name: name.trim(), password, password_confirmation: passwordConfirmation, role });
       reset();
       onCancel();
     } catch (err) {

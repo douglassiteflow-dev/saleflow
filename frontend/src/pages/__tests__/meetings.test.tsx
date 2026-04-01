@@ -37,24 +37,24 @@ describe("MeetingsPage", () => {
           lead_id: "l1",
           user_id: "u1",
           title: "Demo",
-          scheduled_at: "2024-06-01T14:00:00Z",
+          meeting_date: "2024-06-01",
+          meeting_time: "14:00:00",
           notes: null,
           status: "scheduled",
-          lead: { company: "Acme", first_name: "A", last_name: "B" },
-          created_at: "",
-          updated_at: "",
+          reminded_at: null,
+          inserted_at: "2024-01-01T00:00:00Z",
         },
         {
           id: "m2",
           lead_id: "l2",
           user_id: "u1",
           title: "Follow-up",
-          scheduled_at: "2024-06-02T10:00:00Z",
+          meeting_date: "2024-06-02",
+          meeting_time: "10:00:00",
           notes: null,
           status: "cancelled",
-          lead: null,
-          created_at: "",
-          updated_at: "",
+          reminded_at: null,
+          inserted_at: "2024-01-01T00:00:00Z",
         },
       ],
       isLoading: false,
@@ -105,11 +105,6 @@ describe("MeetingsPage", () => {
     expect(cancelMutateMock).not.toHaveBeenCalled();
   });
 
-  it("renders lead company name for meetings with lead", () => {
-    render(<MeetingsPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Acme")).toBeInTheDocument();
-  });
-
   it("renders loading state", () => {
     useMeetingsMock.mockReturnValue({ data: undefined, isLoading: true });
     render(<MeetingsPage />, { wrapper: Wrapper });
@@ -131,28 +126,6 @@ describe("MeetingsPage", () => {
     expect(screen.queryByText("Avbryt")).not.toBeInTheDocument();
   });
 
-  it("renders meeting with lead name fallback", () => {
-    useMeetingsMock.mockReturnValue({
-      data: [
-        {
-          id: "m3",
-          lead_id: "l3",
-          user_id: "u1",
-          title: "Intro",
-          scheduled_at: "2024-06-01T10:00:00Z",
-          notes: null,
-          status: "scheduled",
-          lead: { company: null, first_name: "Anna", last_name: "Berg" },
-          created_at: "",
-          updated_at: "",
-        },
-      ],
-      isLoading: false,
-    });
-    render(<MeetingsPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Anna Berg")).toBeInTheDocument();
-  });
-
   it("renders multiple scheduled meeting rows", () => {
     useMeetingsMock.mockReturnValue({
       data: [
@@ -161,24 +134,24 @@ describe("MeetingsPage", () => {
           lead_id: "l1",
           user_id: "u1",
           title: "First",
-          scheduled_at: "2024-06-01T10:00:00Z",
+          meeting_date: "2024-06-01",
+          meeting_time: "10:00:00",
           notes: null,
           status: "scheduled",
-          lead: null,
-          created_at: "",
-          updated_at: "",
+          reminded_at: null,
+          inserted_at: "",
         },
         {
           id: "m2",
           lead_id: "l2",
           user_id: "u1",
           title: "Second",
-          scheduled_at: "2024-06-01T14:00:00Z",
+          meeting_date: "2024-06-01",
+          meeting_time: "14:00:00",
           notes: null,
           status: "scheduled",
-          lead: null,
-          created_at: "",
-          updated_at: "",
+          reminded_at: null,
+          inserted_at: "",
         },
       ],
       isLoading: false,
@@ -198,12 +171,12 @@ describe("MeetingsPage", () => {
           lead_id: "l4",
           user_id: "u1",
           title: "Done",
-          scheduled_at: "2024-06-01T10:00:00Z",
+          meeting_date: "2024-06-01",
+          meeting_time: "10:00:00",
           notes: null,
           status: "completed",
-          lead: null,
-          created_at: "",
-          updated_at: "",
+          reminded_at: null,
+          inserted_at: "",
         },
       ],
       isLoading: false,

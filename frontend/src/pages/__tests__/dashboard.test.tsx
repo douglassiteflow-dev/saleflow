@@ -35,11 +35,15 @@ function Wrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
+function todayDateString(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 describe("DashboardPage", () => {
   beforeEach(() => {
     navigateMock.mockClear();
     useAdminStatsMock.mockReturnValue({
-      data: { calls_today: 10, leads_remaining: 50, meetings_booked: 5, conversion_rate: 0.2 },
+      data: { total_leads: 100, new: 50, assigned: 20, meeting_booked: 5, quarantine: 10, customer: 10, bad_number: 5 },
       isLoading: false,
     });
     useMeetingsMock.mockReturnValue({
@@ -49,12 +53,12 @@ describe("DashboardPage", () => {
           lead_id: "l1",
           user_id: "u1",
           title: "Morning meeting",
-          scheduled_at: new Date().toISOString(),
+          meeting_date: todayDateString(),
+          meeting_time: "10:00:00",
           notes: null,
           status: "scheduled",
-          lead: { company: "Acme", first_name: "A", last_name: "B" },
-          created_at: "",
-          updated_at: "",
+          reminded_at: null,
+          inserted_at: "2024-01-01T00:00:00Z",
         },
       ],
     });
@@ -62,20 +66,27 @@ describe("DashboardPage", () => {
       data: [
         {
           id: "l1",
-          first_name: "Anna",
-          last_name: "S",
-          company: null,
-          phone: "+46701234567",
-          email: null,
+          företag: "Testföretag AB",
+          telefon: "+46701234567",
+          epost: null,
+          hemsida: null,
+          adress: null,
+          postnummer: null,
+          stad: null,
+          bransch: null,
+          orgnr: null,
+          omsättning_tkr: null,
+          vinst_tkr: null,
+          anställda: null,
+          vd_namn: null,
+          bolagsform: null,
           status: "callback",
-          assigned_to: null,
-          notes: null,
-          priority: 1,
+          quarantine_until: null,
           callback_at: "2024-06-01T10:00:00Z",
-          do_not_call: false,
-          list_name: null,
-          created_at: "",
-          updated_at: "",
+          callback_reminded_at: null,
+          imported_at: null,
+          inserted_at: "2024-01-01T00:00:00Z",
+          updated_at: "2024-01-01T00:00:00Z",
         },
       ],
     });
@@ -88,9 +99,9 @@ describe("DashboardPage", () => {
 
   it("renders stat cards", () => {
     render(<DashboardPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Samtal idag")).toBeInTheDocument();
-    expect(screen.getByText("10")).toBeInTheDocument();
-    expect(screen.getByText("Leads kvar")).toBeInTheDocument();
+    expect(screen.getByText("Totalt leads")).toBeInTheDocument();
+    expect(screen.getByText("100")).toBeInTheDocument();
+    expect(screen.getByText("Nya")).toBeInTheDocument();
     expect(screen.getByText("50")).toBeInTheDocument();
   });
 
@@ -139,28 +150,21 @@ describe("DashboardPage", () => {
 
   it("renders callback with callback_at date", () => {
     render(<DashboardPage />, { wrapper: Wrapper });
-    // The callback lead has callback_at so it should be formatted
-    expect(screen.getByText("Anna S")).toBeInTheDocument();
+    // The callback lead has företag
+    expect(screen.getByText("Testföretag AB")).toBeInTheDocument();
   });
 
-  it("renders lead company name in callbacks if present", () => {
+  it("renders lead företag name in callbacks", () => {
     useLeadsMock.mockReturnValue({
       data: [
         {
           id: "l2",
-          first_name: "B",
-          last_name: "C",
-          company: "Corp AB",
-          phone: "+46701234567",
-          email: null,
+          företag: "Corp AB",
+          telefon: "+46701234567",
+          epost: null,
           status: "callback",
-          assigned_to: null,
-          notes: null,
-          priority: 1,
           callback_at: null,
-          do_not_call: false,
-          list_name: null,
-          created_at: "",
+          inserted_at: "",
           updated_at: "",
         },
       ],
@@ -169,28 +173,7 @@ describe("DashboardPage", () => {
     expect(screen.getByText("Corp AB")).toBeInTheDocument();
   });
 
-  it("renders meeting lead name fallback when no company", () => {
-    useMeetingsMock.mockReturnValue({
-      data: [
-        {
-          id: "m2",
-          lead_id: "l2",
-          user_id: "u1",
-          title: "Afternoon meeting",
-          scheduled_at: new Date().toISOString(),
-          notes: null,
-          status: "scheduled",
-          lead: { company: null, first_name: "Foo", last_name: "Bar" },
-          created_at: "",
-          updated_at: "",
-        },
-      ],
-    });
-    render(<DashboardPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Foo Bar")).toBeInTheDocument();
-  });
-
-  it("renders meetings as null → dash", () => {
+  it("renders meetings as null then dash", () => {
     useMeetingsMock.mockReturnValue({ data: undefined });
     render(<DashboardPage />, { wrapper: Wrapper });
     // Meeting count when undefined shows "—"
@@ -213,12 +196,12 @@ describe("DashboardPage", () => {
           lead_id: "l1",
           user_id: "u1",
           title: "Yesterday meeting",
-          scheduled_at: "2023-01-01T14:00:00Z",
+          meeting_date: "2023-01-01",
+          meeting_time: "14:00:00",
           notes: null,
           status: "scheduled",
-          lead: null,
-          created_at: "",
-          updated_at: "",
+          reminded_at: null,
+          inserted_at: "",
         },
       ],
     });
@@ -235,12 +218,12 @@ describe("DashboardPage", () => {
           lead_id: "l1",
           user_id: "u1",
           title: "Cancelled today",
-          scheduled_at: new Date().toISOString(),
+          meeting_date: todayDateString(),
+          meeting_time: "14:00:00",
           notes: null,
           status: "cancelled",
-          lead: null,
-          created_at: "",
-          updated_at: "",
+          reminded_at: null,
+          inserted_at: "",
         },
       ],
     });
@@ -250,7 +233,7 @@ describe("DashboardPage", () => {
 
   it("handles stats with null property values", () => {
     useAdminStatsMock.mockReturnValue({
-      data: { calls_today: undefined, leads_remaining: undefined, meetings_booked: undefined, conversion_rate: undefined },
+      data: { total_leads: undefined, new: undefined, assigned: undefined, meeting_booked: undefined, quarantine: undefined, customer: undefined, bad_number: undefined },
       isLoading: false,
     });
     render(<DashboardPage />, { wrapper: Wrapper });
@@ -268,13 +251,13 @@ describe("DashboardPage", () => {
   it("filters leads that are not callbacks", () => {
     useLeadsMock.mockReturnValue({
       data: [
-        { id: "l1", status: "new", first_name: "A", last_name: "B", company: null, phone: "123", callback_at: null },
-        { id: "l2", status: "callback", first_name: "C", last_name: "D", company: null, phone: "456", callback_at: null },
+        { id: "l1", status: "new", företag: "Foo AB", telefon: "123", callback_at: null },
+        { id: "l2", status: "callback", företag: "Bar AB", telefon: "456", callback_at: null },
       ],
     });
     render(<DashboardPage />, { wrapper: Wrapper });
     // Only callback lead should appear in the callbacks section
-    expect(screen.getByText("C D")).toBeInTheDocument();
+    expect(screen.getByText("Bar AB")).toBeInTheDocument();
   });
 
   it("does not render callback_at when null", () => {
@@ -282,24 +265,17 @@ describe("DashboardPage", () => {
       data: [
         {
           id: "l3",
-          first_name: "Test",
-          last_name: "No",
-          company: null,
-          phone: "+46700000000",
-          email: null,
+          företag: "Test No AB",
+          telefon: "+46700000000",
+          epost: null,
           status: "callback",
-          assigned_to: null,
-          notes: null,
-          priority: 1,
           callback_at: null,
-          do_not_call: false,
-          list_name: null,
-          created_at: "",
+          inserted_at: "",
           updated_at: "",
         },
       ],
     });
     render(<DashboardPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Test No")).toBeInTheDocument();
+    expect(screen.getByText("Test No AB")).toBeInTheDocument();
   });
 });

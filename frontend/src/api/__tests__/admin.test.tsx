@@ -20,10 +20,10 @@ describe("useAdminStats", () => {
   afterEach(() => { globalThis.fetch = originalFetch; });
 
   it("fetches admin stats", async () => {
-    const stats = { calls_today: 5, leads_remaining: 10, meetings_booked: 3, conversion_rate: 0.15 };
+    const stats = { total_leads: 100, new: 10, assigned: 5, meeting_booked: 3, quarantine: 2, customer: 1, bad_number: 0 };
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(stats),
+      json: () => Promise.resolve({ stats }),
     });
 
     const { result } = renderHook(() => useAdminStats(), { wrapper: createWrapper() });
@@ -40,7 +40,7 @@ describe("useAdminUsers", () => {
     const users = [{ id: "1", email: "a@b.se", name: "A", role: "admin" }];
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(users),
+      json: () => Promise.resolve({ users }),
     });
 
     const { result } = renderHook(() => useAdminUsers(), { wrapper: createWrapper() });
@@ -56,11 +56,11 @@ describe("useCreateUser", () => {
   it("posts new user", async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ id: "2", email: "new@test.se", name: "New", role: "agent" }),
+      json: () => Promise.resolve({ user: { id: "2", email: "new@test.se", name: "New", role: "agent" } }),
     });
 
     const { result } = renderHook(() => useCreateUser(), { wrapper: createWrapper() });
-    result.current.mutate({ email: "new@test.se", name: "New", password: "pass123", role: "agent" });
+    result.current.mutate({ email: "new@test.se", name: "New", password: "pass123", password_confirmation: "pass123", role: "agent" });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/admin/users", expect.objectContaining({
@@ -76,7 +76,7 @@ describe("useImportLeads", () => {
   it("uploads form data", async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ imported: 10, skipped: 2, errors: [] }),
+      json: () => Promise.resolve({ created: 10, skipped: 2 }),
     });
 
     const formData = new FormData();

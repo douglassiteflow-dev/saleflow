@@ -5,14 +5,20 @@ import type { User, Stats, ImportResult } from "./types";
 export function useAdminStats() {
   return useQuery<Stats>({
     queryKey: ["admin", "stats"],
-    queryFn: () => api<Stats>("/api/admin/stats"),
+    queryFn: async () => {
+      const data = await api<{ stats: Stats }>("/api/admin/stats");
+      return data.stats;
+    },
   });
 }
 
 export function useAdminUsers() {
   return useQuery<User[]>({
     queryKey: ["admin", "users"],
-    queryFn: () => api<User[]>("/api/admin/users"),
+    queryFn: async () => {
+      const data = await api<{ users: User[] }>("/api/admin/users");
+      return data.users;
+    },
   });
 }
 
@@ -20,6 +26,7 @@ export interface CreateUserParams {
   email: string;
   name: string;
   password: string;
+  password_confirmation: string;
   role: "admin" | "agent";
 }
 
@@ -27,11 +34,13 @@ export function useCreateUser() {
   const queryClient = useQueryClient();
 
   return useMutation<User, ApiError, CreateUserParams>({
-    mutationFn: (params) =>
-      api<User>("/api/admin/users", {
+    mutationFn: async (params) => {
+      const data = await api<{ user: User }>("/api/admin/users", {
         method: "POST",
         body: JSON.stringify(params),
-      }),
+      });
+      return data.user;
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     },

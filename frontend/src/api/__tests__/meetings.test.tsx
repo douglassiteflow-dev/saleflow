@@ -20,11 +20,12 @@ const mockMeeting = {
   lead_id: "l1",
   user_id: "u1",
   title: "Demo meeting",
-  scheduled_at: "2024-06-01T14:00:00Z",
+  meeting_date: "2024-06-01",
+  meeting_time: "14:00:00",
   notes: null,
   status: "scheduled",
-  created_at: "2024-01-01T00:00:00Z",
-  updated_at: "2024-01-01T00:00:00Z",
+  reminded_at: null,
+  inserted_at: "2024-01-01T00:00:00Z",
 };
 
 describe("useMeetings", () => {
@@ -34,7 +35,7 @@ describe("useMeetings", () => {
   it("fetches all meetings", async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve([mockMeeting]),
+      json: () => Promise.resolve({ meetings: [mockMeeting] }),
     });
 
     const { result } = renderHook(() => useMeetings(), { wrapper: createWrapper() });
@@ -57,7 +58,8 @@ describe("useCreateMeeting", () => {
     result.current.mutate({
       lead_id: "l1",
       title: "Demo",
-      scheduled_at: "2024-06-01T14:00:00Z",
+      meeting_date: "2024-06-01",
+      meeting_time: "14:00",
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));

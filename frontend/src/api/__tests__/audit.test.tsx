@@ -17,11 +17,13 @@ function createWrapper() {
 
 const mockLog = {
   id: "a1",
-  lead_id: "l1",
   user_id: "u1",
   action: "lead.created",
-  details: null,
-  created_at: "2024-01-01T00:00:00Z",
+  resource_type: "lead",
+  resource_id: "l1",
+  changes: {},
+  metadata: {},
+  inserted_at: "2024-01-01T00:00:00Z",
 };
 
 describe("useAuditLogs", () => {

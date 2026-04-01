@@ -17,19 +17,26 @@ function createWrapper() {
 
 const mockLead = {
   id: "1",
-  first_name: "Anna",
-  last_name: "Svensson",
-  company: "Test AB",
-  phone: "+46701234567",
-  email: null,
+  företag: "Test AB",
+  telefon: "+46701234567",
+  epost: null,
+  hemsida: null,
+  adress: null,
+  postnummer: null,
+  stad: null,
+  bransch: null,
+  orgnr: null,
+  omsättning_tkr: null,
+  vinst_tkr: null,
+  anställda: null,
+  vd_namn: null,
+  bolagsform: null,
   status: "new",
-  assigned_to: null,
-  notes: null,
-  priority: 1,
+  quarantine_until: null,
   callback_at: null,
-  do_not_call: false,
-  list_name: null,
-  created_at: "2024-01-01T00:00:00Z",
+  callback_reminded_at: null,
+  imported_at: null,
+  inserted_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-01T00:00:00Z",
 };
 
@@ -40,7 +47,7 @@ describe("useLeads", () => {
   it("fetches all leads", async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve([mockLead]),
+      json: () => Promise.resolve({ leads: [mockLead] }),
     });
 
     const { result } = renderHook(() => useLeads(), { wrapper: createWrapper() });
@@ -52,24 +59,24 @@ describe("useLeads", () => {
   it("fetches leads with search query", async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve([]),
+      json: () => Promise.resolve({ leads: [] }),
     });
 
     const { result } = renderHook(() => useLeads("test"), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(globalThis.fetch).toHaveBeenCalledWith("/api/leads?search=test", expect.anything());
+    expect(globalThis.fetch).toHaveBeenCalledWith("/api/leads?q=test", expect.anything());
   });
 
   it("URL-encodes special characters in search query", async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve([]),
+      json: () => Promise.resolve({ leads: [] }),
     });
 
     const { result } = renderHook(() => useLeads("anna öberg"), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      "/api/leads?search=anna%20%C3%B6berg",
+      "/api/leads?q=anna%20%C3%B6berg",
       expect.anything(),
     );
   });
@@ -77,7 +84,7 @@ describe("useLeads", () => {
   it("fetches all leads when search is empty string", async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve([mockLead]),
+      json: () => Promise.resolve({ leads: [mockLead] }),
     });
 
     const { result } = renderHook(() => useLeads(""), { wrapper: createWrapper() });
@@ -91,14 +98,15 @@ describe("useLeadDetail", () => {
   afterEach(() => { globalThis.fetch = originalFetch; });
 
   it("fetches lead detail by id", async () => {
+    const detail = { lead: mockLead, calls: [], audit_logs: [] };
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(mockLead),
+      json: () => Promise.resolve(detail),
     });
 
     const { result } = renderHook(() => useLeadDetail("1"), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual(mockLead);
+    expect(result.current.data).toEqual(detail);
   });
 
   it("is disabled when id is null", () => {
@@ -119,7 +127,7 @@ describe("useNextLead", () => {
   it("posts to /api/leads/next", async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(mockLead),
+      json: () => Promise.resolve({ lead: mockLead }),
     });
 
     const { result } = renderHook(() => useNextLead(), { wrapper: createWrapper() });
@@ -139,7 +147,7 @@ describe("useSubmitOutcome", () => {
   it("posts outcome to lead", async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(mockLead),
+      json: () => Promise.resolve({ ok: true }),
     });
 
     const { result } = renderHook(() => useSubmitOutcome("1"), { wrapper: createWrapper() });

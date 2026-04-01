@@ -35,13 +35,12 @@ export function MeetingForm({ onCancel }: MeetingFormProps) {
       return;
     }
 
-    const scheduled_at = new Date(`${date}T${time}:00`).toISOString();
-
     try {
       await createMeeting.mutateAsync({
         lead_id: leadId.trim(),
         title: title.trim(),
-        scheduled_at,
+        meeting_date: date,
+        meeting_time: time,
         notes: notes.trim() || undefined,
       });
       reset();

@@ -5,8 +5,6 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface LoginResponse {
@@ -37,8 +35,7 @@ export type LeadStatus =
   | "meeting_booked"
   | "quarantine"
   | "bad_number"
-  | "customer"
-  | "not_interested";
+  | "customer";
 
 export type Outcome =
   | "meeting_booked"
@@ -50,21 +47,26 @@ export type Outcome =
 
 export interface Lead {
   id: string;
-  first_name: string;
-  last_name: string;
-  company: string | null;
-  phone: string;
-  email: string | null;
+  företag: string;
+  telefon: string;
+  epost: string | null;
+  hemsida: string | null;
+  adress: string | null;
+  postnummer: string | null;
+  stad: string | null;
+  bransch: string | null;
+  orgnr: string | null;
+  omsättning_tkr: string | null;
+  vinst_tkr: string | null;
+  anställda: string | null;
+  vd_namn: string | null;
+  bolagsform: string | null;
   status: LeadStatus;
-  assigned_to: string | null;
-  assigned_user?: User | null;
-  notes: string | null;
-  priority: number;
+  quarantine_until: string | null;
   callback_at: string | null;
   callback_reminded_at: string | null;
-  do_not_call: boolean;
-  list_name: string | null;
-  created_at: string;
+  imported_at: string | null;
+  inserted_at: string;
   updated_at: string;
 }
 
@@ -72,48 +74,46 @@ export interface CallLog {
   id: string;
   lead_id: string;
   user_id: string;
-  user?: User;
-  outcome: Outcome | null;
+  outcome: Outcome;
   notes: string | null;
-  duration_seconds: number | null;
   called_at: string;
-  created_at: string;
 }
 
 export interface AuditLog {
   id: string;
-  lead_id: string;
   user_id: string | null;
-  user?: User | null;
   action: string;
-  details: Record<string, unknown> | null;
-  created_at: string;
+  resource_type: string;
+  resource_id: string;
+  changes: Record<string, { from: string; to: string }>;
+  metadata: Record<string, string>;
+  inserted_at: string;
 }
 
 export interface Meeting {
   id: string;
   lead_id: string;
-  lead?: Lead;
   user_id: string;
-  user?: User;
   title: string;
-  scheduled_at: string;
+  meeting_date: string;
+  meeting_time: string;
   notes: string | null;
   status: "scheduled" | "completed" | "cancelled";
   reminded_at: string | null;
-  created_at: string;
-  updated_at: string;
+  inserted_at: string;
 }
 
 export interface Stats {
-  calls_today: number;
-  leads_remaining: number;
-  meetings_booked: number;
-  conversion_rate: number;
+  total_leads: number;
+  new: number;
+  assigned: number;
+  meeting_booked: number;
+  quarantine: number;
+  customer: number;
+  bad_number: number;
 }
 
 export interface ImportResult {
-  imported: number;
+  created: number;
   skipped: number;
-  errors: string[];
 }

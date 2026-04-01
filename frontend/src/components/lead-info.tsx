@@ -1,7 +1,7 @@
 import type { Lead } from "@/api/types";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatPhone, formatCurrency } from "@/lib/format";
+import { formatPhone } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 interface InfoRowProps {
@@ -34,27 +34,10 @@ interface LeadInfoProps {
 }
 
 export function LeadInfo({ lead }: LeadInfoProps) {
-  const address = [lead.first_name, lead.last_name].filter(Boolean).join(" ");
-
-  // Use lead fields — the Lead type has company, phone, email etc.
-  // Extended fields come from the API as unknown extra properties.
-  const ext = lead as Lead & {
-    org_number?: string | null;
-    address?: string | null;
-    zip?: string | null;
-    city?: string | null;
-    industry?: string | null;
-    revenue?: number | null;
-    profit?: number | null;
-    employees?: number | null;
-    ceo?: string | null;
-    company_type?: string | null;
-  };
-
   return (
     <Card>
       <div className="flex items-start justify-between mb-4">
-        <CardTitle>{lead.company ?? address}</CardTitle>
+        <CardTitle>{lead.företag}</CardTitle>
         <Badge status={lead.status} />
       </div>
 
@@ -63,50 +46,52 @@ export function LeadInfo({ lead }: LeadInfoProps) {
           label="Telefon"
           value={
             <a
-              href={`tel:${lead.phone}`}
+              href={`tel:${lead.telefon}`}
               className="font-mono text-indigo-600 hover:text-indigo-700 transition-colors"
             >
-              {formatPhone(lead.phone)}
+              {formatPhone(lead.telefon)}
             </a>
           }
         />
-        <InfoRow label="Org.nr" value={ext.org_number} mono />
-        <InfoRow label="Adress" value={ext.address} />
-        <InfoRow label="Postnummer" value={ext.zip} mono />
-        <InfoRow label="Stad" value={ext.city} />
-        <InfoRow label="Bransch" value={ext.industry} />
+        <InfoRow label="Org.nr" value={lead.orgnr} mono />
+        <InfoRow label="Adress" value={lead.adress} />
+        <InfoRow label="Postnummer" value={lead.postnummer} mono />
+        <InfoRow label="Stad" value={lead.stad} />
+        <InfoRow label="Bransch" value={lead.bransch} />
         <InfoRow
           label="Omsättning"
           value={
-            ext.revenue != null ? formatCurrency(ext.revenue) : undefined
+            lead.omsättning_tkr != null
+              ? `${lead.omsättning_tkr} tkr`
+              : undefined
           }
         />
         <InfoRow
           label="Vinst"
           value={
-            ext.profit != null ? formatCurrency(ext.profit) : undefined
+            lead.vinst_tkr != null ? `${lead.vinst_tkr} tkr` : undefined
           }
         />
         <InfoRow
           label="Anställda"
-          value={ext.employees != null ? String(ext.employees) : undefined}
+          value={lead.anställda != null ? lead.anställda : undefined}
         />
-        <InfoRow label="VD" value={ext.ceo} />
-        <InfoRow label="Bolagsform" value={ext.company_type} />
+        <InfoRow label="VD" value={lead.vd_namn} />
+        <InfoRow label="Bolagsform" value={lead.bolagsform} />
+        <InfoRow label="Hemsida" value={lead.hemsida} />
         <InfoRow
           label="E-post"
           value={
-            lead.email ? (
+            lead.epost ? (
               <a
-                href={`mailto:${lead.email}`}
+                href={`mailto:${lead.epost}`}
                 className="text-indigo-600 hover:text-indigo-700 transition-colors"
               >
-                {lead.email}
+                {lead.epost}
               </a>
             ) : undefined
           }
         />
-        {lead.notes && <InfoRow label="Anteckningar" value={lead.notes} />}
       </div>
     </Card>
   );
