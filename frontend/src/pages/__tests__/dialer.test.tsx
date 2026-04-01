@@ -4,6 +4,12 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DialerPage } from "../dialer";
 
+const navigateMock = vi.fn();
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual("react-router-dom");
+  return { ...actual, useNavigate: () => navigateMock };
+});
+
 const nextLeadMutateMock = vi.fn();
 const useLeadDetailMock = vi.fn();
 const useNextLeadMock = vi.fn();
@@ -29,6 +35,7 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 
 describe("DialerPage", () => {
   beforeEach(() => {
+    navigateMock.mockClear();
     useNextLeadMock.mockReturnValue({
       mutate: nextLeadMutateMock,
       isPending: false,
@@ -269,7 +276,7 @@ describe("DialerPage", () => {
     fireEvent.click(screen.getByText("Nästa kund"));
     // Click the dashboard button
     fireEvent.click(screen.getByText("Dashboard"));
-    // Navigation handled by router
+    expect(navigateMock).toHaveBeenCalledWith("/dashboard");
   });
 
   it("shows fallback error message when no specific error", () => {

@@ -12,13 +12,15 @@ export async function api<T>(
   path: string,
   options?: RequestInit,
 ): Promise<T> {
+  const mergedHeaders = {
+    "Content-Type": "application/json",
+    ...options?.headers,
+  };
+  const { headers: _, ...restOptions } = options ?? {};
   const response = await fetch(path, {
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-    ...options,
+    headers: mergedHeaders,
+    ...restOptions,
   });
 
   if (!response.ok) {

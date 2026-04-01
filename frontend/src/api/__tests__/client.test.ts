@@ -54,7 +54,7 @@ describe("api", () => {
     });
   });
 
-  it("merges custom headers", async () => {
+  it("merges custom headers with Content-Type", async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({}),
@@ -64,10 +64,9 @@ describe("api", () => {
       headers: { "X-Custom": "value" },
     });
 
-    // The spread ...options overrides headers with the original options.headers
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/test", {
       credentials: "include",
-      headers: { "X-Custom": "value" },
+      headers: { "Content-Type": "application/json", "X-Custom": "value" },
     });
   });
 

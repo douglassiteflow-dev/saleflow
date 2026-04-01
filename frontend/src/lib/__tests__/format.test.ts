@@ -33,9 +33,7 @@ describe("formatPhone", () => {
 describe("formatDate", () => {
   it("formats ISO date to Swedish locale", () => {
     const result = formatDate("2024-03-15");
-    expect(result).toContain("2024");
-    // Month name varies by locale, just check it contains some text
-    expect(result.length).toBeGreaterThan(4);
+    expect(result).toBe("15 mars 2024");
   });
 
   it("returns original string for invalid date", () => {
@@ -63,30 +61,23 @@ describe("formatTime", () => {
 
 describe("formatCurrency", () => {
   it("formats number as tkr", () => {
-    const result = formatCurrency(1500000);
-    expect(result).toContain("tkr");
-    // 1500000 / 1000 = 1500
-    expect(result).toContain("1");
-    expect(result).toContain("500");
+    expect(formatCurrency(1500000)).toBe("1\u00a0500 tkr");
   });
 
   it("rounds to nearest thousand", () => {
-    const result = formatCurrency(1499);
-    expect(result).toContain("1");
-    expect(result).toContain("tkr");
+    expect(formatCurrency(1499)).toBe("1 tkr");
   });
 
   it("handles zero", () => {
-    expect(formatCurrency(0)).toContain("0");
-    expect(formatCurrency(0)).toContain("tkr");
+    expect(formatCurrency(0)).toBe("0 tkr");
   });
 });
 
 describe("formatDateTime", () => {
   it("formats ISO datetime to Swedish locale", () => {
     const result = formatDateTime("2024-03-15T14:30:00Z");
+    expect(result).toContain("mars");
     expect(result).toContain("2024");
-    expect(result.length).toBeGreaterThan(4);
   });
 
   it("returns original string for invalid datetime", () => {

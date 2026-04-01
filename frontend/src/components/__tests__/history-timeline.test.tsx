@@ -64,8 +64,10 @@ describe("HistoryTimeline", () => {
   it("sorts entries by timestamp descending", () => {
     render(<HistoryTimeline callLogs={[callLog]} auditLogs={[auditLog]} />);
     const items = screen.getAllByRole("listitem");
-    // Call log (2024-03-15) should come before audit log (2024-03-14) since desc
     expect(items).toHaveLength(2);
+    // Call log (2024-03-15) should come before audit log (2024-03-14) since desc
+    expect(items[0]!.textContent).toContain("Möte bokat");
+    expect(items[1]!.textContent).toContain("lead.created");
   });
 
   it("renders call log with null outcome as 'Samtal'", () => {

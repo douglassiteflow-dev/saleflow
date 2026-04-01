@@ -70,9 +70,8 @@ describe("useAuditLogs", () => {
 
     const { result } = renderHook(() => useAuditLogs({ user_id: "u1", action: "lead.created" }), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("user_id=u1"),
-      expect.anything(),
-    );
+    const calledUrl = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]![0] as string;
+    expect(calledUrl).toContain("user_id=u1");
+    expect(calledUrl).toContain("action=lead.created");
   });
 });

@@ -173,6 +173,19 @@ describe("OutcomePanel", () => {
     });
   });
 
+  it("resets selection when clicking a different outcome", () => {
+    render(<OutcomePanel leadId="1" />, { wrapper: Wrapper });
+
+    // Select first outcome
+    fireEvent.click(screen.getByText("Svarar ej"));
+    expect(screen.getByText("Bekräfta: Svarar ej")).toBeInTheDocument();
+
+    // Click a different outcome — should reset and select the new one
+    fireEvent.click(screen.getByText("Fel nummer"));
+    expect(screen.queryByText("Bekräfta: Svarar ej")).not.toBeInTheDocument();
+    expect(screen.getByText("Bekräfta: Fel nummer")).toBeInTheDocument();
+  });
+
   it("includes notes in submission when filled", () => {
     render(<OutcomePanel leadId="1" />, { wrapper: Wrapper });
 

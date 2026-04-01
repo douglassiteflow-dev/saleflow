@@ -59,6 +59,31 @@ describe("useLeads", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/leads?search=test", expect.anything());
   });
+
+  it("URL-encodes special characters in search query", async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([]),
+    });
+
+    const { result } = renderHook(() => useLeads("anna öberg"), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/leads?search=anna%20%C3%B6berg",
+      expect.anything(),
+    );
+  });
+
+  it("fetches all leads when search is empty string", async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockLead]),
+    });
+
+    const { result } = renderHook(() => useLeads(""), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(globalThis.fetch).toHaveBeenCalledWith("/api/leads", expect.anything());
+  });
 });
 
 describe("useLeadDetail", () => {

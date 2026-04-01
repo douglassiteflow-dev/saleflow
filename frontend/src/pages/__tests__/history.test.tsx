@@ -4,6 +4,12 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HistoryPage } from "../history";
 
+const navigateMock = vi.fn();
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual("react-router-dom");
+  return { ...actual, useNavigate: () => navigateMock };
+});
+
 const useAuditLogsMock = vi.fn();
 
 vi.mock("@/api/audit", () => ({
@@ -60,6 +66,7 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 
 describe("HistoryPage", () => {
   beforeEach(() => {
+    navigateMock.mockClear();
     useAuditLogsMock.mockReturnValue({
       data: defaultLogs,
       isLoading: false,
@@ -135,6 +142,7 @@ describe("HistoryPage", () => {
     const rows = document.querySelectorAll("tbody tr");
     expect(rows.length).toBeGreaterThan(0);
     fireEvent.click(rows[0]!);
+    expect(navigateMock).toHaveBeenCalledWith("/leads/l1");
   });
 
   it("does not navigate for non-navigable actions", () => {
@@ -142,6 +150,7 @@ describe("HistoryPage", () => {
     const rows = document.querySelectorAll("tbody tr");
     const lastRow = rows[rows.length - 1]!;
     fireEvent.click(lastRow);
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 
   it("renders loading state", () => {
@@ -160,7 +169,8 @@ describe("HistoryPage", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
     const select = screen.getByDisplayValue("Alla händelser");
     fireEvent.change(select, { target: { value: "lead.created" } });
-    // useAuditLogs should be called with the action filter
+    // After filter change, only "Lead skapad" rows should be visible
+    expect(screen.getByDisplayValue("Lead skapad")).toBeInTheDocument();
   });
 
   it("filters by details content in search", () => {

@@ -80,7 +80,7 @@ describe("AdminRoute", () => {
         </MemoryRouter>
       </Wrapper>,
     );
-    expect(container.innerHTML).toBe("");
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("redirects to login when not authenticated", () => {

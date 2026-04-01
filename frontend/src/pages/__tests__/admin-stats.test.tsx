@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AdminStatsPage } from "../admin-stats";
@@ -66,8 +66,12 @@ describe("AdminStatsPage", () => {
 
   it("displays count and percentage for statuses", () => {
     render(<AdminStatsPage />, { wrapper: Wrapper });
-    expect(screen.getByText("2")).toBeInTheDocument();
-    expect(screen.getByText("(50.0%)")).toBeInTheDocument();
+    // Find the "Nya" (new) row and verify count within it
+    const nyaLabel = screen.getByText("Nya");
+    const nyaRow = nyaLabel.closest(".space-y-1\\.5")!;
+    const nyaScope = within(nyaRow as HTMLElement);
+    expect(nyaScope.getByText("2")).toBeInTheDocument();
+    expect(nyaScope.getByText("(50.0%)")).toBeInTheDocument();
   });
 
   it("shows zero count for missing statuses", () => {
@@ -79,9 +83,9 @@ describe("AdminStatsPage", () => {
   it("shows loading state for stats", () => {
     useAdminStatsMock.mockReturnValue({ data: undefined, isLoading: true });
     render(<AdminStatsPage />, { wrapper: Wrapper });
-    // Stat cards should show "—"
+    // Stat cards should show "—" — exactly 4 stat cards
     const dashes = screen.getAllByText("—");
-    expect(dashes.length).toBeGreaterThanOrEqual(4);
+    expect(dashes.length).toBe(4);
   });
 
   it("shows loading state for leads breakdown", () => {

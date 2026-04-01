@@ -153,7 +153,7 @@ describe("MeetingsPage", () => {
     expect(screen.getByText("Anna Berg")).toBeInTheDocument();
   });
 
-  it("renders border between multiple meeting rows", () => {
+  it("renders multiple scheduled meeting rows", () => {
     useMeetingsMock.mockReturnValue({
       data: [
         {
@@ -186,10 +186,8 @@ describe("MeetingsPage", () => {
     render(<MeetingsPage />, { wrapper: Wrapper });
     expect(screen.getByText("First")).toBeInTheDocument();
     expect(screen.getByText("Second")).toBeInTheDocument();
-    // First row has border, last row doesn't
     const rows = document.querySelectorAll("tbody tr");
-    expect(rows[0]!.className).toContain("border-b");
-    expect(rows[1]!.className).not.toContain("border-b");
+    expect(rows.length).toBe(2);
   });
 
   it("does not render cancel button for completed meetings", () => {

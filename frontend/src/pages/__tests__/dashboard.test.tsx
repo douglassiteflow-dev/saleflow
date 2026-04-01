@@ -4,6 +4,12 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DashboardPage } from "../dashboard";
 
+const navigateMock = vi.fn();
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual("react-router-dom");
+  return { ...actual, useNavigate: () => navigateMock };
+});
+
 const useAdminStatsMock = vi.fn();
 const useMeetingsMock = vi.fn();
 const useLeadsMock = vi.fn();
@@ -31,6 +37,7 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 
 describe("DashboardPage", () => {
   beforeEach(() => {
+    navigateMock.mockClear();
     useAdminStatsMock.mockReturnValue({
       data: { calls_today: 10, leads_remaining: 50, meetings_booked: 5, conversion_rate: 0.2 },
       isLoading: false,
@@ -187,13 +194,15 @@ describe("DashboardPage", () => {
     useMeetingsMock.mockReturnValue({ data: undefined });
     render(<DashboardPage />, { wrapper: Wrapper });
     // Meeting count when undefined shows "—"
+    const dashes = screen.getAllByText("—");
+    expect(dashes.length).toBeGreaterThanOrEqual(1);
   });
 
   it("navigates when clicking the 'Nästa kund' button", () => {
     render(<DashboardPage />, { wrapper: Wrapper });
     const btn = screen.getByText("Nästa kund");
     fireEvent.click(btn);
-    // Navigation is handled by react-router
+    expect(navigateMock).toHaveBeenCalledWith("/dialer");
   });
 
   it("filters out meetings not matching today's date", () => {
