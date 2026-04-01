@@ -35,4 +35,39 @@ defmodule SaleflowWeb.ConnCase do
     Saleflow.DataCase.setup_sandbox(tags)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
+
+  @doc """
+  Creates a test user and returns an authenticated connection with the
+  user_id set in the session.
+  """
+  def register_and_log_in_user(conn, attrs \\ %{}) do
+    user_attrs =
+      Map.merge(
+        %{
+          email: "test-#{System.unique_integer([:positive])}@example.com",
+          name: "Test User",
+          password: "password123",
+          password_confirmation: "password123"
+        },
+        attrs
+      )
+
+    {:ok, user} = Saleflow.Accounts.register(user_attrs)
+
+    conn =
+      conn
+      |> Plug.Test.init_test_session(%{})
+      |> Plug.Conn.put_session(:user_id, user.id)
+
+    {conn, user}
+  end
+
+  @doc """
+  Sets up an authenticated connection in the test context.
+  """
+  def log_in_user(conn, user) do
+    conn
+    |> Plug.Test.init_test_session(%{})
+    |> Plug.Conn.put_session(:user_id, user.id)
+  end
 end

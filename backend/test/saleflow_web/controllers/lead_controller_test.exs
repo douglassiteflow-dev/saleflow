@@ -1,0 +1,203 @@
+defmodule SaleflowWeb.LeadControllerTest do
+  use SaleflowWeb.ConnCase
+
+  alias Saleflow.Accounts
+  alias Saleflow.Sales
+
+  @user_params %{
+    email: "agent@example.com",
+    name: "Jane Agent",
+    password: "password123",
+    password_confirmation: "password123"
+  }
+
+  setup %{conn: conn} do
+    {:ok, user} = Accounts.register(@user_params)
+    conn = log_in_user(conn, user)
+    %{conn: conn, user: user}
+  end
+
+  # -------------------------------------------------------------------------
+  # GET /api/leads
+  # -------------------------------------------------------------------------
+
+  describe "GET /api/leads" do
+    test "returns all leads", %{conn: conn} do
+      {:ok, _} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
+      {:ok, _} = Sales.create_lead(%{företag: "Beta AB", telefon: "+46700000002"})
+
+      conn = get(conn, "/api/leads")
+      assert %{"leads" => leads} = json_response(conn, 200)
+      assert length(leads) == 2
+    end
+
+    test "returns empty list when no leads", %{conn: conn} do
+      conn = get(conn, "/api/leads")
+      assert %{"leads" => []} = json_response(conn, 200)
+    end
+
+    test "searches leads with q param", %{conn: conn} do
+      {:ok, _} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
+      {:ok, _} = Sales.create_lead(%{företag: "Beta Konsult", telefon: "+46700000002"})
+      {:ok, _} = Sales.create_lead(%{företag: "Acme Nordic", telefon: "+46700000003"})
+
+      conn = get(conn, "/api/leads?q=Acme")
+      assert %{"leads" => leads} = json_response(conn, 200)
+      assert length(leads) == 2
+      names = Enum.map(leads, & &1["företag"])
+      assert "Acme AB" in names
+      assert "Acme Nordic" in names
+    end
+
+    test "requires authentication" do
+      conn =
+        build_conn()
+        |> Plug.Test.init_test_session(%{})
+        |> get("/api/leads")
+
+      assert json_response(conn, 401)
+    end
+  end
+
+  # -------------------------------------------------------------------------
+  # GET /api/leads/:id
+  # -------------------------------------------------------------------------
+
+  describe "GET /api/leads/:id" do
+    test "returns lead with calls and audit logs", %{conn: conn, user: user} do
+      {:ok, lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
+      {:ok, _call} = Sales.log_call(%{lead_id: lead.id, user_id: user.id, outcome: :no_answer})
+
+      conn = get(conn, "/api/leads/#{lead.id}")
+      assert %{"lead" => lead_json, "calls" => calls, "audit_logs" => audit_logs} = json_response(conn, 200)
+      assert lead_json["företag"] == "Acme AB"
+      assert length(calls) == 1
+      assert hd(calls)["outcome"] == "no_answer"
+      # Should have at least the lead.created audit log
+      assert length(audit_logs) >= 1
+    end
+
+    test "returns 404 for non-existent lead", %{conn: conn} do
+      conn = get(conn, "/api/leads/00000000-0000-0000-0000-000000000000")
+      assert json_response(conn, 404)
+    end
+  end
+
+  # -------------------------------------------------------------------------
+  # POST /api/leads/next
+  # -------------------------------------------------------------------------
+
+  describe "POST /api/leads/next" do
+    test "returns next lead from queue", %{conn: conn} do
+      {:ok, _lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
+
+      conn = post(conn, "/api/leads/next")
+      assert %{"lead" => lead_json} = json_response(conn, 200)
+      assert lead_json["företag"] == "Acme AB"
+      assert lead_json["status"] == "assigned"
+    end
+
+    test "returns null when queue is empty", %{conn: conn} do
+      conn = post(conn, "/api/leads/next")
+      assert %{"lead" => nil} = json_response(conn, 200)
+    end
+  end
+
+  # -------------------------------------------------------------------------
+  # POST /api/leads/:id/outcome
+  # -------------------------------------------------------------------------
+
+  describe "POST /api/leads/:id/outcome" do
+    setup %{user: user} do
+      {:ok, lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
+      # Assign the lead so there's an active assignment to release
+      {:ok, _assignment} = Sales.assign_lead(lead, user)
+      {:ok, _lead} = Sales.update_lead_status(lead, %{status: :assigned})
+      %{lead: lead}
+    end
+
+    test "no_answer sets lead back to :new", %{conn: conn, lead: lead} do
+      conn = post(conn, "/api/leads/#{lead.id}/outcome", %{outcome: "no_answer"})
+      assert %{"ok" => true} = json_response(conn, 200)
+
+      {:ok, updated_lead} = Sales.get_lead(lead.id)
+      assert updated_lead.status == :new
+    end
+
+    test "meeting_booked creates a meeting", %{conn: conn, lead: lead} do
+      conn =
+        post(conn, "/api/leads/#{lead.id}/outcome", %{
+          outcome: "meeting_booked",
+          title: "Demo meeting",
+          meeting_date: "2026-05-01",
+          meeting_time: "10:00:00"
+        })
+
+      assert %{"ok" => true} = json_response(conn, 200)
+
+      {:ok, updated_lead} = Sales.get_lead(lead.id)
+      assert updated_lead.status == :meeting_booked
+
+      {:ok, meetings} = Sales.list_meetings_for_lead(lead.id)
+      assert length(meetings) == 1
+      assert hd(meetings).title == "Demo meeting"
+    end
+
+    test "not_interested quarantines the lead", %{conn: conn, lead: lead} do
+      conn = post(conn, "/api/leads/#{lead.id}/outcome", %{outcome: "not_interested"})
+      assert %{"ok" => true} = json_response(conn, 200)
+
+      {:ok, updated_lead} = Sales.get_lead(lead.id)
+      assert updated_lead.status == :quarantine
+
+      {:ok, quarantines} = Sales.list_active_quarantines()
+      assert Enum.any?(quarantines, fn q -> q.lead_id == lead.id end)
+    end
+
+    test "bad_number sets lead to :bad_number", %{conn: conn, lead: lead} do
+      conn = post(conn, "/api/leads/#{lead.id}/outcome", %{outcome: "bad_number"})
+      assert %{"ok" => true} = json_response(conn, 200)
+
+      {:ok, updated_lead} = Sales.get_lead(lead.id)
+      assert updated_lead.status == :bad_number
+    end
+
+    test "customer sets lead to :customer", %{conn: conn, lead: lead} do
+      conn = post(conn, "/api/leads/#{lead.id}/outcome", %{outcome: "customer"})
+      assert %{"ok" => true} = json_response(conn, 200)
+
+      {:ok, updated_lead} = Sales.get_lead(lead.id)
+      assert updated_lead.status == :customer
+    end
+
+    test "callback sets lead to :callback", %{conn: conn, lead: lead} do
+      callback_at = DateTime.utc_now() |> DateTime.add(2, :hour) |> DateTime.to_iso8601()
+
+      conn = post(conn, "/api/leads/#{lead.id}/outcome", %{
+        outcome: "callback",
+        callback_at: callback_at
+      })
+
+      assert %{"ok" => true} = json_response(conn, 200)
+
+      {:ok, updated_lead} = Sales.get_lead(lead.id)
+      assert updated_lead.status == :callback
+    end
+
+    test "requires authentication" do
+      {:ok, lead} = Sales.create_lead(%{företag: "Test AB", telefon: "+46700099999"})
+
+      conn =
+        build_conn()
+        |> Plug.Test.init_test_session(%{})
+        |> post("/api/leads/#{lead.id}/outcome", %{outcome: "no_answer"})
+
+      assert json_response(conn, 401)
+    end
+
+    test "returns error with missing outcome param", %{conn: conn, lead: lead} do
+      conn = post(conn, "/api/leads/#{lead.id}/outcome", %{})
+      assert json_response(conn, 400)
+    end
+  end
+end
