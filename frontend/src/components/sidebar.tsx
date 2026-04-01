@@ -58,17 +58,17 @@ export function Sidebar() {
         </p>
         <NavItem to="/dashboard" label="Dashboard" />
         <NavItem to="/dialer" label="Ringare" />
-        <NavItem to="/meetings" label="Möten" disabled />
-        <NavItem to="/history" label="Historik" disabled />
+        <NavItem to="/meetings" label="Möten" />
+        <NavItem to="/history" label="Historik" />
 
         {isAdmin && (
           <>
             <p className="px-3 mt-5 mb-2 text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
               Admin
             </p>
-            <NavItem to="/admin/users" label="Användare" disabled />
-            <NavItem to="/admin/import" label="Importera" disabled />
-            <NavItem to="/admin/stats" label="Statistik" disabled />
+            <NavItem to="/admin/users" label="Användare" />
+            <NavItem to="/admin/import" label="Importera" />
+            <NavItem to="/admin/stats" label="Statistik" />
           </>
         )}
       </nav>

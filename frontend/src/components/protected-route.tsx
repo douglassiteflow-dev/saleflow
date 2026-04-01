@@ -12,3 +12,11 @@ export function ProtectedRoute() {
   if (!user) return <Navigate to="/login" replace />;
   return <Outlet />;
 }
+
+export function AdminRoute() {
+  const { data: user, isLoading } = useMe();
+  if (isLoading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "admin") return <Navigate to="/dashboard" replace />;
+  return <Outlet />;
+}
