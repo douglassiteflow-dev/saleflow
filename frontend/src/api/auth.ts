@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "./client";
-import type { User } from "./types";
+import type { User, LoginResponse, VerifyOtpResponse } from "./types";
 
 export function useMe() {
   return useQuery<User | null>({
@@ -26,17 +26,42 @@ interface LoginParams {
 }
 
 export function useLogin() {
-  const queryClient = useQueryClient();
-
-  return useMutation<User, ApiError, LoginParams>({
+  return useMutation<LoginResponse, ApiError, LoginParams>({
     mutationFn: (params) =>
-      api<User>("/api/auth/sign-in", {
+      api<LoginResponse>("/api/auth/sign-in", {
         method: "POST",
         body: JSON.stringify(params),
       }),
-    onSuccess: (user) => {
-      queryClient.setQueryData(["auth", "me"], user);
+  });
+}
+
+interface VerifyOtpParams {
+  user_id: string;
+  code: string;
+}
+
+export function useVerifyOtp() {
+  const queryClient = useQueryClient();
+
+  return useMutation<VerifyOtpResponse, ApiError, VerifyOtpParams>({
+    mutationFn: (params) =>
+      api<VerifyOtpResponse>("/api/auth/verify-otp", {
+        method: "POST",
+        body: JSON.stringify(params),
+      }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["auth", "me"], data.user);
     },
+  });
+}
+
+export function useResendOtp() {
+  return useMutation<LoginResponse, ApiError, LoginParams>({
+    mutationFn: (params) =>
+      api<LoginResponse>("/api/auth/sign-in", {
+        method: "POST",
+        body: JSON.stringify(params),
+      }),
   });
 }
 

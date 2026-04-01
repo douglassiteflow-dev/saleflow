@@ -1,17 +1,22 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { useMe, useLogin } from "@/api/auth";
+import { useMe, useLogin, useVerifyOtp, useResendOtp } from "@/api/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { OtpInput } from "@/components/otp-input";
 
 export function LoginPage() {
   const { data: user, isLoading } = useMe();
   const login = useLogin();
+  const verifyOtp = useVerifyOtp();
+  const resendOtp = useResendOtp();
   const navigate = useNavigate();
 
+  const [step, setStep] = useState<"credentials" | "otp">("credentials");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [userId, setUserId] = useState("");
 
   if (isLoading) {
     return (
@@ -30,11 +35,32 @@ export function LoginPage() {
     login.mutate(
       { email, password },
       {
+        onSuccess: (data) => {
+          setUserId(data.user_id);
+          setStep("otp");
+        },
+      },
+    );
+  }
+
+  function handleOtpComplete(code: string) {
+    verifyOtp.mutate(
+      { user_id: userId, code },
+      {
         onSuccess: () => {
           void navigate("/dashboard");
         },
       },
     );
+  }
+
+  function handleResendOtp() {
+    resendOtp.mutate({ email, password });
+  }
+
+  function getOtpError(): string | null {
+    if (!verifyOtp.isError) return null;
+    return verifyOtp.error?.message ?? "Verifieringen misslyckades";
   }
 
   return (
@@ -48,64 +74,89 @@ export function LoginPage() {
             SaleFlow
           </h1>
           <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-            Logga in på ditt konto
+            {step === "credentials"
+              ? "Logga in på ditt konto"
+              : "Kod skickad till din e-post"}
           </p>
         </div>
 
         <Card>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1.5">
-              <label
-                htmlFor="email"
-                className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]"
+          {step === "credentials" ? (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="email"
+                  className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]"
+                >
+                  E-post
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="namn@foretag.se"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="password"
+                  className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]"
+                >
+                  Lösenord
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                />
+              </div>
+
+              {login.isError && (
+                <p className="text-sm text-[var(--color-danger)] bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                  {login.error?.message ?? "Inloggningen misslyckades"}
+                </p>
+              )}
+
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                className="w-full"
+                disabled={login.isPending}
               >
-                E-post
-              </label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="namn@foretag.se"
+                {login.isPending ? "Loggar in..." : "Logga in"}
+              </Button>
+            </form>
+          ) : (
+            <div className="space-y-5">
+              <OtpInput
+                onComplete={handleOtpComplete}
+                onResend={handleResendOtp}
+                error={getOtpError()}
+                disabled={verifyOtp.isPending}
               />
+
+              {verifyOtp.isPending && (
+                <p className="text-sm text-center text-[var(--color-text-secondary)]">
+                  Verifierar...
+                </p>
+              )}
+
+              {resendOtp.isSuccess && (
+                <p className="text-sm text-center text-emerald-600">
+                  Ny kod skickad
+                </p>
+              )}
             </div>
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="password"
-                className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]"
-              >
-                Lösenord
-              </label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-              />
-            </div>
-
-            {login.isError && (
-              <p className="text-sm text-[var(--color-danger)] bg-red-50 border border-red-200 rounded-md px-3 py-2">
-                {login.error?.message ?? "Inloggningen misslyckades"}
-              </p>
-            )}
-
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              className="w-full"
-              disabled={login.isPending}
-            >
-              {login.isPending ? "Loggar in..." : "Logga in"}
-            </Button>
-          </form>
+          )}
         </Card>
       </div>
     </div>

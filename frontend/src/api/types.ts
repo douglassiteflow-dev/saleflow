@@ -5,9 +5,29 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
-  active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface LoginResponse {
+  otp_sent: boolean;
+  user_id: string;
+}
+
+export interface VerifyOtpResponse {
+  user: User;
+}
+
+export interface LoginSession {
+  id: string;
+  device_type: string;
+  browser: string;
+  city: string | null;
+  country: string | null;
+  logged_in_at: string;
+  last_active_at: string;
+  force_logged_out: boolean;
+  current: boolean;
 }
 
 export type LeadStatus =

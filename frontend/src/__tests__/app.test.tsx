@@ -7,7 +7,15 @@ const useMeMock = vi.fn();
 vi.mock("@/api/auth", () => ({
   useMe: () => useMeMock(),
   useLogin: vi.fn(() => ({ mutate: vi.fn(), isPending: false, isError: false, error: null })),
+  useVerifyOtp: vi.fn(() => ({ mutate: vi.fn(), isPending: false, isError: false, error: null })),
+  useResendOtp: vi.fn(() => ({ mutate: vi.fn(), isPending: false, isError: false, isSuccess: false, error: null })),
   useLogout: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+}));
+
+vi.mock("@/api/sessions", () => ({
+  useMySessions: vi.fn(() => ({ data: [], isLoading: false })),
+  useLogoutAll: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  useForceLogoutSession: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
 }));
 
 describe("App", () => {
@@ -18,7 +26,7 @@ describe("App", () => {
 
   it("renders without crashing", () => {
     render(<App />);
-    // Default route redirects to /dashboard, which needs auth → redirects to /login
+    // Default route redirects to /dashboard, which needs auth -> redirects to /login
     // Login page should render
     expect(screen.getByText("SaleFlow")).toBeInTheDocument();
   });
@@ -26,7 +34,7 @@ describe("App", () => {
   it("redirects wildcard routes to /dashboard (then to /login without auth)", () => {
     window.history.pushState({}, "", "/some/unknown/path");
     render(<App />);
-    // Wildcard redirects to /dashboard, but user is not authed → redirects to /login
+    // Wildcard redirects to /dashboard, but user is not authed -> redirects to /login
     expect(screen.getByText("SaleFlow")).toBeInTheDocument();
   });
 
