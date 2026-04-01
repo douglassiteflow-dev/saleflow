@@ -454,3 +454,87 @@ To retrieve audit logs for any resource:
 {:ok, logs} = Saleflow.Audit.list_for_resource("Assignment", assignment.id)
 {:ok, logs} = Saleflow.Audit.list_for_resource("Meeting", meeting.id)
 ```
+
+---
+
+## XLSX Import
+
+**Module:** `Saleflow.Sales.Import`
+
+Provides bulk lead import from XLSX files. Used for loading prospect lists exported from external tools.
+
+### `Saleflow.Sales.Import.import_rows/1`
+
+Takes a list of row maps (string-keyed, e.g. from `parse_xlsx/1`) and creates leads in bulk.
+
+```elixir
+rows = [
+  %{"företag" => "Acme AB", "telefon" => "+46701234567", "stad" => "Stockholm"},
+  %{"företag" => "Beta AB", "telefon" => "+46709876543"}
+]
+
+{:ok, %{created: 2, skipped: 0}} = Saleflow.Sales.Import.import_rows(rows)
+```
+
+#### Required fields
+
+| Field     | Description    |
+|-----------|----------------|
+| `"företag"` | Company name |
+| `"telefon"` | Phone number |
+
+Rows missing either field (or with blank values) are counted as skipped.
+
+#### Deduplication
+
+A row is skipped (counted in `skipped`) if:
+
+- The same `telefon` appears more than once in the current batch — first occurrence wins.
+- A lead with the same `telefon` already exists in the database.
+
+#### Return value
+
+```elixir
+{:ok, %{created: integer(), skipped: integer()}}
+```
+
+#### Side effects
+
+- Each successfully created lead has `status: :new` and `imported_at` set to the current UTC time.
+- An audit log entry with action `"lead.imported"` is created for each imported lead.
+
+### `Saleflow.Sales.Import.parse_xlsx/1`
+
+Reads an XLSX file from disk and returns row maps using the first row as column headers.
+
+```elixir
+{:ok, rows} = Saleflow.Sales.Import.parse_xlsx("/tmp/leads.xlsx")
+# rows = [%{"företag" => "Acme AB", "telefon" => "+46701234567", ...}, ...]
+
+{:ok, %{created: 47, skipped: 3}} = Saleflow.Sales.Import.import_rows(rows)
+```
+
+Returns `{:ok, [row_maps]}` on success or `{:error, reason}` if the file cannot be parsed.
+
+### Supported column headers
+
+The following XLSX column headers are mapped to Lead fields (case-sensitive):
+
+| XLSX header        | Lead field          |
+|--------------------|---------------------|
+| `företag`          | `:företag`          |
+| `telefon`          | `:telefon`          |
+| `epost`            | `:epost`            |
+| `hemsida`          | `:hemsida`          |
+| `adress`           | `:adress`           |
+| `postnummer`       | `:postnummer`       |
+| `stad`             | `:stad`             |
+| `bransch`          | `:bransch`          |
+| `orgnr`            | `:orgnr`            |
+| `omsättning_tkr`   | `:omsättning_tkr`   |
+| `vinst_tkr`        | `:vinst_tkr`        |
+| `anställda`        | `:anställda`        |
+| `vd_namn`          | `:vd_namn`          |
+| `bolagsform`       | `:bolagsform`       |
+
+Unknown column headers are silently ignored.
