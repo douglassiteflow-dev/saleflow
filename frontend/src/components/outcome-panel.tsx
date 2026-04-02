@@ -1,14 +1,10 @@
 import { useState } from "react";
 import type { Lead, Outcome } from "@/api/types";
 import { useSubmitOutcome } from "@/api/leads";
+import { useMicrosoftStatus } from "@/api/microsoft";
 import { Card, CardTitle } from "@/components/ui/card";
-import { TimeSelect } from "@/components/ui/time-select";
+import { MeetingBookingModal } from "@/components/meeting-booking-modal";
 import { cn } from "@/lib/cn";
-import { formatDate, formatPhone } from "@/lib/format";
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 interface OutcomeConfig {
   outcome: Outcome;
@@ -85,26 +81,26 @@ interface OutcomePanelProps {
   onOutcomeSubmitted?: () => void;
 }
 
-export function OutcomePanel({ leadId, companyName, leadData, onOutcomeSubmitted }: OutcomePanelProps) {
+export function OutcomePanel({ leadId, companyName: _companyName, leadData, onOutcomeSubmitted }: OutcomePanelProps) {
   const submitOutcome = useSubmitOutcome(leadId);
+  const { data: msStatus } = useMicrosoftStatus();
 
   const [selected, setSelected] = useState<Outcome | null>(null);
   const [notes, setNotes] = useState("");
   const [callbackDate, setCallbackDate] = useState("");
-  const [meetingDate, setMeetingDate] = useState("");
-  const [meetingTime, setMeetingTime] = useState("");
-  const [meetingTitle, setMeetingTitle] = useState("");
-  const [meetingDuration, setMeetingDuration] = useState<30 | 45 | 60>(30);
   const [error, setError] = useState<string | null>(null);
+  const [meetingModalOpen, setMeetingModalOpen] = useState(false);
 
   function handleSelect(outcome: Outcome) {
+    // Meeting booked opens modal instead of inline fields
+    if (outcome === "meeting_booked") {
+      setMeetingModalOpen(true);
+      return;
+    }
+
     if (selected !== outcome) {
       setSelected(outcome);
       setError(null);
-      // Pre-fill meeting title when switching to meeting_booked
-      if (outcome === "meeting_booked" && companyName) {
-        setMeetingTitle(`Möte med ${companyName}`);
-      }
     } else {
       // Second click — confirm/submit
       handleSubmit(outcome);
@@ -114,26 +110,10 @@ export function OutcomePanel({ leadId, companyName, leadData, onOutcomeSubmitted
   function handleSubmit(outcome: Outcome) {
     setError(null);
 
-    // Validation
-    if (outcome === "meeting_booked") {
-      if (!meetingDate || !meetingTime) {
-        setError("Välj datum och tid för mötet.");
-        return;
-      }
-      if (meetingDate < todayISO()) {
-        setError("Mötesdatumet kan inte vara i det förflutna.");
-        return;
-      }
-    }
-
     submitOutcome.mutate(
       {
         outcome,
         notes: notes || undefined,
-        title: outcome === "meeting_booked" ? (meetingTitle || undefined) : undefined,
-        meeting_date: outcome === "meeting_booked" ? meetingDate : undefined,
-        meeting_time: outcome === "meeting_booked" ? meetingTime : undefined,
-        meeting_duration: outcome === "meeting_booked" ? meetingDuration : undefined,
         callback_at:
           outcome === "callback" && callbackDate
             ? callbackDate
@@ -141,14 +121,9 @@ export function OutcomePanel({ leadId, companyName, leadData, onOutcomeSubmitted
       },
       {
         onSuccess: () => {
-          // Reset state
           setSelected(null);
           setNotes("");
           setCallbackDate("");
-          setMeetingDate("");
-          setMeetingTime("");
-          setMeetingTitle("");
-          setMeetingDuration(30);
           setError(null);
           onOutcomeSubmitted?.();
         },
@@ -159,189 +134,114 @@ export function OutcomePanel({ leadId, companyName, leadData, onOutcomeSubmitted
     );
   }
 
+  function handleMeetingBooked() {
+    setSelected(null);
+    setNotes("");
+    setError(null);
+    onOutcomeSubmitted?.();
+  }
+
   return (
-    <Card>
-      <CardTitle className="mb-4">Utfall</CardTitle>
+    <>
+      <Card>
+        <CardTitle className="mb-4">Utfall</CardTitle>
 
-      {/* 2-column grid of outcome buttons */}
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        {OUTCOMES.map((cfg) => {
-          const isSelected = selected === cfg.outcome;
-          return (
+        {/* 2-column grid of outcome buttons */}
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {OUTCOMES.map((cfg) => {
+            const isSelected = selected === cfg.outcome;
+            return (
+              <button
+                key={cfg.outcome}
+                type="button"
+                disabled={submitOutcome.isPending}
+                onClick={() => handleSelect(cfg.outcome)}
+                className={cn(
+                  "flex items-center justify-center rounded-md border-2 px-3 py-2.5 text-xs lg:text-sm font-medium transition-all duration-150 cursor-pointer whitespace-nowrap truncate",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+                  "disabled:pointer-events-none disabled:opacity-50",
+                  isSelected
+                    ? "ring-2 ring-offset-1 shadow-sm"
+                    : "hover:shadow-sm",
+                )}
+                style={{
+                  borderColor: isSelected ? cfg.color : cfg.borderColor,
+                  backgroundColor: isSelected ? cfg.bgColor : "#FFFFFF",
+                  color: cfg.color,
+                  ...(isSelected ? { ringColor: cfg.color } : {}),
+                }}
+              >
+                {isSelected ? `Bekräfta: ${cfg.label}` : cfg.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Conditional fields for callback */}
+        {selected === "callback" && (
+          <div className="mb-4 space-y-2">
+            <label className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
+              Datum för återuppringning
+            </label>
             <button
-              key={cfg.outcome}
               type="button"
-              disabled={submitOutcome.isPending}
-              onClick={() => handleSelect(cfg.outcome)}
-              className={cn(
-                "flex items-center justify-center rounded-md border-2 px-3 py-2.5 text-xs lg:text-sm font-medium transition-all duration-150 cursor-pointer whitespace-nowrap truncate",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
-                "disabled:pointer-events-none disabled:opacity-50",
-                isSelected
-                  ? "ring-2 ring-offset-1 shadow-sm"
-                  : "hover:shadow-sm",
-              )}
-              style={{
-                borderColor: isSelected ? cfg.color : cfg.borderColor,
-                backgroundColor: isSelected ? cfg.bgColor : "#FFFFFF",
-                color: cfg.color,
-                ...(isSelected ? { ringColor: cfg.color } : {}),
+              onClick={() => {
+                const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                setCallbackDate(d.toISOString().slice(0, 16));
               }}
+              className="w-full rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors mb-2"
             >
-              {isSelected ? `Bekräfta: ${cfg.label}` : cfg.label}
+              Om 24 timmar
             </button>
-          );
-        })}
-      </div>
+            <input
+              type="datetime-local"
+              value={callbackDate}
+              onChange={(e) => setCallbackDate(e.target.value)}
+              className="flex w-full rounded-md border border-[var(--color-border-input)] bg-white px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            />
+          </div>
+        )}
 
-      {/* Conditional fields */}
-      {selected === "callback" && (
-        <div className="mb-4 space-y-2">
+        {/* Notes */}
+        <div className="mb-4 space-y-1.5">
           <label className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
-            Datum för återuppringning
+            Anteckningar
           </label>
-          <button
-            type="button"
-            onClick={() => {
-              const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
-              setCallbackDate(d.toISOString().slice(0, 16));
-            }}
-            className="w-full rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors mb-2"
-          >
-            Om 24 timmar
-          </button>
-          <input
-            type="datetime-local"
-            value={callbackDate}
-            onChange={(e) => setCallbackDate(e.target.value)}
-            className="flex w-full rounded-md border border-[var(--color-border-input)] bg-white px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={3}
+            placeholder="Valfria anteckningar..."
+            className="flex w-full rounded-md border border-[var(--color-border-input)] bg-white px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] resize-y focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
           />
         </div>
-      )}
 
-      {selected === "meeting_booked" && (
-        <div className="mb-4 space-y-3">
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
-              Titel
-            </label>
-            <input
-              type="text"
-              value={meetingTitle}
-              onChange={(e) => setMeetingTitle(e.target.value)}
-              placeholder={companyName ? `Möte med ${companyName}` : "Mötetitel"}
-              className="flex w-full rounded-[6px] border border-[var(--color-border-input)] bg-white px-[var(--spacing-input-x)] py-[var(--spacing-input-y)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] transition-colors duration-150"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
-              Möteslängd
-            </label>
-            <select
-              value={meetingDuration}
-              onChange={(e) => setMeetingDuration(Number(e.target.value) as 30 | 45 | 60)}
-              disabled={submitOutcome.isPending}
-              className="flex w-full rounded-[6px] border border-[var(--color-border-input)] bg-white px-[var(--spacing-input-x)] py-[var(--spacing-input-y)] text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] transition-colors duration-150"
-            >
-              <option value={30}>30 min</option>
-              <option value={45}>45 min</option>
-              <option value={60}>60 min</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
-              Mötesdatum
-            </label>
-            <input
-              type="date"
-              value={meetingDate}
-              min={todayISO()}
-              onChange={(e) => setMeetingDate(e.target.value)}
-              required
-              className="flex w-full rounded-[6px] border border-[var(--color-border-input)] bg-white px-[var(--spacing-input-x)] py-[var(--spacing-input-y)] text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] transition-colors duration-150"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
-              Mötestid
-            </label>
-            <TimeSelect
-              value={meetingTime}
-              onChange={setMeetingTime}
-              disabled={submitOutcome.isPending}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Meeting preview */}
-      {selected === "meeting_booked" && meetingDate && meetingTime && (
-        <div className="mb-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-panel)] p-4">
-          <p className="text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)] mb-3">
-            Förhandsgranskning
+        {/* Error */}
+        {error && (
+          <p className="mb-3 text-sm text-[var(--color-danger)] bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            {error}
           </p>
-          <div className="space-y-1.5 text-sm text-[var(--color-text-primary)]">
-            <p className="font-medium">
-              {meetingTitle || (companyName ? `Möte med ${companyName}` : "Möte")}
-            </p>
-            <p>{formatDate(meetingDate)}, {meetingTime}</p>
-            <p>{meetingDuration} min</p>
-            {leadData?.epost && (
-              <p className="text-[var(--color-text-secondary)]">
-                Deltagare: {leadData.epost}
-              </p>
-            )}
-            {leadData?.telefon && (
-              <p className="text-[var(--color-text-secondary)]">
-                Telefon: {formatPhone(leadData.telefon)}
-              </p>
-            )}
-            {leadData?.vd_namn && (
-              <p className="text-[var(--color-text-secondary)]">
-                VD: {leadData.vd_namn}
-              </p>
-            )}
-            {leadData?.bransch && (
-              <p className="text-[var(--color-text-secondary)]">
-                Bransch: {leadData.bransch}
-              </p>
-            )}
-            {leadData?.stad && (
-              <p className="text-[var(--color-text-secondary)]">
-                Stad: {leadData.stad}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* Notes */}
-      <div className="mb-4 space-y-1.5">
-        <label className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
-          Anteckningar
-        </label>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={3}
-          placeholder="Valfria anteckningar..."
-          className="flex w-full rounded-md border border-[var(--color-border-input)] bg-white px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] resize-y focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+        {/* Hint when nothing selected */}
+        {!selected && (
+          <p className="text-sm text-[var(--color-text-secondary)] text-center">
+            Välj ett utfall ovan — klicka igen för att bekräfta.
+          </p>
+        )}
+      </Card>
+
+      {/* Meeting booking modal */}
+      {leadData && (
+        <MeetingBookingModal
+          isOpen={meetingModalOpen}
+          onClose={() => setMeetingModalOpen(false)}
+          onBooked={handleMeetingBooked}
+          lead={leadData}
+          leadId={leadId}
+          msConnected={msStatus?.connected ?? false}
         />
-      </div>
-
-      {/* Error */}
-      {error && (
-        <p className="mb-3 text-sm text-[var(--color-danger)] bg-red-50 border border-red-200 rounded-md px-3 py-2">
-          {error}
-        </p>
       )}
-
-      {/* Hint when nothing selected */}
-      {!selected && (
-        <p className="text-sm text-[var(--color-text-secondary)] text-center">
-          Välj ett utfall ovan — klicka igen för att bekräfta.
-        </p>
-      )}
-    </Card>
+    </>
   );
 }

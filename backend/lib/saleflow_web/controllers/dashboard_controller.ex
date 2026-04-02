@@ -209,6 +209,8 @@ defmodule SaleflowWeb.DashboardController do
       notes: meeting.notes,
       status: meeting.status,
       reminded_at: meeting.reminded_at,
+      attendee_email: meeting.attendee_email,
+      attendee_name: meeting.attendee_name,
       updated_at: meeting.updated_at,
       inserted_at: meeting.inserted_at
     }

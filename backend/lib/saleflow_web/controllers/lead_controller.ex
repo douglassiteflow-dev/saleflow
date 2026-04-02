@@ -175,11 +175,25 @@ defmodule SaleflowWeb.LeadController do
               do: Map.put(meeting_params, :notes, params["meeting_notes"]),
               else: meeting_params
 
+          meeting_params =
+            if params["customer_email"],
+              do: Map.put(meeting_params, :attendee_email, params["customer_email"]),
+              else: meeting_params
+
+          meeting_params =
+            if params["customer_name"],
+              do: Map.put(meeting_params, :attendee_name, params["customer_name"]),
+              else: meeting_params
+
           {:ok, meeting} = Sales.create_meeting(meeting_params)
 
           # Auto-create Teams meeting if user has Microsoft connected and opted in
           if params["create_teams_meeting"] != false do
-            try_create_teams_meeting(meeting, lead, user)
+            attendee_overrides = %{
+              email: params["customer_email"],
+              name: params["customer_name"]
+            }
+            try_create_teams_meeting(meeting, lead, user, attendee_overrides)
           end
 
           {:ok, updated_lead}
@@ -384,7 +398,7 @@ defmodule SaleflowWeb.LeadController do
   # Teams meeting auto-creation (best-effort, never blocks outcome)
   # ---------------------------------------------------------------------------
 
-  defp try_create_teams_meeting(meeting, lead, user) do
+  defp try_create_teams_meeting(meeting, lead, user, attendee_overrides) do
     require Ash.Query
     alias Saleflow.Microsoft.Graph
 
@@ -392,11 +406,11 @@ defmodule SaleflowWeb.LeadController do
     if meeting.teams_join_url do
       :ok
     else
-      try_create_teams_meeting_inner(meeting, lead, user)
+      try_create_teams_meeting_inner(meeting, lead, user, attendee_overrides)
     end
   end
 
-  defp try_create_teams_meeting_inner(meeting, lead, user) do
+  defp try_create_teams_meeting_inner(meeting, lead, user, attendee_overrides) do
     require Ash.Query
     alias Saleflow.Microsoft.Graph
 
@@ -423,8 +437,8 @@ defmodule SaleflowWeb.LeadController do
         start_datetime: NaiveDateTime.to_iso8601(start_dt),
         end_datetime: NaiveDateTime.to_iso8601(end_dt),
         description: description,
-        attendee_email: lead.epost,
-        attendee_name: lead.vd_namn || lead.företag
+        attendee_email: attendee_overrides[:email] || lead.epost,
+        attendee_name: attendee_overrides[:name] || lead.vd_namn || lead.företag
       }
 
       case Graph.create_calendar_event(ms_conn.access_token, event_params) do
