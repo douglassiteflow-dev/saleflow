@@ -5,9 +5,17 @@ defmodule SaleflowWeb.MeetingController do
 
   @doc """
   List upcoming meetings (status = :scheduled, date >= today).
+  Agents see only their own meetings; admins see all.
   """
   def index(conn, _params) do
-    {:ok, meetings} = Sales.list_upcoming_meetings()
+    user = conn.assigns.current_user
+
+    {:ok, meetings} =
+      case user.role do
+        :admin -> Sales.list_upcoming_meetings()
+        _ -> Sales.list_upcoming_meetings_for_user(user.id)
+      end
+
     json(conn, %{meetings: Enum.map(meetings, &serialize_meeting/1)})
   end
 

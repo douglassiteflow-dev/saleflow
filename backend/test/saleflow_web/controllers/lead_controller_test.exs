@@ -4,7 +4,15 @@ defmodule SaleflowWeb.LeadControllerTest do
   alias Saleflow.Accounts
   alias Saleflow.Sales
 
-  @user_params %{
+  @admin_params %{
+    email: "admin@example.com",
+    name: "Admin User",
+    password: "password123",
+    password_confirmation: "password123",
+    role: :admin
+  }
+
+  @agent_params %{
     email: "agent@example.com",
     name: "Jane Agent",
     password: "password123",
@@ -12,9 +20,10 @@ defmodule SaleflowWeb.LeadControllerTest do
   }
 
   setup %{conn: conn} do
-    {:ok, user} = Accounts.register(@user_params)
+    {:ok, admin} = Accounts.register(@admin_params)
+    {:ok, user} = Accounts.register(@agent_params)
     conn = log_in_user(conn, user)
-    %{conn: conn, user: user}
+    %{conn: conn, user: user, admin: admin}
   end
 
   # -------------------------------------------------------------------------
@@ -64,7 +73,7 @@ defmodule SaleflowWeb.LeadControllerTest do
   # -------------------------------------------------------------------------
 
   describe "GET /api/leads/:id" do
-    test "returns lead with calls and audit logs", %{conn: conn, user: user} do
+    test "agent sees only their own calls and audit logs", %{conn: conn, user: user} do
       {:ok, lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
       {:ok, _call} = Sales.log_call(%{lead_id: lead.id, user_id: user.id, outcome: :no_answer})
 
@@ -73,7 +82,22 @@ defmodule SaleflowWeb.LeadControllerTest do
       assert lead_json["företag"] == "Acme AB"
       assert length(calls) == 1
       assert hd(calls)["outcome"] == "no_answer"
-      # Should have at least the lead.created audit log
+      assert hd(calls)["user_name"] == "Du"
+      # System audit log (nil user_id) is excluded for agents
+      assert Enum.all?(audit_logs, fn a -> a["user_id"] == user.id end)
+    end
+
+    test "admin sees all calls and audit logs including system entries", %{conn: conn, admin: admin, user: agent} do
+      conn_admin = log_in_user(conn, admin)
+      {:ok, lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
+      {:ok, _call} = Sales.log_call(%{lead_id: lead.id, user_id: agent.id, outcome: :no_answer})
+
+      conn_admin = get(conn_admin, "/api/leads/#{lead.id}")
+      assert %{"lead" => lead_json, "calls" => calls, "audit_logs" => audit_logs} = json_response(conn_admin, 200)
+      assert lead_json["företag"] == "Acme AB"
+      assert length(calls) == 1
+      assert hd(calls)["user_name"] == "Jane Agent"
+      # Admin sees system audit log (lead.created) too
       assert length(audit_logs) >= 1
     end
 

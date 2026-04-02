@@ -48,6 +48,8 @@ defmodule SaleflowWeb.Router do
     post "/meetings/:id/cancel", MeetingController, :cancel
 
     get "/audit", AuditController, :index
+
+    get "/my-stats", AdminController, :my_stats
   end
 
   # Admin only

@@ -4,7 +4,15 @@ defmodule SaleflowWeb.MeetingControllerTest do
   alias Saleflow.Accounts
   alias Saleflow.Sales
 
-  @user_params %{
+  @admin_params %{
+    email: "admin@example.com",
+    name: "Admin User",
+    password: "password123",
+    password_confirmation: "password123",
+    role: :admin
+  }
+
+  @agent_params %{
     email: "agent@example.com",
     name: "Jane Agent",
     password: "password123",
@@ -12,38 +20,81 @@ defmodule SaleflowWeb.MeetingControllerTest do
   }
 
   setup %{conn: conn} do
-    {:ok, user} = Accounts.register(@user_params)
+    {:ok, admin} = Accounts.register(@admin_params)
+    {:ok, user} = Accounts.register(@agent_params)
     {:ok, lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
     conn = log_in_user(conn, user)
-    %{conn: conn, user: user, lead: lead}
+    %{conn: conn, user: user, admin: admin, lead: lead}
   end
 
   # -------------------------------------------------------------------------
   # GET /api/meetings
   # -------------------------------------------------------------------------
 
-  describe "GET /api/meetings" do
-    test "returns upcoming meetings", %{conn: conn, user: user, lead: lead} do
+  describe "GET /api/meetings — agent scoping" do
+    test "agent sees only their own upcoming meetings", %{conn: conn, user: user, admin: admin, lead: lead} do
       tomorrow = Date.utc_today() |> Date.add(1)
 
-      {:ok, _meeting} =
+      {:ok, _agent_meeting} =
         Sales.create_meeting(%{
           lead_id: lead.id,
           user_id: user.id,
-          title: "Demo",
+          title: "Agent Demo",
           meeting_date: tomorrow,
           meeting_time: ~T[10:00:00]
+        })
+
+      # Admin's meeting — agent should NOT see this
+      {:ok, _admin_meeting} =
+        Sales.create_meeting(%{
+          lead_id: lead.id,
+          user_id: admin.id,
+          title: "Admin Demo",
+          meeting_date: tomorrow,
+          meeting_time: ~T[11:00:00]
         })
 
       conn = get(conn, "/api/meetings")
       assert %{"meetings" => meetings} = json_response(conn, 200)
       assert length(meetings) == 1
-      assert hd(meetings)["title"] == "Demo"
+      assert hd(meetings)["title"] == "Agent Demo"
     end
 
-    test "returns empty list when no meetings", %{conn: conn} do
+    test "returns empty list when agent has no meetings", %{conn: conn} do
       conn = get(conn, "/api/meetings")
       assert %{"meetings" => []} = json_response(conn, 200)
+    end
+  end
+
+  describe "GET /api/meetings — admin sees all" do
+    test "admin sees all upcoming meetings", %{conn: conn, user: user, admin: admin, lead: lead} do
+      tomorrow = Date.utc_today() |> Date.add(1)
+
+      {:ok, _} =
+        Sales.create_meeting(%{
+          lead_id: lead.id,
+          user_id: user.id,
+          title: "Agent Demo",
+          meeting_date: tomorrow,
+          meeting_time: ~T[10:00:00]
+        })
+
+      {:ok, _} =
+        Sales.create_meeting(%{
+          lead_id: lead.id,
+          user_id: admin.id,
+          title: "Admin Demo",
+          meeting_date: tomorrow,
+          meeting_time: ~T[11:00:00]
+        })
+
+      conn_admin =
+        conn
+        |> log_in_user(admin)
+        |> get("/api/meetings")
+
+      assert %{"meetings" => meetings} = json_response(conn_admin, 200)
+      assert length(meetings) == 2
     end
   end
 

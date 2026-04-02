@@ -305,6 +305,25 @@ defmodule Saleflow.Sales do
   end
 
   @doc """
+  Returns upcoming scheduled meetings for a specific user (status = `:scheduled`,
+  date >= today), sorted by meeting_date ascending.
+  """
+  @spec list_upcoming_meetings_for_user(Ecto.UUID.t()) ::
+          {:ok, list(Saleflow.Sales.Meeting.t())} | {:error, Ash.Error.t()}
+  def list_upcoming_meetings_for_user(user_id) do
+    require Ash.Query
+
+    today = Date.utc_today()
+
+    Saleflow.Sales.Meeting
+    |> Ash.Query.filter(
+      status == :scheduled and meeting_date >= ^today and user_id == ^user_id
+    )
+    |> Ash.Query.sort(meeting_date: :asc)
+    |> Ash.read()
+  end
+
+  @doc """
   Returns all meetings for a given lead, sorted by meeting_date ascending.
   """
   @spec list_meetings_for_lead(Ecto.UUID.t()) ::

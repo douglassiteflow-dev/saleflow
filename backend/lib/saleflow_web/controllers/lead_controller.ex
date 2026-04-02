@@ -3,6 +3,7 @@ defmodule SaleflowWeb.LeadController do
 
   alias Saleflow.Sales
   alias Saleflow.Audit
+  alias Saleflow.Accounts
 
   @doc """
   List or search leads. Pass `?q=term` to search by company name.
@@ -19,15 +20,31 @@ defmodule SaleflowWeb.LeadController do
 
   @doc """
   Show a single lead with its call logs and audit trail.
+  Agents see only their own calls and audit entries; admins see all.
   """
   def show(conn, %{"id" => id}) do
+    user = conn.assigns.current_user
+
     with {:ok, lead} <- Sales.get_lead(id),
-         {:ok, calls} <- Sales.list_calls_for_lead(id),
-         {:ok, audit_logs} <- Audit.list_for_resource("Lead", id) do
+         {:ok, all_calls} <- Sales.list_calls_for_lead(id),
+         {:ok, all_audit} <- Audit.list_for_resource("Lead", id) do
+      {calls, audit_logs} =
+        case user.role do
+          :admin ->
+            {all_calls, all_audit}
+
+          _ ->
+            filtered_calls = Enum.filter(all_calls, fn c -> c.user_id == user.id end)
+            filtered_audit = Enum.filter(all_audit, fn a -> a.user_id == user.id end)
+            {filtered_calls, filtered_audit}
+        end
+
+      user_names = build_user_name_map(calls, audit_logs, user)
+
       json(conn, %{
         lead: serialize_lead(lead),
-        calls: Enum.map(calls, &serialize_call/1),
-        audit_logs: Enum.map(audit_logs, &serialize_audit_log/1)
+        calls: Enum.map(calls, &serialize_call(&1, user_names, user)),
+        audit_logs: Enum.map(audit_logs, &serialize_audit_log(&1, user_names, user))
       })
     else
       {:error, _} ->
@@ -182,21 +199,48 @@ defmodule SaleflowWeb.LeadController do
     }
   end
 
-  defp serialize_call(call) do
+  # Build a user_id => name map for all relevant user_ids.
+  # For agents, only their own id is needed (shown as "Du").
+  defp build_user_name_map(_calls, _audit_logs, %{role: :agent} = user) do
+    %{user.id => "Du"}
+  end
+
+  defp build_user_name_map(calls, audit_logs, _admin_user) do
+    call_ids = Enum.map(calls, & &1.user_id)
+    audit_ids = Enum.map(audit_logs, & &1.user_id)
+
+    user_ids =
+      (call_ids ++ audit_ids)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
+
+    case user_ids do
+      [] ->
+        %{}
+
+      _ ->
+        {:ok, users} = Accounts.list_users()
+        Enum.into(users, %{}, fn u -> {u.id, u.name} end)
+    end
+  end
+
+  defp serialize_call(call, user_names, _current_user) do
     %{
       id: call.id,
       lead_id: call.lead_id,
       user_id: call.user_id,
+      user_name: Map.get(user_names, call.user_id),
       outcome: call.outcome,
       notes: call.notes,
       called_at: call.called_at
     }
   end
 
-  defp serialize_audit_log(log) do
+  defp serialize_audit_log(log, user_names, _current_user) do
     %{
       id: log.id,
       user_id: log.user_id,
+      user_name: Map.get(user_names, log.user_id),
       action: log.action,
       resource_type: log.resource_type,
       resource_id: log.resource_id,

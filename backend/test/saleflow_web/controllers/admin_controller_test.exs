@@ -187,6 +187,52 @@ defmodule SaleflowWeb.AdminControllerTest do
   end
 
   # -------------------------------------------------------------------------
+  # GET /api/my-stats
+  # -------------------------------------------------------------------------
+
+  describe "GET /api/my-stats" do
+    test "agent gets their own stats", %{conn: conn, agent: agent} do
+      {:ok, lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
+      {:ok, _call} = Sales.log_call(%{lead_id: lead.id, user_id: agent.id, outcome: :no_answer})
+
+      conn =
+        conn
+        |> log_in_user(agent)
+        |> get("/api/my-stats")
+
+      assert %{"stats" => stats} = json_response(conn, 200)
+      assert Map.has_key?(stats, "calls_today")
+      assert Map.has_key?(stats, "total_calls")
+      assert Map.has_key?(stats, "meetings_today")
+      assert Map.has_key?(stats, "total_meetings")
+      assert stats["total_calls"] == 1
+    end
+
+    test "admin gets global stats", %{conn: conn, admin: admin, agent: agent} do
+      {:ok, lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
+      {:ok, _call} = Sales.log_call(%{lead_id: lead.id, user_id: agent.id, outcome: :no_answer})
+
+      conn =
+        conn
+        |> log_in_user(admin)
+        |> get("/api/my-stats")
+
+      assert %{"stats" => stats} = json_response(conn, 200)
+      assert Map.has_key?(stats, "calls_today")
+      assert stats["total_calls"] >= 1
+    end
+
+    test "requires authentication", %{conn: conn} do
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> get("/api/my-stats")
+
+      assert json_response(conn, 401)
+    end
+  end
+
+  # -------------------------------------------------------------------------
   # POST /api/admin/import
   # -------------------------------------------------------------------------
 
