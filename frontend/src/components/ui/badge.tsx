@@ -13,7 +13,10 @@ export type BadgeStatus =
   | "no_answer"
   | "scheduled"
   | "completed"
-  | "cancelled";
+  | "cancelled"
+  | "in_progress"
+  | "done"
+  | "rejected";
 
 const statusStyles: Record<BadgeStatus, string> = {
   new: "bg-blue-50 text-blue-700 border-blue-200",
@@ -28,6 +31,9 @@ const statusStyles: Record<BadgeStatus, string> = {
   scheduled: "bg-sky-50 text-sky-700 border-sky-200",
   completed: "bg-green-50 text-green-700 border-green-200",
   cancelled: "bg-red-50 text-red-600 border-red-200",
+  in_progress: "bg-amber-50 text-amber-700 border-amber-200",
+  done: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  rejected: "bg-slate-100 text-slate-600 border-slate-300",
 };
 
 const statusLabels: Record<BadgeStatus, string> = {
@@ -43,6 +49,9 @@ const statusLabels: Record<BadgeStatus, string> = {
   scheduled: "Schemalagd",
   completed: "Genomförd",
   cancelled: "Avbokad",
+  in_progress: "Pågående",
+  done: "Klar",
+  rejected: "Avvisad",
 };
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {

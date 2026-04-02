@@ -128,6 +128,18 @@ export interface Stats {
   bad_number: number;
 }
 
+export interface UserRequest {
+  id: string;
+  user_id: string;
+  user_name: string | null;
+  type: "bug" | "feature";
+  description: string;
+  status: "new" | "in_progress" | "done" | "rejected";
+  admin_notes: string | null;
+  inserted_at: string;
+  updated_at: string;
+}
+
 export interface ImportResult {
   created: number;
   skipped: number;

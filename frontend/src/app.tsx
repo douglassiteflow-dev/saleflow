@@ -14,6 +14,7 @@ import { AdminUsersPage } from "@/pages/admin-users";
 import { AdminImportPage } from "@/pages/admin-import";
 import { AdminStatsPage } from "@/pages/admin-stats";
 import { AdminListsPage } from "@/pages/admin-lists";
+import { AdminRequestsPage } from "@/pages/admin-requests";
 import { ProfilePage } from "@/pages/profile";
 
 const queryClient = new QueryClient({
@@ -41,6 +42,7 @@ export function App() {
                 <Route path="/admin/import" element={<AdminImportPage />} />
                 <Route path="/admin/lists" element={<AdminListsPage />} />
                 <Route path="/admin/stats" element={<AdminStatsPage />} />
+                <Route path="/admin/requests" element={<AdminRequestsPage />} />
               </Route>
             </Route>
           </Route>

@@ -64,6 +64,7 @@ defmodule Saleflow.Sales do
     resource Saleflow.Sales.Quarantine
     resource Saleflow.Sales.LeadList
     resource Saleflow.Sales.LeadListAssignment
+    resource Saleflow.Sales.Request
   end
 
   # ---------------------------------------------------------------------------
@@ -623,5 +624,55 @@ defmodule Saleflow.Sales do
       {:ok, nil} -> :ok
       {:ok, assignment} -> release_assignment(assignment, :manual)
     end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Request functions
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Creates a bug report or feature request for the given user.
+
+  Required params: `:user_id`, `:type`, `:description`
+  """
+  @spec create_request(map()) :: {:ok, Saleflow.Sales.Request.t()} | {:error, Ash.Error.t()}
+  def create_request(params) do
+    Saleflow.Sales.Request
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create()
+  end
+
+  @doc """
+  Returns all requests sorted by inserted_at desc (admin use).
+  """
+  @spec list_requests() :: {:ok, list(Saleflow.Sales.Request.t())} | {:error, Ash.Error.t()}
+  def list_requests do
+    Saleflow.Sales.Request
+    |> Ash.Query.for_read(:list_all)
+    |> Ash.read()
+  end
+
+  @doc """
+  Returns requests for a specific user sorted by inserted_at desc.
+  """
+  @spec list_requests_for_user(Ecto.UUID.t()) ::
+          {:ok, list(Saleflow.Sales.Request.t())} | {:error, Ash.Error.t()}
+  def list_requests_for_user(user_id) do
+    Saleflow.Sales.Request
+    |> Ash.Query.for_read(:list_for_user, %{user_id: user_id})
+    |> Ash.read()
+  end
+
+  @doc """
+  Updates the status and/or admin_notes on a request (admin use).
+
+  Accepted params: `:status`, `:admin_notes`
+  """
+  @spec update_request(Saleflow.Sales.Request.t(), map()) ::
+          {:ok, Saleflow.Sales.Request.t()} | {:error, Ash.Error.t()}
+  def update_request(request, params) do
+    request
+    |> Ash.Changeset.for_update(:update_status, params)
+    |> Ash.update()
   end
 end

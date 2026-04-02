@@ -50,6 +50,9 @@ defmodule SaleflowWeb.Router do
     get "/audit", AuditController, :index
 
     get "/my-stats", AdminController, :my_stats
+
+    get "/requests", RequestController, :index
+    post "/requests", RequestController, :create
   end
 
   # Admin only
@@ -63,6 +66,9 @@ defmodule SaleflowWeb.Router do
     get "/users/:user_id/sessions", AdminController, :user_sessions
     post "/users/:user_id/force-logout", AdminController, :force_logout_user
     post "/sessions/:id/force-logout", AdminController, :force_logout_session_action
+
+    # Requests
+    put "/requests/:id", RequestController, :update
 
     # Lead Lists
     get "/lists", ListController, :index
