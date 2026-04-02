@@ -130,11 +130,11 @@ export function DialerPage() {
           </div>
           <iframe
             key={lead.id}
-            src={`https://www.google.com/search?igu=1&q=${encodeURIComponent(lead.företag + " " + (lead.stad ?? ""))}`}
-            title="Google-sökning"
+            src={`https://duckduckgo.com/?q=${encodeURIComponent(lead.företag + " " + (lead.stad ?? ""))}`}
+            title="Webbsökning"
             className="w-full border-0"
             style={{ height: "calc(100% - 40px)" }}
-            sandbox="allow-scripts allow-same-origin allow-popups"
+            referrerPolicy="no-referrer"
           />
         </div>
       </div>
