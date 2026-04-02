@@ -50,5 +50,7 @@ ENV LC_ALL=en_US.UTF-8
 WORKDIR /app
 
 COPY --from=backend /app/_build/prod/rel/saleflow ./
+# Ensure email templates are in the release priv dir
+COPY --from=backend /app/priv/templates ./lib/saleflow-0.1.0/priv/templates
 
 CMD ["bin/saleflow", "start"]
