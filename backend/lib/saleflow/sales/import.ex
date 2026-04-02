@@ -52,7 +52,8 @@ defmodule Saleflow.Sales.Import do
     "vinst_tkr" => :vinst_tkr,
     "anställda" => :anställda,
     "vd_namn" => :vd_namn,
-    "bolagsform" => :bolagsform
+    "bolagsform" => :bolagsform,
+    "källa" => :källa
   }
 
   @doc """

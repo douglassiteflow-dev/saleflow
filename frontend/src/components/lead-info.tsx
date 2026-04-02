@@ -79,6 +79,16 @@ export function LeadInfo({ lead }: LeadInfoProps) {
         <InfoRow label="VD" value={lead.vd_namn} />
         <InfoRow label="Bolagsform" value={lead.bolagsform} />
         <InfoRow label="Hemsida" value={lead.hemsida} />
+        {lead.källa && (
+          <InfoRow
+            label="Källa"
+            value={
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-700">
+                {lead.källa}
+              </span>
+            }
+          />
+        )}
         <InfoRow
           label="E-post"
           value={

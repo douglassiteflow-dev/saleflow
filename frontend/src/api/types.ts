@@ -73,6 +73,7 @@ export interface Lead {
   anställda: string | null;
   vd_namn: string | null;
   bolagsform: string | null;
+  källa: string | null;
   status: LeadStatus;
   quarantine_until: string | null;
   callback_at: string | null;

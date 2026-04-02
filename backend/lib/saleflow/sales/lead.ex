@@ -103,6 +103,11 @@ defmodule Saleflow.Sales.Lead do
       public? true
     end
 
+    attribute :källa, :string do
+      allow_nil? true
+      public? true
+    end
+
     attribute :status, :atom do
       constraints one_of: [:new, :assigned, :callback, :meeting_booked, :quarantine, :bad_number, :customer]
       default :new
@@ -164,6 +169,7 @@ defmodule Saleflow.Sales.Lead do
         :quarantine_until,
         :callback_at,
         :imported_at,
+        :källa,
         :lead_list_id
       ]
 
