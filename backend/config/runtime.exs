@@ -76,6 +76,18 @@ if config_env() == :prod do
   # Skip OTP on staging
   config :saleflow, :skip_otp, System.get_env("SKIP_OTP") == "true"
 
+  # Microsoft Teams integration
+  config :saleflow, :microsoft_tenant_id, System.get_env("MICROSOFT_TENANT_ID")
+  config :saleflow, :microsoft_client_id, System.get_env("MICROSOFT_CLIENT_ID")
+  config :saleflow, :microsoft_client_secret, System.get_env("MICROSOFT_CLIENT_SECRET")
+
+  config :saleflow,
+         :microsoft_redirect_uri,
+         System.get_env(
+           "MICROSOFT_REDIRECT_URI",
+           "https://sale.siteflow.se/api/auth/microsoft/callback"
+         )
+
   # ## SSL Support
   #
   # To get SSL working, you will need to add the `https` key

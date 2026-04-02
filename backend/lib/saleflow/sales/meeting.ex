@@ -71,6 +71,16 @@ defmodule Saleflow.Sales.Meeting do
       public? true
     end
 
+    attribute :teams_join_url, :string do
+      allow_nil? true
+      public? true
+    end
+
+    attribute :teams_event_id, :string do
+      allow_nil? true
+      public? true
+    end
+
     create_timestamp :inserted_at
     update_timestamp :updated_at
   end
@@ -122,6 +132,12 @@ defmodule Saleflow.Sales.Meeting do
       accept [:meeting_date, :meeting_time, :notes, :status]
 
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "meeting.updated"}
+    end
+
+    update :update_teams do
+      description "Set Teams meeting fields"
+      require_atomic? false
+      accept [:teams_join_url, :teams_event_id]
     end
   end
 end

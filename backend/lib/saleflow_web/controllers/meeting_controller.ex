@@ -224,6 +224,8 @@ defmodule SaleflowWeb.MeetingController do
       notes: meeting.notes,
       status: meeting.status,
       reminded_at: meeting.reminded_at,
+      teams_join_url: meeting.teams_join_url,
+      teams_event_id: meeting.teams_event_id,
       updated_at: meeting.updated_at,
       inserted_at: meeting.inserted_at
     }

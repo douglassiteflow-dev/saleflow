@@ -34,6 +34,7 @@ defmodule Saleflow.Accounts do
     resource Saleflow.Accounts.LoginSession
     resource Saleflow.Accounts.TrustedDevice
     resource Saleflow.Accounts.PasswordResetToken
+    resource Saleflow.Accounts.MicrosoftConnection
   end
 
   @doc """

@@ -27,6 +27,9 @@ defmodule SaleflowWeb.Router do
     post "/auth/verify-otp", AuthController, :verify_otp
     post "/auth/forgot-password", AuthController, :forgot_password
     post "/auth/reset-password", AuthController, :reset_password
+
+    # Microsoft OAuth callback (browser redirect, no session auth)
+    get "/auth/microsoft/callback", MicrosoftController, :callback
   end
 
   # Authenticated
@@ -37,6 +40,11 @@ defmodule SaleflowWeb.Router do
     post "/auth/sign-out", AuthController, :sign_out
     get "/auth/sessions", SessionController, :index
     post "/auth/sessions/logout-all", SessionController, :logout_all
+
+    # Microsoft Teams integration
+    get "/auth/microsoft", MicrosoftController, :authorize
+    get "/microsoft/status", MicrosoftController, :status
+    post "/microsoft/disconnect", MicrosoftController, :disconnect
 
     get "/leads", LeadController, :index
     get "/leads/:id", LeadController, :show
@@ -51,6 +59,7 @@ defmodule SaleflowWeb.Router do
     post "/meetings", MeetingController, :create
     put "/meetings/:id", MeetingController, :update
     post "/meetings/:id/cancel", MeetingController, :cancel
+    post "/meetings/:id/create-teams-meeting", MicrosoftController, :create_teams_meeting
 
     get "/audit", AuditController, :index
 

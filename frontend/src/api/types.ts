@@ -131,10 +131,17 @@ export interface Meeting {
   notes: string | null;
   status: "scheduled" | "completed" | "cancelled";
   reminded_at: string | null;
+  teams_join_url: string | null;
+  teams_event_id: string | null;
   updated_at: string;
   inserted_at: string;
   user_name?: string | null;
   lead?: MeetingLead | null;
+}
+
+export interface MicrosoftStatus {
+  connected: boolean;
+  email?: string;
 }
 
 export interface MeetingDetailData {

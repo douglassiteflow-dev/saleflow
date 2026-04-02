@@ -1,5 +1,6 @@
 import { useMe } from "@/api/auth";
 import { useMySessions, useLogoutAll, useForceLogoutSession } from "@/api/sessions";
+import { useMicrosoftStatus, useMicrosoftAuthorize, useMicrosoftDisconnect } from "@/api/microsoft";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SessionList } from "@/components/session-list";
@@ -10,6 +11,9 @@ export function ProfilePage() {
   const { data: sessions, isLoading: sessionsLoading } = useMySessions();
   const logoutAll = useLogoutAll();
   const forceLogoutSession = useForceLogoutSession();
+  const { data: msStatus, isLoading: msLoading } = useMicrosoftStatus();
+  const msAuthorize = useMicrosoftAuthorize();
+  const msDisconnect = useMicrosoftDisconnect();
 
   function handleSessionLogout(sessionId: string) {
     forceLogoutSession.mutate(sessionId);
@@ -44,6 +48,52 @@ export function ProfilePage() {
           >
             {user?.role === "admin" ? "Admin" : "Agent"}
           </span>
+        </div>
+      </Card>
+
+      {/* Microsoft Teams card */}
+      <Card>
+        <div className="space-y-4">
+          <CardTitle>Microsoft Teams</CardTitle>
+          {msLoading ? (
+            <Loader size="sm" title="Laddar..." />
+          ) : msStatus?.connected ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                  Kopplad
+                </span>
+                <span className="text-sm text-[var(--color-text-secondary)]">
+                  {msStatus.email}
+                </span>
+              </div>
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                Teams-moeten skapas automatiskt vid bokning.
+              </p>
+              <Button
+                variant="danger"
+                size="default"
+                onClick={() => msDisconnect.mutate()}
+                disabled={msDisconnect.isPending}
+              >
+                {msDisconnect.isPending ? "Kopplar bort..." : "Koppla bort"}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                Koppla ditt Microsoft-konto for att automatiskt skapa Teams-moeten vid bokning.
+              </p>
+              <Button
+                variant="primary"
+                size="default"
+                onClick={() => msAuthorize.mutate()}
+                disabled={msAuthorize.isPending}
+              >
+                {msAuthorize.isPending ? "Omdirigerar..." : "Koppla Microsoft Teams"}
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
 

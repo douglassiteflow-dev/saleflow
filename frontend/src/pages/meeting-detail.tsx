@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMeetingDetail, useUpdateMeeting, useCancelMeeting } from "@/api/meetings";
+import { useMicrosoftStatus, useCreateTeamsMeeting } from "@/api/microsoft";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,8 @@ export function MeetingDetailPage() {
   const { data, isLoading } = useMeetingDetail(id);
   const updateMeeting = useUpdateMeeting();
   const cancelMeeting = useCancelMeeting();
+  const { data: msStatus } = useMicrosoftStatus();
+  const createTeamsMeeting = useCreateTeamsMeeting();
 
   const [editing, setEditing] = useState(false);
   const [editDate, setEditDate] = useState("");
@@ -110,8 +113,33 @@ export function MeetingDetailPage() {
             {meeting.title}
           </h1>
           <Badge status={meeting.status} />
+          {meeting.teams_join_url && (
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+              Teams
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
+          {meeting.teams_join_url && (
+            <a
+              href={meeting.teams_join_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center h-10 rounded-md bg-purple-600 text-white font-medium text-sm px-4 hover:bg-purple-700 transition-colors"
+            >
+              Ga med i Teams-mote
+            </a>
+          )}
+          {!meeting.teams_join_url && meeting.status === "scheduled" && msStatus?.connected && (
+            <Button
+              variant="secondary"
+              size="default"
+              onClick={() => id && createTeamsMeeting.mutate(id)}
+              disabled={createTeamsMeeting.isPending}
+            >
+              {createTeamsMeeting.isPending ? "Skapar..." : "Skapa Teams-mote"}
+            </Button>
+          )}
           {meeting.status === "scheduled" && (
             <>
               <Button variant="primary" size="default" onClick={handleComplete}>

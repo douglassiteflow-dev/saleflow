@@ -205,7 +205,14 @@ export function MeetingsPage() {
                       {formatDate(meeting.meeting_date)} {formatTime(meeting.meeting_time)}
                     </td>
                     <td className="px-4 py-3 text-[var(--color-text-primary)]">
-                      <p className="font-medium">{meeting.title}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{meeting.title}</p>
+                        {meeting.teams_join_url && (
+                          <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                            Teams
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-[var(--color-text-primary)]">
                       {meeting.lead?.företag ?? "—"}

@@ -171,7 +171,13 @@ defmodule SaleflowWeb.LeadController do
               do: Map.put(meeting_params, :notes, params["meeting_notes"]),
               else: meeting_params
 
-          {:ok, _meeting} = Sales.create_meeting(meeting_params)
+          {:ok, meeting} = Sales.create_meeting(meeting_params)
+
+          # Auto-create Teams meeting if user has Microsoft connected and opted in
+          if params["create_teams_meeting"] != false do
+            try_create_teams_meeting(meeting, user)
+          end
+
           {:ok, updated_lead}
         end
     end
@@ -365,6 +371,45 @@ defmodule SaleflowWeb.LeadController do
     case Time.from_iso8601(padded) do
       {:ok, time} -> time
       _ -> ~T[10:00:00]
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Teams meeting auto-creation (best-effort, never blocks outcome)
+  # ---------------------------------------------------------------------------
+
+  defp try_create_teams_meeting(meeting, user) do
+    require Ash.Query
+    alias Saleflow.Microsoft.Graph
+
+    with {:ok, [ms_conn | _]} <-
+           Saleflow.Accounts.MicrosoftConnection
+           |> Ash.Query.filter(user_id == ^user.id)
+           |> Ash.read(),
+         {:ok, ms_conn} <- Graph.ensure_fresh_token(ms_conn) do
+      start_dt = NaiveDateTime.new!(meeting.meeting_date, meeting.meeting_time)
+      end_dt = NaiveDateTime.add(start_dt, 3600)
+
+      case Graph.create_calendar_event(ms_conn.access_token, %{
+             subject: meeting.title,
+             start_datetime: NaiveDateTime.to_iso8601(start_dt),
+             end_datetime: NaiveDateTime.to_iso8601(end_dt)
+           }) do
+        {:ok, result} ->
+          meeting
+          |> Ash.Changeset.for_update(:update_teams, %{
+            teams_join_url: result.join_url,
+            teams_event_id: result.event_id
+          })
+          |> Ash.update()
+
+        {:error, reason} ->
+          require Logger
+          Logger.warning("Auto Teams meeting creation failed: #{inspect(reason)}")
+          :ok
+      end
+    else
+      _ -> :ok
     end
   end
 
