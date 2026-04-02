@@ -1,4 +1,5 @@
-import { Card, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/cn";
 import type { LeaderboardEntry } from "@/api/dashboard";
 
 interface LeaderboardProps {
@@ -9,8 +10,12 @@ interface LeaderboardProps {
 export function Leaderboard({ entries, currentUserId }: LeaderboardProps) {
   if (entries.length === 0) {
     return (
-      <Card>
-        <CardTitle className="mb-4">Dagens leaderboard</CardTitle>
+      <Card className="!rounded-[14px] !border-0 !shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+            Leaderboard
+          </span>
+        </div>
         <p className="text-sm text-[var(--color-text-secondary)]">
           Ingen aktivitet ännu idag
         </p>
@@ -19,51 +24,74 @@ export function Leaderboard({ entries, currentUserId }: LeaderboardProps) {
   }
 
   return (
-    <Card>
-      <CardTitle className="mb-4">Dagens leaderboard</CardTitle>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-slate-50 text-[var(--color-text-secondary)]">
-            <th className="text-left font-medium py-2 px-2 w-8">#</th>
-            <th className="text-left font-medium py-2 px-2">Agent</th>
-            <th className="text-right font-medium py-2 px-2">Samtal</th>
-            <th className="text-right font-medium py-2 px-2">Möten (netto)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((entry, index) => {
-            const isCurrentUser = entry.user_id === currentUserId;
-            const isTop = index === 0;
+    <Card className="!rounded-[14px] !border-0 !shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+          Leaderboard
+        </span>
+        <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-blue-600">
+          LIVE
+        </span>
+      </div>
+      <div className="space-y-1.5">
+        {entries.map((entry, index) => {
+          const isCurrentUser = entry.user_id === currentUserId;
+          const isTop = index === 0;
 
-            return (
-              <tr
-                key={entry.user_id}
-                className={
-                  isCurrentUser
-                    ? "bg-indigo-50"
-                    : "hover:bg-[var(--color-bg-panel)] transition-colors"
-                }
+          return (
+            <div
+              key={entry.user_id}
+              className={cn(
+                "flex items-center gap-3 rounded-[10px] px-3.5 py-2.5",
+                isCurrentUser && "bg-[var(--color-bg-panel)]",
+              )}
+            >
+              <div
+                className={cn(
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                  isTop
+                    ? "bg-gradient-to-br from-[var(--color-accent)] to-violet-500 text-white"
+                    : "bg-slate-200 text-[var(--color-text-secondary)]",
+                )}
               >
-                <td className="py-2 px-2 font-mono text-[var(--color-text-secondary)] text-right">
-                  {isTop ? "🏆" : index + 1}
-                </td>
-                <td className="py-2 px-2 font-medium text-[var(--color-text-primary)]">
+                {index + 1}
+              </div>
+              <div className="min-w-0 flex-1">
+                <span
+                  className={cn(
+                    "text-sm",
+                    isTop
+                      ? "font-medium text-[var(--color-text-primary)]"
+                      : "text-[var(--color-text-secondary)]",
+                  )}
+                >
                   {entry.name}
                   {isCurrentUser && (
-                    <span className="ml-1.5 text-xs text-indigo-500 font-normal">(du)</span>
+                    <span className="ml-1.5 text-xs font-normal text-[var(--color-accent)]">
+                      (du)
+                    </span>
                   )}
-                </td>
-                <td className="py-2 px-2 text-right font-mono text-[var(--color-text-secondary)]">
-                  {entry.calls_today}
-                </td>
-                <td className="py-2 px-2 text-right font-mono font-semibold text-[var(--color-text-primary)]">
-                  {entry.net_meetings_today}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                </span>
+              </div>
+              <div className="shrink-0 text-right">
+                <div
+                  className={cn(
+                    "text-[13px] font-semibold",
+                    isTop
+                      ? "text-[var(--color-text-primary)]"
+                      : "text-slate-700",
+                  )}
+                >
+                  {entry.net_meetings_today} möten
+                </div>
+                <div className="text-[11px] text-[var(--color-text-secondary)]">
+                  {entry.calls_today} samtal
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </Card>
   );
 }

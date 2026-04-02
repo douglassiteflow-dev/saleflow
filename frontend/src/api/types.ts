@@ -160,11 +160,45 @@ export interface MyStats {
   total_meetings: number;
 }
 
+export interface ConversionData {
+  calls_today: number;
+  meetings_today: number;
+  rate: number;
+}
+
+export type GoalScope = "global" | "team" | "personal";
+export type GoalMetric = "meetings_per_week" | "calls_per_day";
+export type GoalPeriod = "daily" | "weekly";
+
+export interface Goal {
+  id: string;
+  scope: GoalScope;
+  metric: GoalMetric;
+  target_value: number;
+  user_id: string | null;
+  set_by_id: string;
+  active: boolean;
+  period: GoalPeriod;
+  inserted_at: string;
+  updated_at: string;
+}
+
+export interface GoalProgress {
+  id: string;
+  metric: GoalMetric;
+  period: GoalPeriod;
+  target_value: number;
+  current_value: number;
+  scope: GoalScope;
+}
+
 export interface DashboardData {
   stats: Stats;
   todays_meetings: Meeting[];
   callbacks: Lead[];
   my_stats: MyStats;
+  conversion: ConversionData;
+  goal_progress: GoalProgress[];
 }
 
 export interface Stats {

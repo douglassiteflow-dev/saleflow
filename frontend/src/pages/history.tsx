@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuditLogs } from "@/api/audit";
 import { Input } from "@/components/ui/input";
-import { Card, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/format";
 import type { AuditLog } from "@/api/types";
 import Loader from "@/components/kokonutui/loader";
@@ -27,6 +26,13 @@ const ACTION_OPTIONS = [
 function actionLabel(action: string): string {
   const found = ACTION_OPTIONS.find((o) => o.value === action);
   return found?.label ?? action;
+}
+
+function actionDot(action: string): string {
+  if (action.startsWith("meeting.")) return "bg-[var(--color-success)]";
+  if (action.startsWith("call.")) return "bg-blue-400";
+  if (action.startsWith("lead.status")) return "bg-[var(--color-warning)]";
+  return "bg-slate-300";
 }
 
 // Fields to hide from audit display (internal/sensitive/noisy)
@@ -124,17 +130,13 @@ const TIMESTAMP_FIELDS = new Set([
 function formatValue(field: string, val: unknown): string {
   if (val === null || val === undefined || val === "nil") return "—";
   const str = String(val);
-  // Check if there's a friendly label for this field+value
   const labels = VALUE_LABELS[field];
   if (labels && str in labels) return labels[str]!;
-  // Boolean
   if (str === "true") return "Ja";
   if (str === "false") return "Nej";
-  // Timestamps → format nicely
   if (TIMESTAMP_FIELDS.has(field) && str.includes("T")) {
     return formatDateTime(str);
   }
-  // Truncate long values (UUIDs, tokens)
   if (str.length > 40) return str.slice(0, 20) + "…";
   return str;
 }
@@ -225,28 +227,25 @@ export function HistoryPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1
-          className="font-semibold text-[var(--color-text-primary)]"
-          style={{ fontSize: "24px" }}
-        >
+      {/* Rubrik */}
+      <div>
+        <h1 className="text-[22px] font-light tracking-[-0.5px] text-[var(--color-text-primary)]">
           Historik
         </h1>
       </div>
 
-      {/* Filters */}
+      {/* Filter */}
       <div className="flex gap-3 flex-wrap">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Sök händelse, resurs-ID..."
+          placeholder="Sök händelse..."
           className="max-w-xs"
         />
         <select
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}
-          className="h-9 rounded-[6px] border border-[var(--color-border-input)] bg-white px-3 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+          className="h-9 rounded-[10px] border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20"
         >
           {ACTION_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -256,49 +255,40 @@ export function HistoryPage() {
         </select>
       </div>
 
-      {/* Table */}
-      <Card>
-        <CardTitle className="mb-4">Händelselogg</CardTitle>
+      {/* Tabell */}
+      <div className="overflow-hidden rounded-[14px] bg-[var(--color-bg-primary)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        <div className="border-b border-[var(--color-border)] px-[var(--spacing-card)] py-4">
+          <h3 className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+            Händelselogg
+          </h3>
+        </div>
 
         {isLoading ? (
-          <Loader size="sm" title="Laddar historik" />
+          <div className="p-[var(--spacing-card)]">
+            <Loader size="sm" title="Laddar historik" />
+          </div>
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-secondary)]">
+          <p className="p-[var(--spacing-card)] text-sm text-[var(--color-text-secondary)]">
             Inga händelser hittades.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 text-left">
-                  <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
-                  >
+                <tr className="border-b border-[var(--color-border)]">
+                  <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
                     Tidpunkt
                   </th>
-                  <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
-                  >
+                  <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
                     Händelse
                   </th>
-                  <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
-                  >
+                  <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
                     Resurstyp
                   </th>
-                  <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
-                  >
+                  <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
                     Av
                   </th>
-                  <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
-                  >
+                  <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
                     Ändringar
                   </th>
                 </tr>
@@ -315,32 +305,41 @@ export function HistoryPage() {
                       onClick={() => handleRowClick(log)}
                       className={[
                         i !== filtered.length - 1
-                          ? "border-b border-slate-200"
+                          ? "border-b border-slate-50"
                           : "",
                         isClickable
-                          ? "cursor-pointer hover:bg-slate-50 transition-colors"
+                          ? "cursor-pointer transition-colors hover:bg-[var(--color-bg-panel)]"
                           : "",
                       ]
                         .filter(Boolean)
                         .join(" ")}
                     >
-                      <td className="px-4 py-3 font-mono text-xs text-[var(--color-text-secondary)] whitespace-nowrap">
+                      <td className="whitespace-nowrap px-5 py-3.5 font-mono text-xs text-[var(--color-text-secondary)]">
                         {formatDateTime(log.inserted_at)}
                       </td>
-                      <td className="px-4 py-3 text-[var(--color-text-primary)]">
-                        {actionLabel(log.action)}
+                      <td className="px-5 py-3.5 text-[var(--color-text-primary)]">
+                        <span className="flex items-center gap-2">
+                          <span
+                            className={`inline-block h-2 w-2 shrink-0 rounded-full ${actionDot(log.action)}`}
+                          />
+                          {actionLabel(log.action)}
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-[var(--color-text-secondary)]">
+                      <td className="px-5 py-3.5 text-[var(--color-text-secondary)]">
                         {resourceLabel(log.resource_type)}
                       </td>
-                      <td className="px-4 py-3 text-sm">
+                      <td className="px-5 py-3.5">
                         {log.user_name ? (
-                          <span className="font-medium text-[var(--color-accent)]">{log.user_name}</span>
+                          <span className="font-medium text-[var(--color-accent)]">
+                            {log.user_name}
+                          </span>
                         ) : (
-                          <span className="text-[var(--color-text-secondary)]">System</span>
+                          <span className="text-[var(--color-text-secondary)]">
+                            System
+                          </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-[var(--color-text-secondary)] max-w-xs truncate">
+                      <td className="max-w-xs truncate px-5 py-3.5 text-[var(--color-text-secondary)]">
                         {changesSummary(log.changes, log.action)}
                       </td>
                     </tr>
@@ -350,7 +349,7 @@ export function HistoryPage() {
             </table>
           </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }
