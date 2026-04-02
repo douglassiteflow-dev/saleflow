@@ -13,23 +13,41 @@ defmodule SaleflowWeb.AuditController do
   def index(conn, params) do
     user = conn.assigns.current_user
 
-    filters =
-      case user.role do
-        :admin ->
+    case user.role do
+      :admin ->
+        filters =
           %{}
           |> maybe_put(:user_id, params["user_id"])
           |> maybe_put(:action, params["action"])
 
-        _ ->
-          %{user_id: user.id}
-          |> maybe_put(:action, params["action"])
-      end
+        {:ok, logs} = Audit.list_logs(filters)
+        user_names = build_user_name_map(logs, user)
+        json(conn, %{audit_logs: Enum.map(logs, &serialize_audit_log(&1, user_names, user))})
 
-    {:ok, logs} = Audit.list_logs(filters)
+      _ ->
+        # Agents see all their own activity:
+        # 1. Logs where user_id matches (their direct actions)
+        # 2. All logs (with nil user_id) that happened on resources they interacted with
+        #
+        # Strategy: get all logs, filter to those relevant to this agent
+        action_filter = params["action"]
+        {:ok, all_logs} = Audit.list_logs(maybe_put(%{}, :action, action_filter))
 
-    user_names = build_user_name_map(logs, user)
+        # Get all resource IDs from logs where this agent is the actor
+        my_resource_ids =
+          all_logs
+          |> Enum.filter(fn log -> log.user_id == user.id end)
+          |> Enum.map(& &1.resource_id)
+          |> MapSet.new()
 
-    json(conn, %{audit_logs: Enum.map(logs, &serialize_audit_log(&1, user_names, user))})
+        # Include: logs by me + logs on resources I've touched (even system-generated ones)
+        logs = Enum.filter(all_logs, fn log ->
+          log.user_id == user.id || MapSet.member?(my_resource_ids, log.resource_id)
+        end)
+
+        user_names = %{user.id => "Du"}
+        json(conn, %{audit_logs: Enum.map(logs, &serialize_audit_log(&1, user_names, user))})
+    end
   end
 
   # ---------------------------------------------------------------------------
