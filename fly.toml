@@ -1,0 +1,23 @@
+app = "saleflow-app"
+primary_region = "arn"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PHX_HOST = "sale.siteflow.se"
+  PHX_SERVER = "true"
+  PORT = "4000"
+  MIX_ENV = "prod"
+  POOL_SIZE = "10"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

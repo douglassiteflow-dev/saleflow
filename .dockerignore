@@ -1,0 +1,30 @@
+# Git
+.git
+.gitignore
+
+# Backend build artifacts
+backend/_build
+backend/deps
+backend/cover
+backend/doc
+backend/tmp
+backend/*.ez
+backend/erl_crash.dump
+
+# Frontend build artifacts
+frontend/node_modules
+frontend/dist
+frontend/dist-ssr
+frontend/coverage
+frontend/e2e
+
+# Docs
+docs
+
+# IDE
+.vscode
+.idea
+.DS_Store
+
+# Fly
+fly.toml

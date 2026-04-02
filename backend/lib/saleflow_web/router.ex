@@ -4,7 +4,11 @@ defmodule SaleflowWeb.Router do
   pipeline :api do
     plug :accepts, ["json"]
     plug :fetch_session
-    plug CORSPlug, origin: ["http://localhost:5173"]
+    plug CORSPlug, origin: ["http://localhost:5173", "https://sale.siteflow.se"]
+  end
+
+  pipeline :browser do
+    plug :accepts, ["html"]
   end
 
   pipeline :require_auth do
@@ -67,5 +71,11 @@ defmodule SaleflowWeb.Router do
     post "/lists/:id/agents", ListController, :assign_agent
     delete "/lists/:id/agents/:user_id", ListController, :remove_agent
     get "/lists/:id/agents", ListController, :list_agents
+  end
+
+  # SPA fallback — serve index.html for all non-API routes
+  scope "/", SaleflowWeb do
+    pipe_through :browser
+    get "/*path", SPAController, :index
   end
 end

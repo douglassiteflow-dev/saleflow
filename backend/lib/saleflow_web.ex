@@ -17,7 +17,7 @@ defmodule SaleflowWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
+  def static_paths, do: ~w(assets fonts images icons.svg favicon.ico favicon.svg robots.txt)
 
   def router do
     quote do
