@@ -388,6 +388,18 @@ defmodule SaleflowWeb.LeadController do
     require Ash.Query
     alias Saleflow.Microsoft.Graph
 
+    # Skip if meeting already has a Teams link
+    if meeting.teams_join_url do
+      :ok
+    else
+      try_create_teams_meeting_inner(meeting, lead, user)
+    end
+  end
+
+  defp try_create_teams_meeting_inner(meeting, lead, user) do
+    require Ash.Query
+    alias Saleflow.Microsoft.Graph
+
     with {:ok, [ms_conn | _]} <-
            Saleflow.Accounts.MicrosoftConnection
            |> Ash.Query.filter(user_id == ^user.id)
@@ -423,6 +435,14 @@ defmodule SaleflowWeb.LeadController do
             teams_event_id: result.event_id
           })
           |> Ash.update()
+
+          # Audit log
+          Saleflow.Audit.create_log(%{
+            user_id: user.id,
+            action: "teams.meeting_created",
+            resource_type: "Meeting",
+            resource_id: meeting.id
+          })
 
         {:error, reason} ->
           require Logger

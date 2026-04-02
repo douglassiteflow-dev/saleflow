@@ -145,6 +145,7 @@ defmodule SaleflowWeb.MicrosoftController do
     user = conn.assigns.current_user
 
     with {:ok, meeting} <- Ash.get(Saleflow.Sales.Meeting, meeting_id),
+         :ok <- check_no_existing_teams(meeting),
          :ok <- check_ownership(meeting, user),
          {:ok, ms_conn} <- get_connection_for_user(user.id),
          {:ok, ms_conn} <- Graph.ensure_fresh_token(ms_conn) do
@@ -169,6 +170,14 @@ defmodule SaleflowWeb.MicrosoftController do
           })
           |> Ash.update!()
 
+          # Audit log
+          Saleflow.Audit.create_log(%{
+            user_id: user.id,
+            action: "teams.meeting_created",
+            resource_type: "Meeting",
+            resource_id: meeting.id
+          })
+
           json(conn, %{ok: true, teams_join_url: join_url, teams_event_id: event_id})
 
         {:error, reason} ->
@@ -181,6 +190,11 @@ defmodule SaleflowWeb.MicrosoftController do
 
       {:error, :forbidden} ->
         conn |> put_status(:forbidden) |> json(%{error: "Access denied"})
+
+      {:error, :teams_already_exists} ->
+        conn
+        |> put_status(:conflict)
+        |> json(%{error: "Teams-möte finns redan för detta möte"})
 
       {:error, :no_connection} ->
         conn
@@ -238,6 +252,14 @@ defmodule SaleflowWeb.MicrosoftController do
       {:ok, [connection | _]} -> {:ok, connection}
       {:ok, []} -> {:error, :no_connection}
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp check_no_existing_teams(meeting) do
+    if meeting.teams_join_url do
+      {:error, :teams_already_exists}
+    else
+      :ok
     end
   end
 

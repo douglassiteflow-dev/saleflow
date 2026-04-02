@@ -9,6 +9,50 @@ defmodule SaleflowWeb.DashboardController do
   Combined dashboard endpoint. Returns stats, today's meetings, callbacks, and my_stats
   in a single response. Role-aware: agents see own data, admins see all.
   """
+  def leaderboard(conn, _params) do
+    query = """
+    SELECT u.id, u.name,
+      COALESCE(c.calls_today, 0) as calls_today,
+      COALESCE(m.booked_today, 0) as meetings_booked_today,
+      COALESCE(m.cancelled_today, 0) as meetings_cancelled_today,
+      COALESCE(m.booked_today, 0) - COALESCE(m.cancelled_today, 0) as net_meetings_today
+    FROM users u
+    LEFT JOIN (
+      SELECT user_id, COUNT(*) as calls_today
+      FROM call_logs
+      WHERE called_at::date = CURRENT_DATE
+      GROUP BY user_id
+    ) c ON c.user_id = u.id
+    LEFT JOIN (
+      SELECT user_id,
+        COUNT(*) FILTER (WHERE status = 'scheduled' OR status = 'completed') as booked_today,
+        COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled_today
+      FROM meetings
+      WHERE inserted_at::date = CURRENT_DATE
+      GROUP BY user_id
+    ) m ON m.user_id = u.id
+    WHERE u.role = 'agent' OR (c.calls_today > 0 OR m.booked_today > 0)
+    ORDER BY COALESCE(m.booked_today, 0) - COALESCE(m.cancelled_today, 0) DESC,
+             COALESCE(c.calls_today, 0) DESC
+    """
+
+    {:ok, %{rows: rows, columns: _cols}} = Repo.query(query)
+
+    entries =
+      Enum.map(rows, fn [id, name, calls_today, meetings_booked_today, meetings_cancelled_today, net_meetings_today] ->
+        %{
+          user_id: Ecto.UUID.cast!(id),
+          name: name,
+          calls_today: calls_today,
+          meetings_booked_today: meetings_booked_today,
+          meetings_cancelled_today: meetings_cancelled_today,
+          net_meetings_today: net_meetings_today
+        }
+      end)
+
+    json(conn, %{leaderboard: entries})
+  end
+
   def index(conn, _params) do
     user = conn.assigns.current_user
     today = Date.utc_today()

@@ -56,6 +56,7 @@ defmodule SaleflowWeb.Router do
     post "/leads/:id/outcome", LeadController, :outcome
 
     get "/dashboard", DashboardController, :index
+    get "/dashboard/leaderboard", DashboardController, :leaderboard
 
     get "/meetings", MeetingController, :index
     get "/meetings/:id", MeetingController, :show

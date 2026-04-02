@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMeetingDetail, useUpdateMeeting, useCancelMeeting } from "@/api/meetings";
 import { useMicrosoftStatus, useCreateTeamsMeeting } from "@/api/microsoft";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ export function MeetingDetailPage() {
   const [editTime, setEditTime] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [editStatus, setEditStatus] = useState<"scheduled" | "completed" | "cancelled">("scheduled");
+  const [teamsMessage, setTeamsMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const queryClient = useQueryClient();
 
   if (isLoading || !data) {
     return (
@@ -136,10 +139,11 @@ export function MeetingDetailPage() {
               size="default"
               onClick={() => id && createTeamsMeeting.mutate(id, {
                 onSuccess: () => {
-                  alert("Teams-möte skapat! Sidan uppdateras.");
+                  setTeamsMessage({ type: "success", text: "Teams-möte skapat!" });
+                  void queryClient.invalidateQueries({ queryKey: ["meeting", id] });
                 },
                 onError: (err) => {
-                  alert("Kunde inte skapa Teams-möte: " + (err.message || "Okänt fel"));
+                  setTeamsMessage({ type: "error", text: "Kunde inte skapa Teams-möte: " + (err.message || "Okänt fel") });
                 },
               })}
               disabled={createTeamsMeeting.isPending}
@@ -147,8 +151,10 @@ export function MeetingDetailPage() {
               {createTeamsMeeting.isPending ? "Skapar Teams-möte..." : "Skapa Teams-möte"}
             </Button>
           )}
-          {createTeamsMeeting.isSuccess && !meeting.teams_join_url && (
-            <span className="text-sm text-emerald-600 font-medium">✓ Teams-möte skapat</span>
+          {teamsMessage && (
+            <span className={`text-sm font-medium ${teamsMessage.type === "success" ? "text-emerald-600" : "text-red-600"}`}>
+              {teamsMessage.type === "success" ? "✓ " : ""}{teamsMessage.text}
+            </span>
           )}
           {meeting.status === "scheduled" && (
             <>

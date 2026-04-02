@@ -1,9 +1,10 @@
 import { useState } from "react";
-import type { Outcome } from "@/api/types";
+import type { Lead, Outcome } from "@/api/types";
 import { useSubmitOutcome } from "@/api/leads";
 import { Card, CardTitle } from "@/components/ui/card";
 import { TimeSelect } from "@/components/ui/time-select";
 import { cn } from "@/lib/cn";
+import { formatDate, formatPhone } from "@/lib/format";
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -80,10 +81,11 @@ const OUTCOMES: OutcomeConfig[] = [
 interface OutcomePanelProps {
   leadId: string;
   companyName?: string;
+  leadData?: Lead;
   onOutcomeSubmitted?: () => void;
 }
 
-export function OutcomePanel({ leadId, companyName, onOutcomeSubmitted }: OutcomePanelProps) {
+export function OutcomePanel({ leadId, companyName, leadData, onOutcomeSubmitted }: OutcomePanelProps) {
   const submitOutcome = useSubmitOutcome(leadId);
 
   const [selected, setSelected] = useState<Outcome | null>(null);
@@ -268,6 +270,47 @@ export function OutcomePanel({ leadId, companyName, onOutcomeSubmitted }: Outcom
               onChange={setMeetingTime}
               disabled={submitOutcome.isPending}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Meeting preview */}
+      {selected === "meeting_booked" && meetingDate && meetingTime && (
+        <div className="mb-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-panel)] p-4">
+          <p className="text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)] mb-3">
+            Förhandsgranskning
+          </p>
+          <div className="space-y-1.5 text-sm text-[var(--color-text-primary)]">
+            <p className="font-medium">
+              {meetingTitle || (companyName ? `Möte med ${companyName}` : "Möte")}
+            </p>
+            <p>{formatDate(meetingDate)}, {meetingTime}</p>
+            <p>{meetingDuration} min</p>
+            {leadData?.epost && (
+              <p className="text-[var(--color-text-secondary)]">
+                Deltagare: {leadData.epost}
+              </p>
+            )}
+            {leadData?.telefon && (
+              <p className="text-[var(--color-text-secondary)]">
+                Telefon: {formatPhone(leadData.telefon)}
+              </p>
+            )}
+            {leadData?.vd_namn && (
+              <p className="text-[var(--color-text-secondary)]">
+                VD: {leadData.vd_namn}
+              </p>
+            )}
+            {leadData?.bransch && (
+              <p className="text-[var(--color-text-secondary)]">
+                Bransch: {leadData.bransch}
+              </p>
+            )}
+            {leadData?.stad && (
+              <p className="text-[var(--color-text-secondary)]">
+                Stad: {leadData.stad}
+              </p>
+            )}
           </div>
         </div>
       )}

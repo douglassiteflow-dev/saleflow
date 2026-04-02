@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { useDashboard } from "@/api/dashboard";
+import { useDashboard, useLeaderboard } from "@/api/dashboard";
 import { useMe } from "@/api/auth";
+import { Leaderboard } from "@/components/leaderboard";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const { data: user } = useMe();
   const { data: dashboard, isLoading } = useDashboard();
+  const { data: leaderboard } = useLeaderboard();
 
   const stats = dashboard?.stats;
   const todaysMeetings = dashboard?.todays_meetings ?? [];
@@ -69,6 +71,11 @@ export function DashboardPage() {
           <StatCard label="Totalt möten" value={myStats.total_meetings} />
         </div>
       )}
+
+      {/* Leaderboard */}
+      <section>
+        <Leaderboard entries={leaderboard ?? []} currentUserId={user?.id} />
+      </section>
 
       {/* Today's meetings */}
       <section>

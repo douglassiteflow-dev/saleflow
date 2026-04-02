@@ -121,7 +121,7 @@ export function DialerPage() {
           <LeadInfo lead={lead} />
           <HistoryTimeline callLogs={calls} auditLogs={auditLogs} />
         </div>
-        <OutcomePanel leadId={lead.id} companyName={lead.företag} onOutcomeSubmitted={handleOutcomeSubmitted} />
+        <OutcomePanel leadId={lead.id} companyName={lead.företag} leadData={lead} onOutcomeSubmitted={handleOutcomeSubmitted} />
         <div className="rounded-lg border border-[var(--color-border)] bg-white overflow-hidden" style={{ height: "calc(100vh - 160px)", position: "sticky", top: "80px" }}>
           <div className="px-4 py-2.5 bg-[var(--color-bg-panel)] border-b border-[var(--color-border)]">
             <p className="text-xs font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
