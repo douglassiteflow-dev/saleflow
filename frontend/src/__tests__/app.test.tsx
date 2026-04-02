@@ -18,6 +18,10 @@ vi.mock("@/api/sessions", () => ({
   useForceLogoutSession: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
 }));
 
+vi.mock("@/api/dashboard", () => ({
+  useDashboard: vi.fn(() => ({ data: undefined, isLoading: false })),
+}));
+
 describe("App", () => {
   beforeEach(() => {
     useMeMock.mockReturnValue({ data: null, isLoading: false });

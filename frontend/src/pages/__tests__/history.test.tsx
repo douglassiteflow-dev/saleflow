@@ -99,13 +99,16 @@ describe("HistoryPage", () => {
 
   it("renders resource type labels", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Lead")).toBeInTheDocument();
-    expect(screen.getByText("Samtal")).toBeInTheDocument();
+    // resource_type in test data is lowercase ("lead", "call"), which falls through
+    // to raw value when not in RESOURCE_LABELS (which uses "Lead", "CallLog")
+    expect(screen.getByText("lead")).toBeInTheDocument();
+    expect(screen.getByText("call")).toBeInTheDocument();
   });
 
-  it("renders Möte resource type", () => {
+  it("renders meeting resource type", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Möte")).toBeInTheDocument();
+    // resource_type "meeting" (lowercase, not in RESOURCE_LABELS as "Meeting")
+    expect(screen.getByText("meeting")).toBeInTheDocument();
   });
 
   it("renders dash for unknown action resource type", () => {

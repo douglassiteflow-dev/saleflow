@@ -31,10 +31,9 @@ export function DialerPage() {
 
   function handleSkip() {
     if (!currentLeadId) return;
-    skipOutcome.mutate(
-      { outcome: "no_answer", notes: "Hoppade över" },
-      { onSuccess: () => handleNextLead() }
-    );
+    // Fire outcome mutation without awaiting, immediately fetch next
+    skipOutcome.mutate({ outcome: "no_answer", notes: "Hoppade över" });
+    handleNextLead();
   }
 
   function handleOutcomeSubmitted() {
@@ -146,7 +145,7 @@ export function DialerPage() {
             <div className="space-y-2">
               {[
                 { label: "Google", url: `https://www.google.com/search?q=${encodeURIComponent(lead.företag + " " + (lead.stad ?? ""))}` },
-                { label: "Google Maps", url: `https://www.google.com/maps/search/${encodeURIComponent(lead.företag + " " + (lead.stad ?? ""))}` },
+                { label: "Google Maps", url: `https://www.google.com/maps/search/${encodeURIComponent([lead.adress, lead.postnummer, lead.stad].filter(Boolean).join(" "))}` },
                 { label: "Hitta.se", url: `https://www.hitta.se/sök?vad=${encodeURIComponent(lead.företag)}&var=${encodeURIComponent(lead.stad ?? "")}` },
                 { label: "Eniro", url: `https://www.eniro.se/s/${encodeURIComponent(lead.företag)}` },
                 { label: "Allabolag", url: lead.orgnr ? `https://www.allabolag.se/${lead.orgnr}` : `https://www.allabolag.se/what/${encodeURIComponent(lead.företag)}` },

@@ -37,6 +37,7 @@ export function useLeadDetail(id: string | null | undefined) {
       return data;
     },
     enabled: !!id,
+    staleTime: 30_000,
   });
 }
 
@@ -50,8 +51,12 @@ export function useNextLead() {
       });
       return data.lead;
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["leads"] });
+    onSuccess: (lead) => {
+      void queryClient.invalidateQueries({ queryKey: ["leads", "list"] });
+      // Pre-populate lead detail cache from next-lead response
+      if (lead) {
+        queryClient.setQueryData(["leads", "detail", lead.id], { lead, calls: [], audit_logs: [] });
+      }
     },
   });
 }
@@ -67,8 +72,9 @@ export function useSubmitOutcome(leadId: string) {
       });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["leads"] });
+      void queryClient.invalidateQueries({ queryKey: ["leads", "list"] });
       void queryClient.invalidateQueries({ queryKey: ["meetings"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }

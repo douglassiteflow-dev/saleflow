@@ -1,24 +1,59 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useMeetings, useCancelMeeting } from "@/api/meetings";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MeetingForm } from "@/components/meeting-form";
 import { formatDate, formatTime } from "@/lib/format";
+import { cn } from "@/lib/cn";
+
+type FilterTab = "upcoming" | "today" | "all" | "completed" | "cancelled";
+
+const TABS: { key: FilterTab; label: string }[] = [
+  { key: "upcoming", label: "Kommande" },
+  { key: "today", label: "Idag" },
+  { key: "all", label: "Alla" },
+  { key: "completed", label: "Genomförda" },
+  { key: "cancelled", label: "Avbokade" },
+];
+
+function todayDateString(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export function MeetingsPage() {
+  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<FilterTab>("upcoming");
 
   const { data: meetings, isLoading } = useMeetings();
   const cancelMeeting = useCancelMeeting();
 
-  function handleCancel(id: string) {
+  function handleCancel(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
     if (confirm("Vill du avboka detta möte?")) {
       void cancelMeeting.mutate(id);
     }
   }
 
-  const upcoming = (meetings ?? []).filter((m) => m.status !== "cancelled");
+  const today = todayDateString();
+
+  const filtered = (meetings ?? []).filter((m) => {
+    switch (activeTab) {
+      case "upcoming":
+        return m.status === "scheduled" && m.meeting_date >= today;
+      case "today":
+        return m.meeting_date === today && m.status !== "cancelled";
+      case "completed":
+        return m.status === "completed";
+      case "cancelled":
+        return m.status === "cancelled";
+      case "all":
+      default:
+        return true;
+    }
+  });
 
   return (
     <div className="space-y-6">
@@ -43,17 +78,38 @@ export function MeetingsPage() {
         <MeetingForm onCancel={() => setShowForm(false)} />
       )}
 
+      {/* Filter tabs */}
+      <div className="flex gap-1 border-b border-[var(--color-border)]">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setActiveTab(tab.key)}
+            className={cn(
+              "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+              activeTab === tab.key
+                ? "border-[var(--color-accent)] text-[var(--color-accent)]"
+                : "border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]",
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Table */}
       <Card>
-        <CardTitle className="mb-4">Kommande möten</CardTitle>
+        <CardTitle className="mb-4">
+          {TABS.find((t) => t.key === activeTab)?.label ?? "Möten"}
+        </CardTitle>
 
         {isLoading ? (
           <p className="text-sm text-[var(--color-text-secondary)]">
             Laddar möten...
           </p>
-        ) : upcoming.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <p className="text-sm text-[var(--color-text-secondary)]">
-            Inga kommande möten.
+            Inga möten att visa.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -76,26 +132,46 @@ export function MeetingsPage() {
                     className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
                     style={{ fontSize: "12px" }}
                   >
+                    Företag
+                  </th>
+                  <th
+                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
+                    style={{ fontSize: "12px" }}
+                  >
+                    Agent
+                  </th>
+                  <th
+                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
+                    style={{ fontSize: "12px" }}
+                  >
                     Status
                   </th>
                   <th className="px-4 py-2.5" />
                 </tr>
               </thead>
               <tbody>
-                {upcoming.map((meeting, i) => (
+                {filtered.map((meeting, i) => (
                   <tr
                     key={meeting.id}
-                    className={
-                      i !== upcoming.length - 1
+                    className={cn(
+                      "cursor-pointer hover:bg-slate-50 transition-colors",
+                      i !== filtered.length - 1
                         ? "border-b border-slate-200"
-                        : ""
-                    }
+                        : "",
+                    )}
+                    onClick={() => void navigate(`/meetings/${meeting.id}`)}
                   >
                     <td className="px-4 py-3 font-mono text-[var(--color-text-secondary)]">
                       {formatDate(meeting.meeting_date)} {formatTime(meeting.meeting_time)}
                     </td>
                     <td className="px-4 py-3 text-[var(--color-text-primary)]">
                       <p className="font-medium">{meeting.title}</p>
+                    </td>
+                    <td className="px-4 py-3 text-[var(--color-text-primary)]">
+                      {meeting.lead?.företag ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-[var(--color-text-secondary)]">
+                      {meeting.user_name ?? "—"}
                     </td>
                     <td className="px-4 py-3">
                       <Badge status={meeting.status} />
@@ -105,7 +181,7 @@ export function MeetingsPage() {
                         <Button
                           variant="danger"
                           size="default"
-                          onClick={() => handleCancel(meeting.id)}
+                          onClick={(e) => handleCancel(meeting.id, e)}
                           disabled={cancelMeeting.isPending}
                         >
                           Avboka

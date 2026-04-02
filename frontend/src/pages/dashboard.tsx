@@ -1,33 +1,21 @@
-import { useAdminStats } from "@/api/admin";
-import { useMeetings } from "@/api/meetings";
-import { useLeads } from "@/api/leads";
+import { useNavigate } from "react-router-dom";
+import { useDashboard } from "@/api/dashboard";
 import { useMe } from "@/api/auth";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/stat-card";
 import { formatDate, formatTime, formatDateTime, formatPhone } from "@/lib/format";
 
-function todayDateString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 export function DashboardPage() {
+  const navigate = useNavigate();
   const { data: user } = useMe();
-  const { data: stats, isLoading: statsLoading } = useAdminStats();
-  const { data: meetings } = useMeetings();
-  const { data: leads } = useLeads();
+  const { data: dashboard, isLoading } = useDashboard();
 
-  const today = todayDateString();
-
-  const todaysMeetings = (meetings ?? []).filter(
-    (m) => m.meeting_date === today && m.status === "scheduled",
-  );
-
-  // Agents see only their own callbacks, admins see all
-  const allCallbacks = (leads ?? []).filter((l) => l.status === "callback");
-  const callbacks = user?.role === "admin"
-    ? allCallbacks
-    : allCallbacks; // Backend already scopes leads per agent assignment — keep all for now
+  const stats = dashboard?.stats;
+  const todaysMeetings = dashboard?.todays_meetings ?? [];
+  const callbacks = dashboard?.callbacks ?? [];
+  const myStats = dashboard?.my_stats;
 
   return (
     <div className="space-y-8">
@@ -39,35 +27,48 @@ export function DashboardPage() {
         >
           Dashboard
         </h1>
+        <Button variant="primary" onClick={() => void navigate("/dialer")}>
+          Nästa kund
+        </Button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
         <StatCard
           label="Totalt leads"
-          value={statsLoading ? "—" : (stats?.total_leads ?? 0)}
+          value={isLoading ? "—" : (stats?.total_leads ?? 0)}
         />
         <StatCard
           label="Nya i kön"
-          value={statsLoading ? "—" : (stats?.new ?? 0)}
+          value={isLoading ? "—" : (stats?.new ?? 0)}
         />
         <StatCard
           label="Tilldelade"
-          value={statsLoading ? "—" : (stats?.assigned ?? 0)}
+          value={isLoading ? "—" : (stats?.assigned ?? 0)}
         />
         <StatCard
           label="Möten bokade"
-          value={statsLoading ? "—" : (stats?.meeting_booked ?? 0)}
+          value={isLoading ? "—" : (stats?.meeting_booked ?? 0)}
         />
         <StatCard
           label="Kunder"
-          value={statsLoading ? "—" : (stats?.customer ?? 0)}
+          value={isLoading ? "—" : (stats?.customer ?? 0)}
         />
         <StatCard
           label="Karantän"
-          value={statsLoading ? "—" : (stats?.quarantine ?? 0)}
+          value={isLoading ? "—" : (stats?.quarantine ?? 0)}
         />
       </div>
+
+      {/* My stats */}
+      {myStats && (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <StatCard label="Samtal idag" value={myStats.calls_today} />
+          <StatCard label="Möten idag" value={myStats.meetings_today} />
+          <StatCard label="Totalt samtal" value={myStats.total_calls} />
+          <StatCard label="Totalt möten" value={myStats.total_meetings} />
+        </div>
+      )}
 
       {/* Today's meetings */}
       <section>
@@ -80,11 +81,25 @@ export function DashboardPage() {
           ) : (
             <ul className="divide-y divide-[var(--color-border)]">
               {todaysMeetings.map((meeting) => (
-                <li key={meeting.id} className="py-3 flex items-start justify-between gap-4">
+                <li
+                  key={meeting.id}
+                  className="py-3 flex items-start justify-between gap-4 cursor-pointer hover:bg-[var(--color-bg-panel)] transition-colors rounded px-2 -mx-2"
+                  onClick={() => void navigate(`/meetings/${meeting.id}`)}
+                >
                   <div>
                     <p className="text-sm font-medium text-[var(--color-text-primary)]">
                       {meeting.title}
                     </p>
+                    {meeting.lead && (
+                      <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">
+                        {meeting.lead.företag}
+                      </p>
+                    )}
+                    {meeting.user_name && user?.role === "admin" && (
+                      <p className="text-xs text-[var(--color-accent)] mt-0.5">
+                        {meeting.user_name}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <span className="text-sm font-mono text-[var(--color-text-secondary)]">

@@ -149,7 +149,7 @@ describe("DialerPage", () => {
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
   });
 
-  it("skip button resets lead", () => {
+  it("skip button fires outcome and fetches next lead", () => {
     nextLeadMutateMock.mockImplementation((_: unknown, opts: { onSuccess?: (lead: { id: string }) => void }) => {
       opts.onSuccess?.({ id: "lead-1" });
     });
@@ -164,8 +164,12 @@ describe("DialerPage", () => {
     // Now we should see lead detail with Skip button
     fireEvent.click(screen.getByText("Hoppa över"));
 
-    // After skip, we should be back to initial state
-    expect(screen.getByText("Redo att börja ringa?")).toBeInTheDocument();
+    // Skip fires outcome mutation without awaiting
+    expect(outcomeSubmitMock).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: "no_answer" }),
+    );
+    // And immediately fetches next lead
+    expect(nextLeadMutateMock.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
   it("fetches next lead after outcome is submitted", () => {

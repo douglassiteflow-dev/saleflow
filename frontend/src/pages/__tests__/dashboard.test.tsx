@@ -10,20 +10,10 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => navigateMock };
 });
 
-const useAdminStatsMock = vi.fn();
-const useMeetingsMock = vi.fn();
-const useLeadsMock = vi.fn();
+const useDashboardMock = vi.fn();
 
-vi.mock("@/api/admin", () => ({
-  useAdminStats: () => useAdminStatsMock(),
-}));
-
-vi.mock("@/api/meetings", () => ({
-  useMeetings: () => useMeetingsMock(),
-}));
-
-vi.mock("@/api/leads", () => ({
-  useLeads: () => useLeadsMock(),
+vi.mock("@/api/dashboard", () => ({
+  useDashboard: () => useDashboardMock(),
 }));
 
 function Wrapper({ children }: { children: React.ReactNode }) {
@@ -42,53 +32,68 @@ function todayDateString(): string {
 describe("DashboardPage", () => {
   beforeEach(() => {
     navigateMock.mockClear();
-    useAdminStatsMock.mockReturnValue({
-      data: { total_leads: 100, new: 50, assigned: 20, meeting_booked: 5, quarantine: 10, customer: 10, bad_number: 5 },
+    useDashboardMock.mockReturnValue({
+      data: {
+        stats: {
+          total_leads: 100,
+          new: 50,
+          assigned: 20,
+          meeting_booked: 5,
+          quarantine: 10,
+          customer: 10,
+          bad_number: 5,
+        },
+        todays_meetings: [
+          {
+            id: "m1",
+            lead_id: "l1",
+            user_id: "u1",
+            title: "Morning meeting",
+            meeting_date: todayDateString(),
+            meeting_time: "10:00:00",
+            notes: null,
+            status: "scheduled",
+            reminded_at: null,
+            updated_at: "2024-01-01T00:00:00Z",
+            inserted_at: "2024-01-01T00:00:00Z",
+            user_name: "Jane Agent",
+            lead: { id: "l1", företag: "Test AB", telefon: "+46701234567" },
+          },
+        ],
+        callbacks: [
+          {
+            id: "l1",
+            företag: "Testföretag AB",
+            telefon: "+46701234567",
+            epost: null,
+            hemsida: null,
+            adress: null,
+            postnummer: null,
+            stad: null,
+            bransch: null,
+            orgnr: null,
+            omsättning_tkr: null,
+            vinst_tkr: null,
+            anställda: null,
+            vd_namn: null,
+            bolagsform: null,
+            status: "callback",
+            quarantine_until: null,
+            callback_at: "2024-06-01T10:00:00Z",
+            callback_reminded_at: null,
+            imported_at: null,
+            inserted_at: "2024-01-01T00:00:00Z",
+            updated_at: "2024-01-01T00:00:00Z",
+          },
+        ],
+        my_stats: {
+          calls_today: 5,
+          total_calls: 100,
+          meetings_today: 2,
+          total_meetings: 50,
+        },
+      },
       isLoading: false,
-    });
-    useMeetingsMock.mockReturnValue({
-      data: [
-        {
-          id: "m1",
-          lead_id: "l1",
-          user_id: "u1",
-          title: "Morning meeting",
-          meeting_date: todayDateString(),
-          meeting_time: "10:00:00",
-          notes: null,
-          status: "scheduled",
-          reminded_at: null,
-          inserted_at: "2024-01-01T00:00:00Z",
-        },
-      ],
-    });
-    useLeadsMock.mockReturnValue({
-      data: [
-        {
-          id: "l1",
-          företag: "Testföretag AB",
-          telefon: "+46701234567",
-          epost: null,
-          hemsida: null,
-          adress: null,
-          postnummer: null,
-          stad: null,
-          bransch: null,
-          orgnr: null,
-          omsättning_tkr: null,
-          vinst_tkr: null,
-          anställda: null,
-          vd_namn: null,
-          bolagsform: null,
-          status: "callback",
-          quarantine_until: null,
-          callback_at: "2024-06-01T10:00:00Z",
-          callback_reminded_at: null,
-          imported_at: null,
-          inserted_at: "2024-01-01T00:00:00Z",
-          updated_at: "2024-01-01T00:00:00Z",
-        },
-      ],
     });
   });
 
@@ -100,9 +105,13 @@ describe("DashboardPage", () => {
   it("renders stat cards", () => {
     render(<DashboardPage />, { wrapper: Wrapper });
     expect(screen.getByText("Totalt leads")).toBeInTheDocument();
-    expect(screen.getByText("100")).toBeInTheDocument();
-    expect(screen.getByText("Nya")).toBeInTheDocument();
-    expect(screen.getByText("50")).toBeInTheDocument();
+    // 100 appears in both stats and my_stats, so use getAllByText
+    const hundreds = screen.getAllByText("100");
+    expect(hundreds.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Nya i kön")).toBeInTheDocument();
+    // 50 appears in both stats (new: 50) and my_stats (total_meetings: 50)
+    const fifties = screen.getAllByText("50");
+    expect(fifties.length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders next lead button", () => {
@@ -121,7 +130,7 @@ describe("DashboardPage", () => {
   });
 
   it("shows loading indicators for stats", () => {
-    useAdminStatsMock.mockReturnValue({ data: undefined, isLoading: true });
+    useDashboardMock.mockReturnValue({ data: undefined, isLoading: true });
     render(<DashboardPage />, { wrapper: Wrapper });
     // Should show "—" placeholders
     const dashes = screen.getAllByText("—");
@@ -129,23 +138,38 @@ describe("DashboardPage", () => {
   });
 
   it("renders empty meetings state", () => {
-    useMeetingsMock.mockReturnValue({ data: [] });
+    useDashboardMock.mockReturnValue({
+      data: {
+        stats: { total_leads: 0, new: 0, assigned: 0, meeting_booked: 0, quarantine: 0, customer: 0, bad_number: 0 },
+        todays_meetings: [],
+        callbacks: [],
+        my_stats: { calls_today: 0, total_calls: 0, meetings_today: 0, total_meetings: 0 },
+      },
+      isLoading: false,
+    });
     render(<DashboardPage />, { wrapper: Wrapper });
     expect(screen.getByText("Inga möten inbokade för idag.")).toBeInTheDocument();
   });
 
   it("renders empty callbacks state", () => {
-    useLeadsMock.mockReturnValue({ data: [] });
+    useDashboardMock.mockReturnValue({
+      data: {
+        stats: { total_leads: 0, new: 0, assigned: 0, meeting_booked: 0, quarantine: 0, customer: 0, bad_number: 0 },
+        todays_meetings: [],
+        callbacks: [],
+        my_stats: { calls_today: 0, total_calls: 0, meetings_today: 0, total_meetings: 0 },
+      },
+      isLoading: false,
+    });
     render(<DashboardPage />, { wrapper: Wrapper });
     expect(screen.getByText("Inga återuppringningar i kö.")).toBeInTheDocument();
   });
 
-  it("renders null meetings count", () => {
-    useMeetingsMock.mockReturnValue({ data: null });
+  it("renders null dashboard data gracefully", () => {
+    useDashboardMock.mockReturnValue({ data: undefined, isLoading: false });
     render(<DashboardPage />, { wrapper: Wrapper });
-    // Meetings stat should show "—" when null
-    const dashes = screen.getAllByText("—");
-    expect(dashes.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Inga möten inbokade för idag.")).toBeInTheDocument();
+    expect(screen.getByText("Inga återuppringningar i kö.")).toBeInTheDocument();
   });
 
   it("renders callback with callback_at date", () => {
@@ -155,125 +179,89 @@ describe("DashboardPage", () => {
   });
 
   it("renders lead företag name in callbacks", () => {
-    useLeadsMock.mockReturnValue({
-      data: [
-        {
-          id: "l2",
-          företag: "Corp AB",
-          telefon: "+46701234567",
-          epost: null,
-          status: "callback",
-          callback_at: null,
-          inserted_at: "",
-          updated_at: "",
-        },
-      ],
+    useDashboardMock.mockReturnValue({
+      data: {
+        stats: { total_leads: 0, new: 0, assigned: 0, meeting_booked: 0, quarantine: 0, customer: 0, bad_number: 0 },
+        todays_meetings: [],
+        callbacks: [
+          {
+            id: "l2",
+            företag: "Corp AB",
+            telefon: "+46701234567",
+            epost: null,
+            status: "callback",
+            callback_at: null,
+            inserted_at: "",
+            updated_at: "",
+          },
+        ],
+        my_stats: { calls_today: 0, total_calls: 0, meetings_today: 0, total_meetings: 0 },
+      },
+      isLoading: false,
     });
     render(<DashboardPage />, { wrapper: Wrapper });
     expect(screen.getByText("Corp AB")).toBeInTheDocument();
   });
 
-  it("renders meetings as null then dash", () => {
-    useMeetingsMock.mockReturnValue({ data: undefined });
-    render(<DashboardPage />, { wrapper: Wrapper });
-    // Meeting count when undefined shows "—"
-    const dashes = screen.getAllByText("—");
-    expect(dashes.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("navigates when clicking the 'Nästa kund' button", () => {
+  it("navigates when clicking the Nästa kund button", () => {
     render(<DashboardPage />, { wrapper: Wrapper });
     const btn = screen.getByText("Nästa kund");
     fireEvent.click(btn);
     expect(navigateMock).toHaveBeenCalledWith("/dialer");
   });
 
-  it("filters out meetings not matching today's date", () => {
-    useMeetingsMock.mockReturnValue({
-      data: [
-        {
-          id: "m1",
-          lead_id: "l1",
-          user_id: "u1",
-          title: "Yesterday meeting",
-          meeting_date: "2023-01-01",
-          meeting_time: "14:00:00",
-          notes: null,
-          status: "scheduled",
-          reminded_at: null,
-          inserted_at: "",
-        },
-      ],
-    });
+  it("renders my stats section", () => {
     render(<DashboardPage />, { wrapper: Wrapper });
-    // Old meeting not today, so should show "Inga möten inbokade för idag"
-    expect(screen.getByText("Inga möten inbokade för idag.")).toBeInTheDocument();
+    expect(screen.getByText("Samtal idag")).toBeInTheDocument();
+    // 5 appears in both stats (meeting_booked: 5, bad_number: 5) and my_stats (calls_today: 5)
+    const fives = screen.getAllByText("5");
+    expect(fives.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Möten idag")).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
   });
 
-  it("filters out meetings with non-scheduled status", () => {
-    useMeetingsMock.mockReturnValue({
-      data: [
-        {
-          id: "m1",
-          lead_id: "l1",
-          user_id: "u1",
-          title: "Cancelled today",
-          meeting_date: todayDateString(),
-          meeting_time: "14:00:00",
-          notes: null,
-          status: "cancelled",
-          reminded_at: null,
-          inserted_at: "",
-        },
-      ],
-    });
-    render(<DashboardPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Inga möten inbokade för idag.")).toBeInTheDocument();
-  });
-
-  it("handles stats with null property values", () => {
-    useAdminStatsMock.mockReturnValue({
-      data: { total_leads: undefined, new: undefined, assigned: undefined, meeting_booked: undefined, quarantine: undefined, customer: undefined, bad_number: undefined },
+  it("handles stats with zero values", () => {
+    useDashboardMock.mockReturnValue({
+      data: {
+        stats: { total_leads: 0, new: 0, assigned: 0, meeting_booked: 0, quarantine: 0, customer: 0, bad_number: 0 },
+        todays_meetings: [],
+        callbacks: [],
+        my_stats: { calls_today: 0, total_calls: 0, meetings_today: 0, total_meetings: 0 },
+      },
       isLoading: false,
     });
     render(<DashboardPage />, { wrapper: Wrapper });
-    // Stats should fall back to 0
+    // Stats should show 0
     const zeros = screen.getAllByText("0");
     expect(zeros.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("handles undefined leads gracefully", () => {
-    useLeadsMock.mockReturnValue({ data: undefined });
+  it("handles undefined dashboard gracefully", () => {
+    useDashboardMock.mockReturnValue({ data: undefined, isLoading: false });
     render(<DashboardPage />, { wrapper: Wrapper });
     expect(screen.getByText("Inga återuppringningar i kö.")).toBeInTheDocument();
   });
 
-  it("filters leads that are not callbacks", () => {
-    useLeadsMock.mockReturnValue({
-      data: [
-        { id: "l1", status: "new", företag: "Foo AB", telefon: "123", callback_at: null },
-        { id: "l2", status: "callback", företag: "Bar AB", telefon: "456", callback_at: null },
-      ],
-    });
-    render(<DashboardPage />, { wrapper: Wrapper });
-    // Only callback lead should appear in the callbacks section
-    expect(screen.getByText("Bar AB")).toBeInTheDocument();
-  });
-
   it("does not render callback_at when null", () => {
-    useLeadsMock.mockReturnValue({
-      data: [
-        {
-          id: "l3",
-          företag: "Test No AB",
-          telefon: "+46700000000",
-          epost: null,
-          status: "callback",
-          callback_at: null,
-          inserted_at: "",
-          updated_at: "",
-        },
-      ],
+    useDashboardMock.mockReturnValue({
+      data: {
+        stats: { total_leads: 0, new: 0, assigned: 0, meeting_booked: 0, quarantine: 0, customer: 0, bad_number: 0 },
+        todays_meetings: [],
+        callbacks: [
+          {
+            id: "l3",
+            företag: "Test No AB",
+            telefon: "+46700000000",
+            epost: null,
+            status: "callback",
+            callback_at: null,
+            inserted_at: "",
+            updated_at: "",
+          },
+        ],
+        my_stats: { calls_today: 0, total_calls: 0, meetings_today: 0, total_meetings: 0 },
+      },
+      isLoading: false,
     });
     render(<DashboardPage />, { wrapper: Wrapper });
     expect(screen.getByText("Test No AB")).toBeInTheDocument();

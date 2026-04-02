@@ -105,6 +105,20 @@ export interface AuditLog {
   inserted_at: string;
 }
 
+export interface MeetingLead {
+  id: string;
+  företag: string;
+  telefon: string;
+  adress: string | null;
+  postnummer: string | null;
+  stad: string | null;
+  bransch: string | null;
+  omsättning_tkr: string | null;
+  vd_namn: string | null;
+  källa: string | null;
+  status: LeadStatus;
+}
+
 export interface Meeting {
   id: string;
   lead_id: string;
@@ -115,7 +129,31 @@ export interface Meeting {
   notes: string | null;
   status: "scheduled" | "completed" | "cancelled";
   reminded_at: string | null;
+  updated_at: string;
   inserted_at: string;
+  user_name?: string | null;
+  lead?: MeetingLead | null;
+}
+
+export interface MeetingDetailData {
+  meeting: Meeting;
+  lead: Lead;
+  calls: CallLog[];
+  audit_logs: AuditLog[];
+}
+
+export interface MyStats {
+  calls_today: number;
+  total_calls: number;
+  meetings_today: number;
+  total_meetings: number;
+}
+
+export interface DashboardData {
+  stats: Stats;
+  todays_meetings: Meeting[];
+  callbacks: Lead[];
+  my_stats: MyStats;
 }
 
 export interface Stats {

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useMeetings, useCreateMeeting, useCancelMeeting } from "../meetings";
+import { useMeetings, useCreateMeeting, useCancelMeeting, useMeetingDetail, useUpdateMeeting } from "../meetings";
 import type { ReactNode } from "react";
 
 const originalFetch = globalThis.fetch;
@@ -25,7 +25,10 @@ const mockMeeting = {
   notes: null,
   status: "scheduled",
   reminded_at: null,
+  updated_at: "2024-01-01T00:00:00Z",
   inserted_at: "2024-01-01T00:00:00Z",
+  user_name: "Jane Agent",
+  lead: { id: "l1", företag: "Acme AB", telefon: "+46701234567" },
 };
 
 describe("useMeetings", () => {
@@ -41,6 +44,40 @@ describe("useMeetings", () => {
     const { result } = renderHook(() => useMeetings(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual([mockMeeting]);
+  });
+});
+
+describe("useMeetingDetail", () => {
+  beforeEach(() => { globalThis.fetch = vi.fn(); });
+  afterEach(() => { globalThis.fetch = originalFetch; });
+
+  it("fetches meeting detail", async () => {
+    const detailData = {
+      meeting: mockMeeting,
+      lead: { id: "l1", företag: "Acme AB" },
+      calls: [],
+      audit_logs: [],
+    };
+
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(detailData),
+    });
+
+    const { result } = renderHook(() => useMeetingDetail("m1"), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.meeting.id).toBe("m1");
+  });
+
+  it("does not fetch when id is null", () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({}),
+    });
+
+    const { result } = renderHook(() => useMeetingDetail(null), { wrapper: createWrapper() });
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.fetchStatus).toBe("idle");
   });
 });
 
@@ -69,6 +106,29 @@ describe("useCreateMeeting", () => {
   });
 });
 
+describe("useUpdateMeeting", () => {
+  beforeEach(() => { globalThis.fetch = vi.fn(); });
+  afterEach(() => { globalThis.fetch = originalFetch; });
+
+  it("puts update request", async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ meeting: { ...mockMeeting, notes: "Updated" } }),
+    });
+
+    const { result } = renderHook(() => useUpdateMeeting(), { wrapper: createWrapper() });
+    result.current.mutate({
+      id: "m1",
+      notes: "Updated",
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(globalThis.fetch).toHaveBeenCalledWith("/api/meetings/m1", expect.objectContaining({
+      method: "PUT",
+    }));
+  });
+});
+
 describe("useCancelMeeting", () => {
   beforeEach(() => { globalThis.fetch = vi.fn(); });
   afterEach(() => { globalThis.fetch = originalFetch; });
@@ -76,7 +136,7 @@ describe("useCancelMeeting", () => {
   it("posts cancel request", async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ ...mockMeeting, status: "cancelled" }),
+      json: () => Promise.resolve({ meeting: { ...mockMeeting, status: "cancelled" } }),
     });
 
     const { result } = renderHook(() => useCancelMeeting(), { wrapper: createWrapper() });
@@ -86,5 +146,18 @@ describe("useCancelMeeting", () => {
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/meetings/m1/cancel", expect.objectContaining({
       method: "POST",
     }));
+  });
+
+  it("sends cancel request to correct endpoint", async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ meeting: { ...mockMeeting, status: "cancelled" } }),
+    });
+
+    const { result } = renderHook(() => useCancelMeeting(), { wrapper: createWrapper() });
+    result.current.mutate("m1");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.status).toBe("cancelled");
   });
 });
