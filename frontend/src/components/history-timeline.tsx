@@ -1,6 +1,6 @@
 import type { CallLog, AuditLog } from "@/api/types";
 import { Card, CardTitle } from "@/components/ui/card";
-import { formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 type TimelineEntry =
@@ -45,6 +45,9 @@ const ACTION_LABELS: Record<string, string> = {
   "otp.verified": "OTP verifierad",
   "session.created": "Inloggning",
   "session.logged_out": "Utloggning",
+  "teams.meeting_created": "Teams-möte skapat",
+  "meeting.updated": "Möte uppdaterat",
+  "lead.updated": "Lead uppdaterad",
   "session.force_logged_out": "Tvångsutloggad",
 };
 
@@ -89,6 +92,14 @@ const FIELD_LABELS: Record<string, string> = {
   release_reason: "Anledning",
   reason: "Anledning",
   lead_list_id: "Lista",
+  attendee_email: "Deltagare",
+  attendee_name: "Kontaktperson",
+  duration_minutes: "Längd",
+  teams_join_url: "Teams-länk",
+  teams_event_id: "Teams-event",
+  telefon_2: "Telefon 2",
+  customer_email: "Kundens e-post",
+  customer_name: "Kundens namn",
 };
 
 // Fields to hide completely
@@ -97,7 +108,7 @@ const HIDDEN_FIELDS = new Set([
   "imported_at", "session_token", "user_agent", "ip_address",
   "hashed_password", "logged_in_at", "last_active_at",
   "assigned_at", "released_at", "called_at", "expires_at",
-  "used_at", "code", "quarantined_at",
+  "used_at", "code", "quarantined_at", "teams_event_id",
 ]);
 
 // === FORMATTING ===
@@ -149,8 +160,22 @@ function formatChanges(changes: Record<string, unknown> | null, action: string):
     const t = changes["title"] as { to?: string } | undefined;
     const d = changes["meeting_date"] as { to?: string } | undefined;
     const tm = changes["meeting_time"] as { to?: string } | undefined;
-    const parts = [t?.to, d?.to, tm?.to ? tm.to.slice(0, 5) : null].filter(Boolean);
+    const ae = changes["attendee_email"] as { to?: string } | undefined;
+    const an = changes["attendee_name"] as { to?: string } | undefined;
+    const dur = changes["duration_minutes"] as { to?: string } | undefined;
+    const parts = [
+      t?.to,
+      d?.to ? formatDate(d.to) : null,
+      tm?.to ? tm.to.slice(0, 5) : null,
+      dur?.to ? `${dur.to} min` : null,
+      an?.to ? `Kontakt: ${an.to}` : null,
+      ae?.to ? `(${ae.to})` : null,
+    ].filter(Boolean);
     return parts.join(" — ") || null;
+  }
+
+  if (action === "teams.meeting_created") {
+    return "Teams-möte och kalenderinbjudan skickad";
   }
 
   if (action === "assignment.released") {
