@@ -151,7 +151,7 @@ export function DialerPage() {
                 { label: "Eniro", url: `https://www.eniro.se/s/${encodeURIComponent(lead.företag)}` },
                 { label: "Allabolag", url: lead.orgnr ? `https://www.allabolag.se/${lead.orgnr}` : `https://www.allabolag.se/what/${encodeURIComponent(lead.företag)}` },
                 { label: `"${lead.företag}" hemsida`, url: `https://www.google.com/search?q=${encodeURIComponent('"' + lead.företag + '" hemsida')}` },
-                ...(lead.vd_namn ? [{ label: `MrKoll — ${lead.vd_namn}`, url: `https://www.mrkoll.se/${encodeURIComponent(lead.vd_namn.replace(/\s+/g, "+"))}` }] : []),
+                ...(lead.vd_namn ? [{ label: `MrKoll — ${lead.vd_namn}`, url: `https://www.google.com/search?q=${encodeURIComponent(lead.vd_namn + " site:mrkoll.se")}` }] : []),
               ].map((link) => (
                 <a
                   key={link.label}
