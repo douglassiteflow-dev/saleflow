@@ -249,7 +249,21 @@ export function MeetingDetailPage() {
             <div className="space-y-3">
               <InfoRow label="Datum" value={formatDate(meeting.meeting_date)} />
               <InfoRow label="Tid" value={formatTime(meeting.meeting_time)} mono />
+              <InfoRow label="Längd" value={`${meeting.duration_minutes ?? 30} min`} />
               <InfoRow label="Agent" value={meeting.user_name ?? "—"} />
+              {lead.epost && (
+                <InfoRow
+                  label="Deltagare (inbjuden)"
+                  value={
+                    <a
+                      href={`mailto:${lead.epost}`}
+                      className="text-indigo-600 hover:text-indigo-700 transition-colors"
+                    >
+                      {lead.epost}
+                    </a>
+                  }
+                />
+              )}
               <InfoRow label="Anteckningar" value={meeting.notes ?? "Inga anteckningar"} />
               <InfoRow
                 label="Påminnelse"

@@ -111,6 +111,7 @@ export interface MeetingLead {
   id: string;
   företag: string;
   telefon: string;
+  epost: string | null;
   adress: string | null;
   postnummer: string | null;
   stad: string | null;
@@ -129,6 +130,7 @@ export interface Meeting {
   meeting_date: string;
   meeting_time: string;
   notes: string | null;
+  duration_minutes: number;
   status: "scheduled" | "completed" | "cancelled";
   reminded_at: string | null;
   teams_join_url: string | null;

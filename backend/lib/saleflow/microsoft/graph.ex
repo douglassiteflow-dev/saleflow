@@ -71,13 +71,20 @@ defmodule Saleflow.Microsoft.Graph do
       location: %{displayName: params[:location] || ""},
       body: %{contentType: "text", content: params[:description] || ""},
       isOnlineMeeting: true,
-      onlineMeetingProvider: "teamsForBusiness"
+      onlineMeetingProvider: "teamsForBusiness",
+      reminderMinutesBeforeStart: 15
     }
 
     body =
       if params[:attendee_email] do
         Map.put(body, :attendees, [
-          %{emailAddress: %{address: params.attendee_email}, type: "required"}
+          %{
+            emailAddress: %{
+              address: params.attendee_email,
+              name: params[:attendee_name] || ""
+            },
+            type: "required"
+          }
         ])
       else
         body

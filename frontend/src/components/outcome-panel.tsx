@@ -79,10 +79,11 @@ const OUTCOMES: OutcomeConfig[] = [
 
 interface OutcomePanelProps {
   leadId: string;
+  companyName?: string;
   onOutcomeSubmitted?: () => void;
 }
 
-export function OutcomePanel({ leadId, onOutcomeSubmitted }: OutcomePanelProps) {
+export function OutcomePanel({ leadId, companyName, onOutcomeSubmitted }: OutcomePanelProps) {
   const submitOutcome = useSubmitOutcome(leadId);
 
   const [selected, setSelected] = useState<Outcome | null>(null);
@@ -90,15 +91,21 @@ export function OutcomePanel({ leadId, onOutcomeSubmitted }: OutcomePanelProps) 
   const [callbackDate, setCallbackDate] = useState("");
   const [meetingDate, setMeetingDate] = useState("");
   const [meetingTime, setMeetingTime] = useState("");
+  const [meetingTitle, setMeetingTitle] = useState("");
+  const [meetingDuration, setMeetingDuration] = useState<30 | 45 | 60>(30);
   const [error, setError] = useState<string | null>(null);
 
   function handleSelect(outcome: Outcome) {
-    if (selected === outcome) {
-      // Second click — confirm/submit
-      handleSubmit(outcome);
-    } else {
+    if (selected !== outcome) {
       setSelected(outcome);
       setError(null);
+      // Pre-fill meeting title when switching to meeting_booked
+      if (outcome === "meeting_booked" && companyName) {
+        setMeetingTitle(`Möte med ${companyName}`);
+      }
+    } else {
+      // Second click — confirm/submit
+      handleSubmit(outcome);
     }
   }
 
@@ -121,8 +128,10 @@ export function OutcomePanel({ leadId, onOutcomeSubmitted }: OutcomePanelProps) 
       {
         outcome,
         notes: notes || undefined,
+        title: outcome === "meeting_booked" ? (meetingTitle || undefined) : undefined,
         meeting_date: outcome === "meeting_booked" ? meetingDate : undefined,
         meeting_time: outcome === "meeting_booked" ? meetingTime : undefined,
+        meeting_duration: outcome === "meeting_booked" ? meetingDuration : undefined,
         callback_at:
           outcome === "callback" && callbackDate
             ? callbackDate
@@ -136,6 +145,8 @@ export function OutcomePanel({ leadId, onOutcomeSubmitted }: OutcomePanelProps) 
           setCallbackDate("");
           setMeetingDate("");
           setMeetingTime("");
+          setMeetingTitle("");
+          setMeetingDuration(30);
           setError(null);
           onOutcomeSubmitted?.();
         },
@@ -208,6 +219,33 @@ export function OutcomePanel({ leadId, onOutcomeSubmitted }: OutcomePanelProps) 
 
       {selected === "meeting_booked" && (
         <div className="mb-4 space-y-3">
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
+              Titel
+            </label>
+            <input
+              type="text"
+              value={meetingTitle}
+              onChange={(e) => setMeetingTitle(e.target.value)}
+              placeholder={companyName ? `Möte med ${companyName}` : "Mötetitel"}
+              className="flex w-full rounded-[6px] border border-[var(--color-border-input)] bg-white px-[var(--spacing-input-x)] py-[var(--spacing-input-y)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] transition-colors duration-150"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
+              Möteslängd
+            </label>
+            <select
+              value={meetingDuration}
+              onChange={(e) => setMeetingDuration(Number(e.target.value) as 30 | 45 | 60)}
+              disabled={submitOutcome.isPending}
+              className="flex w-full rounded-[6px] border border-[var(--color-border-input)] bg-white px-[var(--spacing-input-x)] py-[var(--spacing-input-y)] text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] transition-colors duration-150"
+            >
+              <option value={30}>30 min</option>
+              <option value={45}>45 min</option>
+              <option value={60}>60 min</option>
+            </select>
+          </div>
           <div className="space-y-1.5">
             <label className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
               Mötesdatum

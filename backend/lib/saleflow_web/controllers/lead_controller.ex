@@ -158,12 +158,16 @@ defmodule SaleflowWeb.LeadController do
 
       :ok ->
         with {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :meeting_booked}) do
+          default_title = "Möte med #{lead.företag}"
+          duration = parse_duration(params["meeting_duration"])
+
           meeting_params = %{
             lead_id: lead.id,
             user_id: user.id,
-            title: params["title"] || "Meeting",
+            title: params["title"] || default_title,
             meeting_date: meeting_date,
-            meeting_time: meeting_time
+            meeting_time: meeting_time,
+            duration_minutes: duration
           }
 
           meeting_params =
@@ -175,7 +179,7 @@ defmodule SaleflowWeb.LeadController do
 
           # Auto-create Teams meeting if user has Microsoft connected and opted in
           if params["create_teams_meeting"] != false do
-            try_create_teams_meeting(meeting, user)
+            try_create_teams_meeting(meeting, lead, user)
           end
 
           {:ok, updated_lead}
@@ -380,7 +384,7 @@ defmodule SaleflowWeb.LeadController do
   # Teams meeting auto-creation (best-effort, never blocks outcome)
   # ---------------------------------------------------------------------------
 
-  defp try_create_teams_meeting(meeting, user) do
+  defp try_create_teams_meeting(meeting, lead, user) do
     require Ash.Query
     alias Saleflow.Microsoft.Graph
 
@@ -389,14 +393,29 @@ defmodule SaleflowWeb.LeadController do
            |> Ash.Query.filter(user_id == ^user.id)
            |> Ash.read(),
          {:ok, ms_conn} <- Graph.ensure_fresh_token(ms_conn) do
+      duration_secs = (meeting.duration_minutes || 30) * 60
       start_dt = NaiveDateTime.new!(meeting.meeting_date, meeting.meeting_time)
-      end_dt = NaiveDateTime.add(start_dt, 3600)
+      end_dt = NaiveDateTime.add(start_dt, duration_secs)
 
-      case Graph.create_calendar_event(ms_conn.access_token, %{
-             subject: meeting.title,
-             start_datetime: NaiveDateTime.to_iso8601(start_dt),
-             end_datetime: NaiveDateTime.to_iso8601(end_dt)
-           }) do
+      description_parts = [
+        "Möte med #{lead.företag}",
+        if(lead.telefon, do: "Telefon: #{lead.telefon}", else: nil),
+        if(lead.vd_namn, do: "VD: #{lead.vd_namn}", else: nil),
+        if(lead.bransch, do: "Bransch: #{lead.bransch}", else: nil),
+        if(lead.stad, do: "Stad: #{lead.stad}", else: nil)
+      ]
+      description = description_parts |> Enum.reject(&is_nil/1) |> Enum.join("\n")
+
+      event_params = %{
+        subject: meeting.title,
+        start_datetime: NaiveDateTime.to_iso8601(start_dt),
+        end_datetime: NaiveDateTime.to_iso8601(end_dt),
+        description: description,
+        attendee_email: lead.epost,
+        attendee_name: lead.vd_namn || lead.företag
+      }
+
+      case Graph.create_calendar_event(ms_conn.access_token, event_params) do
         {:ok, result} ->
           meeting
           |> Ash.Changeset.for_update(:update_teams, %{
@@ -414,6 +433,16 @@ defmodule SaleflowWeb.LeadController do
       _ -> :ok
     end
   end
+
+  defp parse_duration(nil), do: 30
+  defp parse_duration(val) when is_integer(val) and val > 0, do: val
+  defp parse_duration(val) when is_binary(val) do
+    case Integer.parse(val) do
+      {n, _} when n > 0 -> n
+      _ -> 30
+    end
+  end
+  defp parse_duration(_), do: 30
 
   defp parse_datetime(dt_string) when is_binary(dt_string) do
     case DateTime.from_iso8601(dt_string) do

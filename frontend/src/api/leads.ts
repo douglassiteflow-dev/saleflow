@@ -8,6 +8,7 @@ export interface OutcomeParams {
   title?: string;
   meeting_date?: string;
   meeting_time?: string;
+  meeting_duration?: number;
   meeting_notes?: string;
   callback_at?: string;
 }

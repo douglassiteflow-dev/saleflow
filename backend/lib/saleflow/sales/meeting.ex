@@ -54,6 +54,12 @@ defmodule Saleflow.Sales.Meeting do
       public? true
     end
 
+    attribute :duration_minutes, :integer do
+      allow_nil? false
+      default 30
+      public? true
+    end
+
     attribute :google_calendar_id, :string do
       allow_nil? true
       public? true
@@ -90,7 +96,7 @@ defmodule Saleflow.Sales.Meeting do
 
     create :create do
       description "Create a new meeting for a lead"
-      accept [:lead_id, :user_id, :title, :meeting_date, :meeting_time, :notes]
+      accept [:lead_id, :user_id, :title, :meeting_date, :meeting_time, :notes, :duration_minutes]
 
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "meeting.created"}
     end
