@@ -226,6 +226,7 @@ defmodule SaleflowWeb.AdminController do
       update_params =
         %{}
         |> then(fn p -> if params["phone_number"], do: Map.put(p, :phone_number, params["phone_number"]), else: p end)
+        |> then(fn p -> if params["extension_number"], do: Map.put(p, :extension_number, params["extension_number"]), else: p end)
         |> then(fn p -> if params["name"], do: Map.put(p, :name, params["name"]), else: p end)
         |> then(fn p -> if params["role"], do: Map.put(p, :role, parse_role(params["role"])), else: p end)
 
@@ -248,7 +249,8 @@ defmodule SaleflowWeb.AdminController do
       email: to_string(user.email),
       name: user.name,
       role: user.role,
-      phone_number: user.phone_number
+      phone_number: user.phone_number,
+      extension_number: user.extension_number
     }
   end
 

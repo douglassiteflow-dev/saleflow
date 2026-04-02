@@ -1,0 +1,7 @@
+{"type":"server-started","port":50574,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:50574","screen_dir":"/Users/douglassiteflow/dev/saleflow/.superpowers/brainstorm/51193-1775144773/content","state_dir":"/Users/douglassiteflow/dev/saleflow/.superpowers/brainstorm/51193-1775144773/state"}
+{"type":"screen-added","file":"/Users/douglassiteflow/dev/saleflow/.superpowers/brainstorm/51193-1775144773/content/design-direction.html"}
+{"source":"user-event","type":"click","text":"Samtal idag\n          47\n        \n        \n          Möten\n          5\n        \n        \n          Konvertering\n          10.6%\n        \n      \n      \n        Topplista\n        \n          1\n          Douglas\n          12\n        \n        \n          2\n          Anna\n          8\n        \n      \n    \n    \n      B. Clean & Minimal\n      Ljust, luftigt, skandinavisk känsla. Stora siffror med tunn typografi, mjuka skuggor, avrundade hörn. Lugnt men professionellt.","choice":"b","id":null,"timestamp":1775144861880}
+{"type":"screen-added","file":"/Users/douglassiteflow/dev/saleflow/.superpowers/brainstorm/51193-1775144773/content/approaches.html"}
+{"type":"screen-added","file":"/Users/douglassiteflow/dev/saleflow/.superpowers/brainstorm/51193-1775144773/content/dashboard-design.html"}
+{"type":"screen-added","file":"/Users/douglassiteflow/dev/saleflow/.superpowers/brainstorm/51193-1775144773/content/waiting.html"}
+{"type":"server-stopped","reason":"idle timeout"}

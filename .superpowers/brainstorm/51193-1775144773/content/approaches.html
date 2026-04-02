@@ -1,0 +1,51 @@
+<h2>Tre ansatser för Dashboard & Historik-redesign</h2>
+<p class="subtitle">Alla inkluderar: Clean & Minimal design, mål-system (admin/global/personliga), konvertering samtal→möten, shadcn-komponenter</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Stegvis — Dashboard först, historik sen</h3>
+      <p><strong>Fas 1:</strong> Ny dashboard med mål-system, konverterings-KPI, leaderboard-redesign. Ny Ash-resurs <code>Goal</code> i backend.<br>
+      <strong>Fas 2:</strong> Historik-tabellen får visuell uppfräschning.</p>
+      <div style="margin-top: 8px; padding: 8px 12px; background: #f0fdf4; border-radius: 6px; font-size: 13px; color: #166534;">
+        ✓ Snabbare till värde — dashboarden levereras först<br>
+        ✓ Mindre risk — en sak i taget<br>
+        ✗ Historik-sidan ser gammal ut längre
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Allt-i-ett — Dashboard + Historik + Mål parallellt</h3>
+      <p>Backend: ny <code>Goal</code>-resurs + konverterings-endpoint. Frontend: redesign av båda sidorna samtidigt med gemensamt designsystem.</p>
+      <div style="margin-top: 8px; padding: 8px 12px; background: #eff6ff; border-radius: 6px; font-size: 13px; color: #1e40af;">
+        ✓ Konsekvent design från dag ett<br>
+        ✓ Gemensamma komponenter byggs en gång<br>
+        ✗ Större scope — tar längre tid innan något är klart
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Design-system först, sedan features</h3>
+      <p><strong>Fas 1:</strong> Bygg ut shadcn-komponentbiblioteket (stat cards, progress rings, data tables, badges).<br>
+      <strong>Fas 2:</strong> Applicera på dashboard + mål-system.<br>
+      <strong>Fas 3:</strong> Applicera på historik.</p>
+      <div style="margin-top: 8px; padding: 8px 12px; background: #fefce8; border-radius: 6px; font-size: 13px; color: #854d0e;">
+        ✓ Starkast grund — alla framtida sidor får samma känsla<br>
+        ✓ Komponenterna kan återanvändas överallt<br>
+        ✗ Mest upfront-arbete innan synligt resultat
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 24px; padding: 16px; background: #f8fafc; border-radius: 8px; border-left: 3px solid #6366f1;">
+  <h3 style="margin: 0 0 8px; font-size: 14px; color: #4f46e5;">★ Rekommendation: A — Stegvis</h3>
+  <p style="margin: 0; font-size: 13px; color: #64748b;">Dashboarden är det säljarna ser mest — ge dem värde snabbt. Mål-systemet i backend byggs rätt från start, och historiken fixas i nästa iteration. Shadcn-komponenter byggs efter behov istället för i förväg.</p>
+</div>

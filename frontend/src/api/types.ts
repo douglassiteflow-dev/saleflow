@@ -6,6 +6,7 @@ export interface User {
   name: string;
   role: UserRole;
   phone_number: string | null;
+  extension_number: string | null;
 }
 
 export interface LoginResponse {

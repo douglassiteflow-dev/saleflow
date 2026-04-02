@@ -1,0 +1,126 @@
+<h2>Dashboard — Clean & Minimal redesign</h2>
+<p class="subtitle">Personlig prestation + teamtävling + mål. shadcn-inspirerade komponenter.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Dashboard — Agent-vy</div>
+  <div class="mockup-body" style="background: #fafafa; padding: 28px;">
+
+    <!-- Greeting + CTA -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 28px;">
+      <div>
+        <div style="font-size: 22px; font-weight: 300; color: #0f172a; letter-spacing: -0.5px;">Hej Douglas</div>
+        <div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">Onsdag 2 april</div>
+      </div>
+      <div style="background: #0f172a; color: white; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor:pointer;">Nästa kund →</div>
+    </div>
+
+    <!-- Personal KPIs row -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 24px;">
+      <!-- Calls today -->
+      <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+        <div style="font-size: 11px; color: #94a3b8; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Samtal idag</div>
+        <div style="font-size: 40px; font-weight: 300; color: #0f172a; margin-top: 4px; letter-spacing: -2px;">47</div>
+      </div>
+      <!-- Meetings today -->
+      <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+        <div style="font-size: 11px; color: #94a3b8; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Möten idag</div>
+        <div style="font-size: 40px; font-weight: 300; color: #0f172a; margin-top: 4px; letter-spacing: -2px;">5</div>
+      </div>
+      <!-- Conversion -->
+      <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+        <div style="font-size: 11px; color: #94a3b8; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Konvertering</div>
+        <div style="display:flex; align-items:baseline; gap: 4px; margin-top: 4px;">
+          <span style="font-size: 40px; font-weight: 300; color: #0f172a; letter-spacing: -2px;">10.6</span>
+          <span style="font-size: 18px; color: #94a3b8; font-weight: 300;">%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Goals section -->
+    <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+        <div style="font-size: 13px; font-weight: 600; color: #0f172a;">Veckans mål</div>
+        <div style="font-size: 11px; color: #94a3b8;">v.14 · 3 av 5 dagar</div>
+      </div>
+
+      <!-- Goal 1: Meetings -->
+      <div style="margin-bottom: 14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+          <div style="font-size: 13px; color: #334155;">Möten denna vecka</div>
+          <div style="font-size: 13px; color: #0f172a; font-weight: 500;">12 <span style="color:#94a3b8; font-weight:400;">/ 15</span></div>
+        </div>
+        <div style="background: #f1f5f9; border-radius: 100px; height: 8px; overflow: hidden;">
+          <div style="background: linear-gradient(90deg, #6366f1, #818cf8); width: 80%; height: 100%; border-radius: 100px; transition: width 0.5s;"></div>
+        </div>
+      </div>
+
+      <!-- Goal 2: Calls -->
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+          <div style="font-size: 13px; color: #334155;">Samtal per dag</div>
+          <div style="font-size: 13px; color: #0f172a; font-weight: 500;">47 <span style="color:#94a3b8; font-weight:400;">/ 40</span> <span style="color:#16a34a;">✓</span></div>
+        </div>
+        <div style="background: #f1f5f9; border-radius: 100px; height: 8px; overflow: hidden;">
+          <div style="background: linear-gradient(90deg, #10b981, #34d399); width: 100%; height: 100%; border-radius: 100px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+        <div style="font-size: 13px; font-weight: 600; color: #0f172a;">Leaderboard</div>
+        <div style="background: #dbeafe; color: #2563eb; font-size: 10px; font-weight: 600; padding: 3px 10px; border-radius: 100px; letter-spacing: 0.5px;">LIVE</div>
+      </div>
+
+      <!-- #1 -->
+      <div style="display:flex; align-items:center; gap: 12px; padding: 10px 14px; background: #f8fafc; border-radius: 10px; margin-bottom: 6px;">
+        <div style="width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#8b5cf6); display:flex; align-items:center; justify-content:center; color:white; font-size:12px; font-weight:600;">1</div>
+        <div style="flex:1;">
+          <div style="font-size: 14px; font-weight: 500; color: #0f172a;">Douglas <span style="color:#6366f1; font-size:11px; font-weight:400;">(du)</span></div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size: 13px; font-weight: 600; color: #0f172a;">12 möten</div>
+          <div style="font-size: 11px; color: #94a3b8;">47 samtal</div>
+        </div>
+      </div>
+
+      <!-- #2 -->
+      <div style="display:flex; align-items:center; gap: 12px; padding: 10px 14px; margin-bottom: 6px;">
+        <div style="width:28px; height:28px; border-radius:50%; background:#e2e8f0; display:flex; align-items:center; justify-content:center; color:#64748b; font-size:12px; font-weight:600;">2</div>
+        <div style="flex:1;">
+          <div style="font-size: 14px; color: #64748b;">Anna</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size: 13px; font-weight: 500; color: #334155;">8 möten</div>
+          <div style="font-size: 11px; color: #94a3b8;">39 samtal</div>
+        </div>
+      </div>
+
+      <!-- #3 -->
+      <div style="display:flex; align-items:center; gap: 12px; padding: 10px 14px;">
+        <div style="width:28px; height:28px; border-radius:50%; background:#e2e8f0; display:flex; align-items:center; justify-content:center; color:#64748b; font-size:12px; font-weight:600;">3</div>
+        <div style="flex:1;">
+          <div style="font-size: 14px; color: #64748b;">Erik</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size: 13px; font-weight: 500; color: #334155;">6 möten</div>
+          <div style="font-size: 11px; color: #94a3b8;">33 samtal</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div style="margin-top: 20px; padding: 16px; background: #f8fafc; border-radius: 8px;">
+  <h3 style="margin: 0 0 8px; font-size: 14px; color: #334155;">Designprinciper</h3>
+  <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #64748b; line-height: 1.8;">
+    <li><strong>Thin typography</strong> — stora siffror med font-weight 300</li>
+    <li><strong>Soft shadows</strong> — subtila skuggor, inga borders</li>
+    <li><strong>Rounded corners</strong> — 14px border-radius för kort</li>
+    <li><strong>Gradient progress bars</strong> — indigo för pågående, grön för avklarat</li>
+    <li><strong>Minimal chrome</strong> — ingen onödig dekoration, låt siffrorna tala</li>
+    <li><strong>Bort med:</strong> Globala lead-statusräknare, callbacks, dagens möten (blir notifikationer)</li>
+  </ul>
+</div>

@@ -190,14 +190,14 @@ function UserSessionsRow({ userId }: { userId: string }) {
   );
 }
 
-function PhoneNumberCell({ userId, currentValue }: { userId: string; currentValue: string | null }) {
+function PhoneNumberCell({ userId, field, currentValue }: { userId: string; field: "phone_number" | "extension_number"; currentValue: string | null }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(currentValue ?? "");
   const updateUser = useUpdateUser();
 
   async function handleSave() {
     try {
-      await updateUser.mutateAsync({ userId, phone_number: value.trim() });
+      await updateUser.mutateAsync({ userId, [field]: value.trim() });
       setEditing(false);
     } catch {
       // error handled by mutation
@@ -296,7 +296,13 @@ export function AdminUsersPage() {
                     className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
                     style={{ fontSize: "12px" }}
                   >
-                    Telefon
+                    Mobil
+                  </th>
+                  <th
+                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
+                    style={{ fontSize: "12px" }}
+                  >
+                    Anknytning
                   </th>
                   <th
                     className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
@@ -340,7 +346,16 @@ export function AdminUsersPage() {
                           : ""
                       }`}
                     >
-                      <PhoneNumberCell userId={user.id} currentValue={user.phone_number} />
+                      <PhoneNumberCell userId={user.id} field="phone_number" currentValue={user.phone_number} />
+                    </td>
+                    <td
+                      className={`px-4 py-3${
+                        expandedUserId !== user.id && i !== users.length - 1
+                          ? " border-b border-slate-200"
+                          : ""
+                      }`}
+                    >
+                      <PhoneNumberCell userId={user.id} field="extension_number" currentValue={user.extension_number} />
                     </td>
                     <td
                       className={`px-4 py-3${

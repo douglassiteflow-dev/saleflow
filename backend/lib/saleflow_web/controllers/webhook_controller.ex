@@ -49,7 +49,7 @@ defmodule SaleflowWeb.WebhookController do
   defp find_lead_id(_), do: nil
 
   defp find_user_id(caller) when is_binary(caller) and caller != "" do
-    query = "SELECT id FROM users WHERE phone_number = $1 LIMIT 1"
+    query = "SELECT id FROM users WHERE phone_number = $1 OR extension_number = $1 LIMIT 1"
 
     case Saleflow.Repo.query(query, [caller]) do
       {:ok, %{rows: [[id]]}} -> Sales.decode_uuid(id)

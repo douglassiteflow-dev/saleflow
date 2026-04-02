@@ -50,11 +50,11 @@ export function useCreateUser() {
 export function useUpdateUser() {
   const queryClient = useQueryClient();
 
-  return useMutation<User, ApiError, { userId: string; phone_number: string }>({
-    mutationFn: async ({ userId, phone_number }) => {
+  return useMutation<User, ApiError, { userId: string; phone_number?: string; extension_number?: string }>({
+    mutationFn: async ({ userId, ...params }) => {
       const data = await api<{ user: User }>(`/api/admin/users/${userId}`, {
         method: "PATCH",
-        body: JSON.stringify({ phone_number }),
+        body: JSON.stringify(params),
       });
       return data.user;
     },
