@@ -19,8 +19,8 @@ defmodule SaleflowWeb.DashboardController do
     FROM users u
     LEFT JOIN (
       SELECT user_id, COUNT(*) as calls_today
-      FROM call_logs
-      WHERE called_at::date = CURRENT_DATE
+      FROM phone_calls
+      WHERE received_at::date = CURRENT_DATE
       GROUP BY user_id
     ) c ON c.user_id = u.id
     LEFT JOIN (
@@ -75,20 +75,149 @@ defmodule SaleflowWeb.DashboardController do
     # 3. Callbacks
     callbacks = compute_callbacks(user)
 
-    # 4. My stats (reuse shared function from AdminController)
-    my_stats = SaleflowWeb.AdminController.compute_my_stats(user)
+    # 4. My stats (phone_calls-based)
+    my_stats = compute_my_stats(user)
+
+    # 5. Conversion KPI (reuses calls/meetings from my_stats)
+    conversion = compute_conversion(my_stats)
+
+    # 6. Goal progress
+    goal_progress = compute_goal_progress(user)
 
     json(conn, %{
       stats: stats,
       todays_meetings: todays_meetings,
       callbacks: callbacks,
-      my_stats: my_stats
+      my_stats: my_stats,
+      conversion: conversion,
+      goal_progress: goal_progress
     })
   end
 
   # ---------------------------------------------------------------------------
   # Private helpers
   # ---------------------------------------------------------------------------
+
+  defp compute_my_stats(user) do
+    today = Date.utc_today()
+
+    {calls_today, total_calls, meetings_today, total_meetings} =
+      case user.role do
+        :admin ->
+          {:ok, %{rows: [[ct]]}} =
+            Repo.query("SELECT COUNT(*) FROM phone_calls WHERE received_at::date = $1", [today])
+
+          {:ok, %{rows: [[tc]]}} =
+            Repo.query("SELECT COUNT(*) FROM phone_calls", [])
+
+          {:ok, %{rows: [[mt]]}} =
+            Repo.query(
+              "SELECT COUNT(*) FROM meetings WHERE meeting_date = $1 AND status = 'scheduled'",
+              [today]
+            )
+
+          {:ok, %{rows: [[tm]]}} =
+            Repo.query("SELECT COUNT(*) FROM meetings WHERE status = 'scheduled'", [])
+
+          {ct, tc, mt, tm}
+
+        _ ->
+          uid = Ecto.UUID.dump!(user.id)
+
+          {:ok, %{rows: [[ct]]}} =
+            Repo.query(
+              "SELECT COUNT(*) FROM phone_calls WHERE user_id = $1 AND received_at::date = $2",
+              [uid, today]
+            )
+
+          {:ok, %{rows: [[tc]]}} =
+            Repo.query("SELECT COUNT(*) FROM phone_calls WHERE user_id = $1", [uid])
+
+          {:ok, %{rows: [[mt]]}} =
+            Repo.query(
+              "SELECT COUNT(*) FROM meetings WHERE user_id = $1 AND meeting_date = $2 AND status = 'scheduled'",
+              [uid, today]
+            )
+
+          {:ok, %{rows: [[tm]]}} =
+            Repo.query(
+              "SELECT COUNT(*) FROM meetings WHERE user_id = $1 AND status = 'scheduled'",
+              [uid]
+            )
+
+          {ct, tc, mt, tm}
+      end
+
+    %{
+      calls_today: calls_today,
+      total_calls: total_calls,
+      meetings_today: meetings_today,
+      total_meetings: total_meetings
+    }
+  end
+
+  defp compute_conversion(%{calls_today: calls_today, meetings_today: meetings_today}) do
+    rate =
+      if calls_today == 0,
+        do: 0.0,
+        else: Float.round(meetings_today / calls_today * 100, 1)
+
+    %{
+      calls_today: calls_today,
+      meetings_today: meetings_today,
+      rate: rate
+    }
+  end
+
+  defp compute_goal_progress(user) do
+    case Sales.list_active_goals(user.id) do
+      {:ok, goals} ->
+        Enum.map(goals, fn goal ->
+          current_value = compute_goal_current_value(goal, user)
+
+          %{
+            id: goal.id,
+            metric: goal.metric,
+            period: goal.period,
+            target_value: goal.target_value,
+            current_value: current_value,
+            scope: goal.scope
+          }
+        end)
+
+      _ ->
+        []
+    end
+  end
+
+  defp compute_goal_current_value(%{metric: :calls_per_day, period: :daily}, user) do
+    today = Date.utc_today()
+    uid = Ecto.UUID.dump!(user.id)
+
+    {:ok, %{rows: [[count]]}} =
+      Repo.query(
+        "SELECT COUNT(*) FROM phone_calls WHERE user_id = $1 AND received_at::date = $2",
+        [uid, today]
+      )
+
+    count
+  end
+
+  defp compute_goal_current_value(%{metric: :meetings_per_week, period: :weekly}, user) do
+    uid = Ecto.UUID.dump!(user.id)
+    today = Date.utc_today()
+    start_of_week = Date.add(today, -(Date.day_of_week(today) - 1))
+
+    {:ok, %{rows: [[count]]}} =
+      Repo.query(
+        "SELECT COUNT(*) FROM meetings WHERE user_id = $1 AND meeting_date >= $2 AND meeting_date <= $3 AND status != 'cancelled'",
+        [uid, start_of_week, today]
+      )
+
+    count
+  end
+
+  defp compute_goal_current_value(_goal, _user), do: 0
 
   defp compute_lead_stats do
     query = """

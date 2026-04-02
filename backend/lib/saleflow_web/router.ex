@@ -19,6 +19,16 @@ defmodule SaleflowWeb.Router do
     plug SaleflowWeb.Plugs.RequireAdmin
   end
 
+  pipeline :verify_telavox do
+    plug SaleflowWeb.Plugs.VerifyTelavox
+  end
+
+  # Webhooks (external services, verified by shared secret)
+  scope "/api/webhooks", SaleflowWeb do
+    pipe_through [:api, :verify_telavox]
+    post "/telavox/hangup", WebhookController, :telavox_hangup
+  end
+
   # Public
   scope "/api", SaleflowWeb do
     pipe_through :api
@@ -71,6 +81,11 @@ defmodule SaleflowWeb.Router do
 
     get "/requests", RequestController, :index
     post "/requests", RequestController, :create
+
+    get "/goals", GoalController, :index
+    post "/goals", GoalController, :create
+    patch "/goals/:id", GoalController, :update
+    delete "/goals/:id", GoalController, :delete
   end
 
   # Admin only

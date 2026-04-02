@@ -16,6 +16,11 @@ import Config
 #
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
+# Telavox webhook secret (skip in test — configured in test.exs)
+if config_env() != :test do
+  config :saleflow, telavox_webhook_secret: System.get_env("TELAVOX_WEBHOOK_SECRET") || ""
+end
+
 if System.get_env("PHX_SERVER") do
   config :saleflow, SaleflowWeb.Endpoint, server: true
 end

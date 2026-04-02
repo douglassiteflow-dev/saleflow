@@ -40,7 +40,9 @@ defmodule SaleflowWeb.DashboardControllerTest do
                "stats" => stats,
                "todays_meetings" => _meetings,
                "callbacks" => _callbacks,
-               "my_stats" => my_stats
+               "my_stats" => my_stats,
+               "conversion" => conversion,
+               "goal_progress" => goal_progress
              } = json_response(conn, 200)
 
       assert Map.has_key?(stats, "total_leads")
@@ -48,6 +50,12 @@ defmodule SaleflowWeb.DashboardControllerTest do
       assert Map.has_key?(my_stats, "total_calls")
       assert Map.has_key?(my_stats, "meetings_today")
       assert Map.has_key?(my_stats, "total_meetings")
+
+      assert Map.has_key?(conversion, "calls_today")
+      assert Map.has_key?(conversion, "meetings_today")
+      assert Map.has_key?(conversion, "rate")
+
+      assert is_list(goal_progress)
     end
 
     test "returns all dashboard sections for agent", %{conn: conn, agent: agent} do
@@ -60,7 +68,9 @@ defmodule SaleflowWeb.DashboardControllerTest do
                "stats" => _,
                "todays_meetings" => _,
                "callbacks" => _,
-               "my_stats" => _
+               "my_stats" => _,
+               "conversion" => _,
+               "goal_progress" => _
              } = json_response(conn, 200)
     end
 
@@ -153,9 +163,14 @@ defmodule SaleflowWeb.DashboardControllerTest do
       assert hd(meetings)["title"] == "Agent Today"
     end
 
-    test "my_stats includes correct counts", %{conn: conn, agent: agent} do
-      {:ok, lead} = Sales.create_lead(%{företag: "Stats AB", telefon: "+46700000005"})
-      {:ok, _} = Sales.log_call(%{lead_id: lead.id, user_id: agent.id, outcome: :no_answer})
+    test "my_stats includes correct counts from phone_calls", %{conn: conn, agent: agent} do
+      {:ok, _} =
+        Sales.create_phone_call(%{
+          caller: "+46700000099",
+          callee: "+46700000005",
+          user_id: agent.id,
+          duration: 60
+        })
 
       conn =
         conn
@@ -188,6 +203,51 @@ defmodule SaleflowWeb.DashboardControllerTest do
       assert %{"stats" => stats} = json_response(conn, 200)
       assert stats["total_leads"] == 2
       assert stats["new"] == 2
+    end
+
+    test "conversion rate is calculated correctly", %{conn: conn, agent: agent} do
+      {:ok, lead} = Sales.create_lead(%{företag: "Conv AB", telefon: "+46700000010"})
+
+      # Create 2 phone calls
+      for _ <- 1..2 do
+        {:ok, _} =
+          Sales.create_phone_call(%{
+            caller: "+46700000010",
+            callee: "+46700000099",
+            user_id: agent.id,
+            duration: 30
+          })
+      end
+
+      # Create 1 meeting today
+      {:ok, _} =
+        Sales.create_meeting(%{
+          lead_id: lead.id,
+          user_id: agent.id,
+          title: "Conv Meeting",
+          meeting_date: Date.utc_today(),
+          meeting_time: ~T[15:00:00]
+        })
+
+      conn =
+        conn
+        |> log_in_user(agent)
+        |> get("/api/dashboard")
+
+      assert %{"conversion" => conversion} = json_response(conn, 200)
+      assert conversion["calls_today"] == 2
+      assert conversion["meetings_today"] == 1
+      assert conversion["rate"] == 50.0
+    end
+
+    test "conversion rate is 0 when no calls", %{conn: conn, agent: agent} do
+      conn =
+        conn
+        |> log_in_user(agent)
+        |> get("/api/dashboard")
+
+      assert %{"conversion" => conversion} = json_response(conn, 200)
+      assert conversion["rate"] == 0.0
     end
 
     test "returns meetings with user_name and updated_at", %{conn: conn, admin: admin} do
