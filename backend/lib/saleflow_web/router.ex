@@ -57,5 +57,15 @@ defmodule SaleflowWeb.Router do
     get "/users/:user_id/sessions", AdminController, :user_sessions
     post "/users/:user_id/force-logout", AdminController, :force_logout_user
     post "/sessions/:id/force-logout", AdminController, :force_logout_session_action
+
+    # Lead Lists
+    get "/lists", ListController, :index
+    post "/lists", ListController, :create
+    get "/lists/:id", ListController, :show
+    put "/lists/:id", ListController, :update
+    get "/lists/:id/leads", ListController, :leads
+    post "/lists/:id/agents", ListController, :assign_agent
+    delete "/lists/:id/agents/:user_id", ListController, :remove_agent
+    get "/lists/:id/agents", ListController, :list_agents
   end
 end

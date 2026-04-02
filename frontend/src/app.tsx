@@ -13,6 +13,7 @@ import { HistoryPage } from "@/pages/history";
 import { AdminUsersPage } from "@/pages/admin-users";
 import { AdminImportPage } from "@/pages/admin-import";
 import { AdminStatsPage } from "@/pages/admin-stats";
+import { AdminListsPage } from "@/pages/admin-lists";
 import { ProfilePage } from "@/pages/profile";
 
 const queryClient = new QueryClient({
@@ -38,6 +39,7 @@ export function App() {
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<AdminUsersPage />} />
                 <Route path="/admin/import" element={<AdminImportPage />} />
+                <Route path="/admin/lists" element={<AdminListsPage />} />
                 <Route path="/admin/stats" element={<AdminStatsPage />} />
               </Route>
             </Route>

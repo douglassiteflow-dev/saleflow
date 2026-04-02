@@ -62,6 +62,8 @@ defmodule Saleflow.Sales do
     resource Saleflow.Sales.CallLog
     resource Saleflow.Sales.Meeting
     resource Saleflow.Sales.Quarantine
+    resource Saleflow.Sales.LeadList
+    resource Saleflow.Sales.LeadListAssignment
   end
 
   # ---------------------------------------------------------------------------
@@ -381,6 +383,8 @@ defmodule Saleflow.Sales do
           {:ok, Saleflow.Sales.Lead.t() | nil} | {:error, term()}
   def get_next_lead(agent) do
     Saleflow.Repo.transaction(fn ->
+      agent_id_binary = Ecto.UUID.dump!(agent.id)
+
       query = """
       SELECT l.id FROM leads l
       WHERE (l.status = 'new' OR (l.status = 'quarantine' AND l.quarantine_until < NOW()))
@@ -388,12 +392,16 @@ defmodule Saleflow.Sales do
           SELECT 1 FROM assignments a
           WHERE a.lead_id = l.id AND a.released_at IS NULL
         )
+        AND (
+          NOT EXISTS (SELECT 1 FROM lead_list_assignments lla WHERE lla.user_id = $1)
+          OR l.lead_list_id IN (SELECT lla.lead_list_id FROM lead_list_assignments lla WHERE lla.user_id = $1)
+        )
       ORDER BY l.inserted_at ASC
       LIMIT 1
       FOR UPDATE OF l SKIP LOCKED
       """
 
-      case Saleflow.Repo.query(query) do
+      case Saleflow.Repo.query(query, [agent_id_binary]) do
         {:ok, %{rows: [[lead_id_binary]]}} ->
           lead_id = decode_uuid(lead_id_binary)
           {:ok, lead} = get_lead(lead_id)
@@ -415,6 +423,165 @@ defmodule Saleflow.Sales do
           Saleflow.Repo.rollback(error)
       end
     end)
+  end
+
+  # ---------------------------------------------------------------------------
+  # LeadList functions
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Creates a new lead list.
+
+  Required params: `:name`
+  Optional params: `:description`
+  """
+  @spec create_lead_list(map()) :: {:ok, Saleflow.Sales.LeadList.t()} | {:error, Ash.Error.t()}
+  def create_lead_list(params) do
+    Saleflow.Sales.LeadList
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create()
+  end
+
+  @doc """
+  Updates a lead list.
+
+  Accepted params: `:name`, `:description`, `:status`
+  """
+  @spec update_lead_list(Saleflow.Sales.LeadList.t(), map()) ::
+          {:ok, Saleflow.Sales.LeadList.t()} | {:error, Ash.Error.t()}
+  def update_lead_list(list, params) do
+    list
+    |> Ash.Changeset.for_update(:update, params)
+    |> Ash.update()
+  end
+
+  @doc """
+  Returns all lead lists sorted by `inserted_at` descending (newest first).
+  """
+  @spec list_lead_lists() :: {:ok, list(Saleflow.Sales.LeadList.t())} | {:error, Ash.Error.t()}
+  def list_lead_lists do
+    Saleflow.Sales.LeadList
+    |> Ash.Query.sort(inserted_at: :desc)
+    |> Ash.read()
+  end
+
+  @doc """
+  Gets a lead list by ID.
+  """
+  @spec get_lead_list(Ecto.UUID.t()) :: {:ok, Saleflow.Sales.LeadList.t()} | {:error, Ash.Error.t()}
+  def get_lead_list(id) do
+    Saleflow.Sales.LeadList
+    |> Ash.get(id)
+  end
+
+  @doc """
+  Returns stats breakdown for a lead list: counts per status.
+  """
+  @spec get_lead_list_stats(Ecto.UUID.t()) :: {:ok, map()} | {:error, term()}
+  def get_lead_list_stats(list_id) do
+    query = """
+    SELECT
+      COUNT(*) as total,
+      COUNT(*) FILTER (WHERE status = 'new') as new,
+      COUNT(*) FILTER (WHERE status = 'assigned') as assigned,
+      COUNT(*) FILTER (WHERE status = 'meeting_booked') as meeting_booked,
+      COUNT(*) FILTER (WHERE status = 'quarantine') as quarantine,
+      COUNT(*) FILTER (WHERE status = 'customer') as customer,
+      COUNT(*) FILTER (WHERE status = 'bad_number') as bad_number,
+      COUNT(*) FILTER (WHERE status = 'callback') as callback
+    FROM leads
+    WHERE lead_list_id = $1
+    """
+
+    case Saleflow.Repo.query(query, [Ecto.UUID.dump!(list_id)]) do
+      {:ok, %{rows: [[total, new, assigned, meeting_booked, quarantine, customer, bad_number, callback]]}} ->
+        {:ok, %{
+          total: total,
+          new: new,
+          assigned: assigned,
+          meeting_booked: meeting_booked,
+          quarantine: quarantine,
+          customer: customer,
+          bad_number: bad_number,
+          callback: callback
+        }}
+
+      {:ok, %{rows: []}} ->
+        {:ok, %{total: 0, new: 0, assigned: 0, meeting_booked: 0, quarantine: 0, customer: 0, bad_number: 0, callback: 0}}
+
+      {:error, error} ->
+        {:error, error}
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # LeadListAssignment functions
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Assigns an agent to a lead list.
+  """
+  @spec assign_agent_to_list(Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, Saleflow.Sales.LeadListAssignment.t()} | {:error, Ash.Error.t()}
+  def assign_agent_to_list(list_id, user_id) do
+    Saleflow.Sales.LeadListAssignment
+    |> Ash.Changeset.for_create(:create, %{lead_list_id: list_id, user_id: user_id})
+    |> Ash.create()
+  end
+
+  @doc """
+  Removes an agent from a lead list.
+  """
+  @spec remove_agent_from_list(Ecto.UUID.t(), Ecto.UUID.t()) :: :ok | {:error, Ash.Error.t()}
+  def remove_agent_from_list(list_id, user_id) do
+    require Ash.Query
+
+    case Saleflow.Sales.LeadListAssignment
+         |> Ash.Query.filter(lead_list_id == ^list_id and user_id == ^user_id)
+         |> Ash.read() do
+      {:ok, [assignment | _]} ->
+        case Ash.destroy(assignment) do
+          :ok -> :ok
+          {:error, error} -> {:error, error}
+        end
+
+      {:ok, []} ->
+        {:error, :not_found}
+    end
+  end
+
+  @doc """
+  Lists all agents assigned to a given lead list.
+  """
+  @spec list_agents_for_list(Ecto.UUID.t()) ::
+          {:ok, list(Saleflow.Sales.LeadListAssignment.t())} | {:error, Ash.Error.t()}
+  def list_agents_for_list(list_id) do
+    Saleflow.Sales.LeadListAssignment
+    |> Ash.Query.for_read(:list_for_list, %{lead_list_id: list_id})
+    |> Ash.read()
+  end
+
+  @doc """
+  Lists all leads in a given list, optionally searching by company name.
+  """
+  @spec list_leads_in_list(Ecto.UUID.t(), String.t() | nil) ::
+          {:ok, list(Saleflow.Sales.Lead.t())} | {:error, Ash.Error.t()}
+  def list_leads_in_list(list_id, search \\ nil) do
+    require Ash.Query
+
+    query =
+      Saleflow.Sales.Lead
+      |> Ash.Query.filter(lead_list_id == ^list_id)
+      |> Ash.Query.sort(inserted_at: :asc)
+
+    query =
+      if search && search != "" do
+        Ash.Query.filter(query, contains(företag, ^search))
+      else
+        query
+      end
+
+    Ash.read(query)
   end
 
   defp decode_uuid(value) when is_binary(value) and byte_size(value) == 16 do

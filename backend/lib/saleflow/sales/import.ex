@@ -61,16 +61,20 @@ defmodule Saleflow.Sales.Import do
   Each map should have string keys matching XLSX column headers. Invalid or
   duplicate rows are silently skipped.
 
+  Accepts an optional `lead_list_id` parameter. When provided, all imported
+  leads are associated with the given lead list.
+
   Returns `{:ok, %{created: integer(), skipped: integer()}}`.
   """
-  @spec import_rows(list(map())) :: {:ok, %{created: non_neg_integer(), skipped: non_neg_integer()}}
-  def import_rows(rows) when is_list(rows) do
+  @spec import_rows(list(map()), Ecto.UUID.t() | nil) ::
+          {:ok, %{created: non_neg_integer(), skipped: non_neg_integer()}}
+  def import_rows(rows, lead_list_id \\ nil) when is_list(rows) do
     now = DateTime.utc_now()
     existing_phones = fetch_existing_phones()
 
     {created, skipped, _seen_phones} =
       Enum.reduce(rows, {0, 0, MapSet.new()}, fn row, {created, skipped, seen} ->
-        case process_row(row, seen, existing_phones, now) do
+        case process_row(row, seen, existing_phones, now, lead_list_id) do
           {:ok, phone} ->
             {created + 1, skipped, MapSet.put(seen, phone)}
 
@@ -126,12 +130,14 @@ defmodule Saleflow.Sales.Import do
     rows |> Enum.map(fn [phone] -> phone end) |> MapSet.new()
   end
 
-  defp process_row(row, seen_phones, existing_phones, now) do
+  defp process_row(row, seen_phones, existing_phones, now, lead_list_id) do
     with {:ok, params} <- validate_row(row),
          phone = params.telefon,
          false <- MapSet.member?(seen_phones, phone),
          false <- MapSet.member?(existing_phones, phone) do
-      {:ok, lead} = Sales.create_lead(Map.put(params, :imported_at, now))
+      params = Map.put(params, :imported_at, now)
+      params = if lead_list_id, do: Map.put(params, :lead_list_id, lead_list_id), else: params
+      {:ok, lead} = Sales.create_lead(params)
       log_import(lead)
       {:ok, phone}
     else

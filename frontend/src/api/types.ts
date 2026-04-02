@@ -128,4 +128,30 @@ export interface Stats {
 export interface ImportResult {
   created: number;
   skipped: number;
+  list_id?: string;
+}
+
+export type LeadListStatus = "active" | "paused" | "completed";
+
+export interface LeadList {
+  id: string;
+  name: string;
+  description: string | null;
+  total_count: number;
+  status: LeadListStatus;
+  imported_at: string | null;
+  inserted_at: string;
+  updated_at: string;
+  stats?: LeadListStats;
+}
+
+export interface LeadListStats {
+  total: number;
+  new: number;
+  assigned: number;
+  meeting_booked: number;
+  quarantine: number;
+  customer: number;
+  bad_number: number;
+  callback: number;
 }

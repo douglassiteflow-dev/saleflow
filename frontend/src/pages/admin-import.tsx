@@ -2,10 +2,12 @@ import { useRef, useState } from "react";
 import { useImportLeads } from "@/api/admin";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import type { ImportResult } from "@/api/types";
 
 export function AdminImportPage() {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [listName, setListName] = useState("");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,11 +25,15 @@ export function AdminImportPage() {
 
     const formData = new FormData();
     formData.append("file", file);
+    if (listName.trim()) {
+      formData.append("list_name", listName.trim());
+    }
 
     try {
       const res = await importLeads.mutateAsync(formData);
       setResult(res);
       fileRef.current!.value = "";
+      setListName("");
     } catch (err) {
       setError((err as Error).message ?? "Import misslyckades.");
     }
@@ -57,6 +63,24 @@ export function AdminImportPage() {
               className="block text-[var(--color-text-secondary)] uppercase tracking-wider"
               style={{ fontSize: "12px" }}
             >
+              Listnamn (valfritt)
+            </label>
+            <Input
+              type="text"
+              placeholder="T.ex. Kunder utan hemsida"
+              value={listName}
+              onChange={(e) => setListName(e.target.value)}
+            />
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              Om du anger ett listnamn skapas en ny lista och alla importerade leads kopplas till den.
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <label
+              className="block text-[var(--color-text-secondary)] uppercase tracking-wider"
+              style={{ fontSize: "12px" }}
+            >
               Excel-fil (.xlsx)
             </label>
             <input
@@ -80,6 +104,11 @@ export function AdminImportPage() {
                 {result.created} leads skapade, {result.skipped} hoppades
                 över
               </p>
+              {result.list_id && (
+                <p className="text-sm text-emerald-700">
+                  Lista skapad och kopplad till importen.
+                </p>
+              )}
             </div>
           )}
 

@@ -130,6 +130,11 @@ defmodule Saleflow.Sales.Lead do
       public? true
     end
 
+    attribute :lead_list_id, :uuid do
+      allow_nil? true
+      public? true
+    end
+
     create_timestamp :inserted_at
     update_timestamp :updated_at
   end
@@ -158,7 +163,8 @@ defmodule Saleflow.Sales.Lead do
         :status,
         :quarantine_until,
         :callback_at,
-        :imported_at
+        :imported_at,
+        :lead_list_id
       ]
 
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "lead.created"}

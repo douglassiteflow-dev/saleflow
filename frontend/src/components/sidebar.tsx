@@ -69,6 +69,7 @@ export function Sidebar() {
             </p>
             <NavItem to="/admin/users" label="Användare" />
             <NavItem to="/admin/import" label="Importera" />
+            <NavItem to="/admin/lists" label="Listor" />
             <NavItem to="/admin/stats" label="Statistik" />
           </>
         )}
