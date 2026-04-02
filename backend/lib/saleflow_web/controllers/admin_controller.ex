@@ -218,12 +218,37 @@ defmodule SaleflowWeb.AdminController do
   # Helpers
   # ---------------------------------------------------------------------------
 
+  @doc """
+  Update a user's phone number (admin only).
+  """
+  def update_user(conn, %{"user_id" => user_id} = params) do
+    with {:ok, user} <- Ash.get(Saleflow.Accounts.User, user_id) do
+      update_params =
+        %{}
+        |> then(fn p -> if params["phone_number"], do: Map.put(p, :phone_number, params["phone_number"]), else: p end)
+        |> then(fn p -> if params["name"], do: Map.put(p, :name, params["name"]), else: p end)
+        |> then(fn p -> if params["role"], do: Map.put(p, :role, parse_role(params["role"])), else: p end)
+
+      case user |> Ash.Changeset.for_update(:update_user, update_params) |> Ash.update() do
+        {:ok, updated} ->
+          json(conn, %{user: serialize_user(updated)})
+
+        {:error, error} ->
+          conn |> put_status(422) |> json(%{error: inspect(error)})
+      end
+    else
+      {:error, _} ->
+        conn |> put_status(404) |> json(%{error: "Användare hittades inte"})
+    end
+  end
+
   defp serialize_user(user) do
     %{
       id: user.id,
       email: to_string(user.email),
       name: user.name,
-      role: user.role
+      role: user.role,
+      phone_number: user.phone_number
     }
   end
 

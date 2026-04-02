@@ -47,6 +47,23 @@ export function useCreateUser() {
   });
 }
 
+export function useUpdateUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation<User, ApiError, { userId: string; phone_number: string }>({
+    mutationFn: async ({ userId, phone_number }) => {
+      const data = await api<{ user: User }>(`/api/admin/users/${userId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ phone_number }),
+      });
+      return data.user;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+  });
+}
+
 export function useImportLeads() {
   const queryClient = useQueryClient();
 

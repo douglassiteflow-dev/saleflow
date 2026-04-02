@@ -5,6 +5,7 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
+  phone_number: string | null;
 }
 
 export interface LoginResponse {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAdminUsers, useCreateUser } from "@/api/admin";
+import { useAdminUsers, useCreateUser, useUpdateUser } from "@/api/admin";
 import { useUserSessions, useForceLogoutUser, useForceLogoutSession } from "@/api/sessions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -190,6 +190,56 @@ function UserSessionsRow({ userId }: { userId: string }) {
   );
 }
 
+function PhoneNumberCell({ userId, currentValue }: { userId: string; currentValue: string | null }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(currentValue ?? "");
+  const updateUser = useUpdateUser();
+
+  async function handleSave() {
+    try {
+      await updateUser.mutateAsync({ userId, phone_number: value.trim() });
+      setEditing(false);
+    } catch {
+      // error handled by mutation
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <Input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="+46701234567"
+          className="!h-7 !text-xs max-w-[140px]"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void handleSave();
+            if (e.key === "Escape") setEditing(false);
+          }}
+          autoFocus
+        />
+        <Button
+          variant="primary"
+          size="default"
+          onClick={() => void handleSave()}
+          disabled={updateUser.isPending}
+        >
+          {updateUser.isPending ? "..." : "Spara"}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <span
+      className="cursor-pointer text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-colors"
+      onClick={() => { setValue(currentValue ?? ""); setEditing(true); }}
+    >
+      {currentValue || "Lägg till..."}
+    </span>
+  );
+}
+
 export function AdminUsersPage() {
   const [showForm, setShowForm] = useState(false);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
@@ -246,6 +296,12 @@ export function AdminUsersPage() {
                     className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
                     style={{ fontSize: "12px" }}
                   >
+                    Telefon
+                  </th>
+                  <th
+                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
+                    style={{ fontSize: "12px" }}
+                  >
                     Roll
                   </th>
                   <th
@@ -276,6 +332,15 @@ export function AdminUsersPage() {
                       }`}
                     >
                       {user.email}
+                    </td>
+                    <td
+                      className={`px-4 py-3${
+                        expandedUserId !== user.id && i !== users.length - 1
+                          ? " border-b border-slate-200"
+                          : ""
+                      }`}
+                    >
+                      <PhoneNumberCell userId={user.id} currentValue={user.phone_number} />
                     </td>
                     <td
                       className={`px-4 py-3${

@@ -94,6 +94,7 @@ defmodule SaleflowWeb.Router do
 
     get "/users", AdminController, :users
     post "/users", AdminController, :create_user
+    patch "/users/:user_id", AdminController, :update_user
     get "/stats", AdminController, :stats
     post "/import", ImportController, :create
     get "/users/:user_id/sessions", AdminController, :user_sessions
