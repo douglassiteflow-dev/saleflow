@@ -77,6 +77,16 @@ export function MeetingDetailPage() {
     updateMeeting.mutate({ id, status: "completed" });
   }
 
+  function handleRebook() {
+    if (!id) return;
+    // Set status back to scheduled and open edit form
+    setEditDate(todayISO());
+    setEditTime("10:00");
+    setEditNotes(meeting.notes ?? "");
+    setEditStatus("scheduled");
+    setEditing(true);
+  }
+
   // Google Maps URL with encodeURIComponent and space join
   const mapsQuery = [lead.adress, lead.postnummer, lead.stad]
     .filter(Boolean)
@@ -114,6 +124,11 @@ export function MeetingDetailPage() {
                 Avboka
               </Button>
             </>
+          )}
+          {(meeting.status === "cancelled" || meeting.status === "completed") && (
+            <Button variant="primary" size="default" onClick={handleRebook}>
+              Återställ & boka om
+            </Button>
           )}
         </div>
       </div>
