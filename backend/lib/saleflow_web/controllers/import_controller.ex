@@ -11,20 +11,29 @@ defmodule SaleflowWeb.ImportController do
   Optional `list_name` field: if provided, creates a LeadList with that name
   and assigns all imported leads to it.
   """
+  # 5 minute timeout for large imports
+  @import_timeout 300_000
+
   def create(conn, %{"file" => %Plug.Upload{path: path}} = params) do
     list_name = params["list_name"]
 
-    with {:ok, rows} <- Import.parse_xlsx(path),
-         {:ok, lead_list_id} <- maybe_create_list(list_name),
-         {:ok, result} <- Import.import_rows(rows, lead_list_id),
-         :ok <- maybe_update_list_count(lead_list_id, result.created) do
+    task = Task.async(fn ->
+      with {:ok, rows} <- Import.parse_xlsx(path),
+           {:ok, lead_list_id} <- maybe_create_list(list_name),
+           {:ok, result} <- Import.import_rows(rows, lead_list_id),
+           :ok <- maybe_update_list_count(lead_list_id, result.created) do
+        {:ok, result, lead_list_id}
+      end
+    end)
+
+    case Task.await(task, @import_timeout) do
+      {:ok, result, lead_list_id} ->
       response = %{created: result.created, skipped: result.skipped}
       response = if lead_list_id, do: Map.put(response, :list_id, lead_list_id), else: response
 
       conn
       |> put_status(:created)
       |> json(response)
-    else
       {:error, reason} ->
         conn
         |> put_status(:unprocessable_entity)

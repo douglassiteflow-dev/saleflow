@@ -176,6 +176,16 @@ defmodule Saleflow.Sales.Lead do
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "lead.created"}
     end
 
+    create :create_bulk do
+      description "Create a lead without audit log (for bulk import)"
+
+      accept [
+        :företag, :telefon, :epost, :hemsida, :adress, :postnummer, :stad,
+        :bransch, :orgnr, :omsättning_tkr, :vinst_tkr, :anställda, :vd_namn,
+        :bolagsform, :status, :imported_at, :källa, :lead_list_id
+      ]
+    end
+
     update :update_status do
       description "Update the status of a lead, with auto-quarantine logic"
       require_atomic? false

@@ -83,6 +83,12 @@ defmodule Saleflow.Sales do
     |> Ash.create()
   end
 
+  def create_lead_bulk(params) do
+    Saleflow.Sales.Lead
+    |> Ash.Changeset.for_create(:create_bulk, params)
+    |> Ash.create()
+  end
+
   @doc """
   Returns all leads sorted by `inserted_at` ascending (oldest first).
   """

@@ -138,8 +138,7 @@ defmodule Saleflow.Sales.Import do
          false <- MapSet.member?(existing_phones, phone) do
       params = Map.put(params, :imported_at, now)
       params = if lead_list_id, do: Map.put(params, :lead_list_id, lead_list_id), else: params
-      {:ok, lead} = Sales.create_lead(params)
-      log_import(lead)
+      {:ok, _lead} = Sales.create_lead_bulk(params)
       {:ok, phone}
     else
       _ -> :skip

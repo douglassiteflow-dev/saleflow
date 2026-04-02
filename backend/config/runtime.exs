@@ -61,7 +61,8 @@ if config_env() == :prod do
     url: [host: host, port: 443, scheme: "https"],
     http: [
       ip: {0, 0, 0, 0},
-      port: port
+      port: port,
+      thousand_island_options: [read_timeout: 300_000]
     ],
     secret_key_base: secret_key_base,
     server: true

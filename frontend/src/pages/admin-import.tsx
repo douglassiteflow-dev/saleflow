@@ -119,6 +119,20 @@ export function AdminImportPage() {
           >
             {importLeads.isPending ? "Importerar..." : "Importera"}
           </Button>
+
+          {importLeads.isPending && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  Importerar leads, detta kan ta några minuter för stora filer...
+                </p>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                <div className="bg-[var(--color-accent)] h-2 rounded-full animate-pulse" style={{ width: "60%" }} />
+              </div>
+            </div>
+          )}
         </div>
       </Card>
     </div>
