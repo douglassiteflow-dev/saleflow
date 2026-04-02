@@ -412,13 +412,18 @@ defmodule SaleflowWeb.LeadController do
 
   defp try_create_teams_meeting_inner(meeting, lead, user, attendee_overrides) do
     require Ash.Query
+    require Logger
     alias Saleflow.Microsoft.Graph
 
+    Logger.info("Teams: attempting to create meeting for user #{user.id}")
+
     with {:ok, [ms_conn | _]} <-
+           (Logger.info("Teams: looking up MS connection for user #{user.id}")
            Saleflow.Accounts.MicrosoftConnection
            |> Ash.Query.filter(user_id == ^user.id)
-           |> Ash.read(),
+           |> Ash.read()),
          {:ok, ms_conn} <- Graph.ensure_fresh_token(ms_conn) do
+      Logger.info("Teams: MS connection found, token fresh. Creating event...")
       duration_secs = (meeting.duration_minutes || 30) * 60
       start_dt = NaiveDateTime.new!(meeting.meeting_date, meeting.meeting_time)
       end_dt = NaiveDateTime.add(start_dt, duration_secs)
@@ -464,7 +469,15 @@ defmodule SaleflowWeb.LeadController do
           :ok
       end
     else
-      _ -> :ok
+      {:ok, []} ->
+        Logger.info("Teams: no Microsoft connection found for user #{user.id} — skipping")
+        :ok
+      {:error, reason} ->
+        Logger.warning("Teams: failed to get MS connection or refresh token: #{inspect(reason)}")
+        :ok
+      other ->
+        Logger.warning("Teams: unexpected result: #{inspect(other)}")
+        :ok
     end
   end
 
