@@ -12,8 +12,15 @@ const ACTION_OPTIONS = [
   { value: "lead.status_changed", label: "Status ändrad" },
   { value: "call.logged", label: "Samtal loggat" },
   { value: "meeting.created", label: "Möte skapat" },
-  { value: "lead.assigned", label: "Lead tilldelad" },
-  { value: "lead.updated", label: "Lead uppdaterad" },
+  { value: "meeting.cancelled", label: "Möte avbokat" },
+  { value: "assignment.created", label: "Tilldelning" },
+  { value: "assignment.released", label: "Tilldelning släppt" },
+  { value: "quarantine.created", label: "Karantän" },
+  { value: "session.created", label: "Inloggning" },
+  { value: "session.logged_out", label: "Utloggning" },
+  { value: "session.force_logged_out", label: "Tvångsutloggning" },
+  { value: "otp.created", label: "OTP skickad" },
+  { value: "otp.verified", label: "OTP verifierad" },
 ];
 
 function actionLabel(action: string): string {
@@ -31,11 +38,22 @@ function changesSummary(changes: Record<string, unknown> | null): string {
     .join(", ");
 }
 
-function resourceLabel(action: string): string {
-  if (action.startsWith("lead.")) return "Lead";
-  if (action.startsWith("call.")) return "Samtal";
-  if (action.startsWith("meeting.")) return "Möte";
-  return "—";
+const RESOURCE_LABELS: Record<string, string> = {
+  Lead: "Lead",
+  CallLog: "Samtal",
+  Meeting: "Möte",
+  Assignment: "Tilldelning",
+  Quarantine: "Karantän",
+  OtpCode: "OTP-kod",
+  LoginSession: "Session",
+  User: "Användare",
+  TrustedDevice: "Betrodd enhet",
+  PasswordResetToken: "Lösenordsåterställning",
+};
+
+function resourceLabel(resourceType: string | undefined): string {
+  if (!resourceType) return "—";
+  return RESOURCE_LABELS[resourceType] ?? resourceType;
 }
 
 export function HistoryPage() {
@@ -168,7 +186,7 @@ export function HistoryPage() {
                         {actionLabel(log.action)}
                       </td>
                       <td className="px-4 py-3 text-[var(--color-text-secondary)]">
-                        {resourceLabel(log.action)}
+                        {resourceLabel(log.resource_type)}
                       </td>
                       <td className="px-4 py-3 text-[var(--color-text-secondary)] max-w-xs truncate">
                         {changesSummary(log.changes)}
