@@ -8,14 +8,36 @@ defmodule SaleflowWeb.LeadController do
   @doc """
   List or search leads. Pass `?q=term` to search by company name.
   """
-  def index(conn, %{"q" => q}) when is_binary(q) and byte_size(q) > 0 do
-    {:ok, leads} = Sales.search_leads(q)
+  def index(conn, params) do
+    user = conn.assigns.current_user
+    q = params["q"]
+
+    {:ok, all_leads} =
+      if is_binary(q) and byte_size(q) > 0,
+        do: Sales.search_leads(q),
+        else: Sales.list_leads()
+
+    # Agents only see leads they have active assignments or callbacks for
+    leads =
+      case user.role do
+        :admin -> all_leads
+        _ ->
+          my_lead_ids = get_agent_lead_ids(user.id)
+          Enum.filter(all_leads, fn l ->
+            l.id in my_lead_ids
+          end)
+      end
+
     json(conn, %{leads: Enum.map(leads, &serialize_lead/1)})
   end
 
-  def index(conn, _params) do
-    {:ok, leads} = Sales.list_leads()
-    json(conn, %{leads: Enum.map(leads, &serialize_lead/1)})
+  defp get_agent_lead_ids(user_id) do
+    # Get leads from active + recent assignments
+    {:ok, %{rows: rows}} = Saleflow.Repo.query(
+      "SELECT DISTINCT lead_id FROM assignments WHERE user_id = $1",
+      [Ecto.UUID.dump!(user_id)]
+    )
+    Enum.map(rows, fn [id] -> Saleflow.Sales.decode_uuid(id) end)
   end
 
   @doc """

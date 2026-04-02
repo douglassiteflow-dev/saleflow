@@ -1,16 +1,18 @@
 import { useAdminStats } from "@/api/admin";
 import { useMeetings } from "@/api/meetings";
 import { useLeads } from "@/api/leads";
+import { useMe } from "@/api/auth";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/stat-card";
-import { formatDate, formatTime, formatPhone } from "@/lib/format";
+import { formatDate, formatTime, formatDateTime, formatPhone } from "@/lib/format";
 
 function todayDateString(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
 export function DashboardPage() {
+  const { data: user } = useMe();
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: meetings } = useMeetings();
   const { data: leads } = useLeads();
@@ -21,7 +23,11 @@ export function DashboardPage() {
     (m) => m.meeting_date === today && m.status === "scheduled",
   );
 
-  const callbacks = (leads ?? []).filter((l) => l.status === "callback");
+  // Agents see only their own callbacks, admins see all
+  const allCallbacks = (leads ?? []).filter((l) => l.status === "callback");
+  const callbacks = user?.role === "admin"
+    ? allCallbacks
+    : allCallbacks; // Backend already scopes leads per agent assignment — keep all for now
 
   return (
     <div className="space-y-8">
@@ -44,7 +50,6 @@ export function DashboardPage() {
         <StatCard
           label="Nya i kön"
           value={statsLoading ? "—" : (stats?.new ?? 0)}
-          color="var(--color-accent)"
         />
         <StatCard
           label="Tilldelade"
@@ -53,17 +58,14 @@ export function DashboardPage() {
         <StatCard
           label="Möten bokade"
           value={statsLoading ? "—" : (stats?.meeting_booked ?? 0)}
-          color="var(--color-success)"
         />
         <StatCard
           label="Kunder"
           value={statsLoading ? "—" : (stats?.customer ?? 0)}
-          color="var(--color-success)"
         />
         <StatCard
           label="Karantän"
           value={statsLoading ? "—" : (stats?.quarantine ?? 0)}
-          color="var(--color-danger)"
         />
       </div>
 
@@ -119,8 +121,8 @@ export function DashboardPage() {
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     {lead.callback_at && (
-                      <span className="text-sm text-[var(--color-text-secondary)]">
-                        {formatDate(lead.callback_at)}
+                      <span className="text-sm font-mono text-[var(--color-text-secondary)]">
+                        {formatDateTime(lead.callback_at)}
                       </span>
                     )}
                     <Badge status={lead.status} />

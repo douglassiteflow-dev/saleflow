@@ -614,7 +614,7 @@ defmodule Saleflow.Sales do
     Ash.read(query)
   end
 
-  defp decode_uuid(value) when is_binary(value) and byte_size(value) == 16 do
+  def decode_uuid(value) when is_binary(value) and byte_size(value) == 16 do
     Ecto.UUID.load!(value)
   end
 
