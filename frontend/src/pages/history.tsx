@@ -294,6 +294,12 @@ export function HistoryPage() {
                     className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
                     style={{ fontSize: "12px" }}
                   >
+                    Av
+                  </th>
+                  <th
+                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
+                    style={{ fontSize: "12px" }}
+                  >
                     Ändringar
                   </th>
                 </tr>
@@ -327,6 +333,13 @@ export function HistoryPage() {
                       </td>
                       <td className="px-4 py-3 text-[var(--color-text-secondary)]">
                         {resourceLabel(log.resource_type)}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {log.user_name ? (
+                          <span className="font-medium text-[var(--color-accent)]">{log.user_name}</span>
+                        ) : (
+                          <span className="text-[var(--color-text-secondary)]">System</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-[var(--color-text-secondary)] max-w-xs truncate">
                         {changesSummary(log.changes, log.action)}

@@ -238,6 +238,8 @@ export function HistoryTimeline({ callLogs = [], auditLogs = [] }: HistoryTimeli
               ? entry.data.resource_type
               : null;
 
+            const userName = entry.data.user_name;
+
             return (
               <li key={idx} className="relative pl-6 pb-5 last:pb-0">
                 {idx < entries.length - 1 && (
@@ -263,6 +265,11 @@ export function HistoryTimeline({ callLogs = [], auditLogs = [] }: HistoryTimeli
                     {source && (
                       <span className="text-[11px] text-[var(--color-text-secondary)] bg-slate-100 rounded px-1.5 py-0.5">
                         {source}
+                      </span>
+                    )}
+                    {userName && (
+                      <span className="text-[11px] font-medium text-[var(--color-accent)]">
+                        {userName}
                       </span>
                     )}
                     <span className="text-[11px] font-mono text-[var(--color-text-secondary)]">

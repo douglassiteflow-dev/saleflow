@@ -87,6 +87,7 @@ export interface CallLog {
   id: string;
   lead_id: string;
   user_id: string;
+  user_name: string | null;
   outcome: Outcome;
   notes: string | null;
   called_at: string;
@@ -95,6 +96,7 @@ export interface CallLog {
 export interface AuditLog {
   id: string;
   user_id: string | null;
+  user_name: string | null;
   action: string;
   resource_type: string;
   resource_id: string;
