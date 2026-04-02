@@ -4,7 +4,7 @@ defmodule Saleflow.Repo.Migrations.AddPerformanceIndexes do
   def up do
     create_if_not_exists index(:leads, [:status])
     create_if_not_exists index(:leads, [:lead_list_id])
-    create_if_not_exists index(:leads, [:telefon], unique: true)
+    create_if_not_exists index(:leads, [:telefon])
     create_if_not_exists index(:assignments, [:user_id, :released_at])
     create_if_not_exists index(:assignments, [:lead_id, :released_at])
     create_if_not_exists index(:call_logs, [:lead_id])
