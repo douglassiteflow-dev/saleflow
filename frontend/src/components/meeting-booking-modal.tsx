@@ -67,28 +67,31 @@ export function MeetingBookingModal({
       return;
     }
 
-    submitOutcome.mutate(
-      {
-        outcome: "meeting_booked",
-        title: title || undefined,
-        meeting_date: date,
-        meeting_time: time,
-        meeting_duration: duration,
-        meeting_notes: notes || undefined,
-        customer_email: customerEmail || undefined,
-        customer_name: customerName || undefined,
-        create_teams_meeting: sendTeams,
+    const params = {
+      outcome: "meeting_booked" as const,
+      title: title || undefined,
+      meeting_date: date,
+      meeting_time: time + ":00",
+      meeting_duration: duration,
+      meeting_notes: notes || undefined,
+      customer_email: customerEmail || undefined,
+      customer_name: customerName || undefined,
+      create_teams_meeting: sendTeams,
+    };
+
+    console.log("[MeetingModal] Submitting:", params);
+
+    submitOutcome.mutate(params, {
+      onSuccess: () => {
+        console.log("[MeetingModal] Success!");
+        onBooked();
+        onClose();
       },
-      {
-        onSuccess: () => {
-          onBooked();
-          onClose();
-        },
-        onError: (err) => {
-          setError(err.message ?? "Något gick fel.");
-        },
+      onError: (err) => {
+        console.error("[MeetingModal] Error:", err);
+        setError(err.message ?? "Något gick fel.");
       },
-    );
+    });
   }
 
   // Format preview date
