@@ -16,30 +16,24 @@ defmodule SaleflowWeb.AuthController do
   def sign_in(conn, %{"email" => email, "password" => password}) do
     case Accounts.sign_in(%{email: email, password: password}) do
       {:ok, user} ->
-        # Check for trusted device cookie
-        device_token = conn.cookies[@device_cookie]
-
-        if device_token && device_token != "" do
-          case Accounts.find_trusted_device(user.id, device_token) do
-            {:ok, device} when not is_nil(device) ->
-              # Trusted device found — skip OTP, create session directly
-              ip = conn.remote_ip |> :inet.ntoa() |> to_string()
-              ua = Plug.Conn.get_req_header(conn, "user-agent") |> List.first("")
-
-              {:ok, session} =
-                Accounts.create_login_session(user, %{ip_address: ip, user_agent: ua})
-
-              conn
-              |> put_session(:session_token, session.session_token)
-              |> put_status(:ok)
-              |> json(%{user: serialize_user(user)})
-
-            _ ->
-              # Invalid or expired device token — normal OTP flow
-              send_otp_response(conn, user)
-          end
+        if Application.get_env(:saleflow, :skip_otp, false) do
+          # Skip OTP entirely (staging) — create session directly
+          create_direct_session(conn, user)
         else
-          send_otp_response(conn, user)
+          # Check for trusted device cookie
+          device_token = conn.cookies[@device_cookie]
+
+          if device_token && device_token != "" do
+            case Accounts.find_trusted_device(user.id, device_token) do
+              {:ok, device} when not is_nil(device) ->
+                create_direct_session(conn, user)
+
+              _ ->
+                send_otp_response(conn, user)
+            end
+          else
+            send_otp_response(conn, user)
+          end
         end
 
       {:error, _} ->
@@ -198,6 +192,19 @@ defmodule SaleflowWeb.AuthController do
     conn
     |> put_status(:ok)
     |> json(%{otp_sent: true, user_id: user.id})
+  end
+
+  defp create_direct_session(conn, user) do
+    ip = conn.remote_ip |> :inet.ntoa() |> to_string()
+    ua = Plug.Conn.get_req_header(conn, "user-agent") |> List.first("")
+
+    {:ok, session} =
+      Accounts.create_login_session(user, %{ip_address: ip, user_agent: ua})
+
+    conn
+    |> put_session(:session_token, session.session_token)
+    |> put_status(:ok)
+    |> json(%{user: serialize_user(user)})
   end
 
   defp serialize_user(user) do

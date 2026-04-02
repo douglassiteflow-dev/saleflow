@@ -73,6 +73,9 @@ if config_env() == :prod do
   config :saleflow, :token_signing_secret,
     System.get_env("TOKEN_SIGNING_SECRET") || secret_key_base
 
+  # Skip OTP on staging
+  config :saleflow, :skip_otp, System.get_env("SKIP_OTP") == "true"
+
   # ## SSL Support
   #
   # To get SSL working, you will need to add the `https` key
