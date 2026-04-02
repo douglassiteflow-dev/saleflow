@@ -42,11 +42,17 @@ defmodule Saleflow.Accounts.User do
       public? true
     end
 
+    attribute :phone_number, :string do
+      allow_nil? true
+      public? true
+    end
+
     timestamps()
   end
 
   identities do
     identity :unique_email, [:email]
+    identity :unique_phone_number, [:phone_number]
   end
 
   authentication do
@@ -101,8 +107,8 @@ defmodule Saleflow.Accounts.User do
     end
 
     update :update_user do
-      description "Update user name or role"
-      accept [:name, :role]
+      description "Update user name, role, or phone number"
+      accept [:name, :role, :phone_number]
     end
 
     update :update_password do
