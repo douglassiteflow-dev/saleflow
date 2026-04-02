@@ -1,8 +1,6 @@
-import { useNavigate } from "react-router-dom";
 import { useAdminStats } from "@/api/admin";
 import { useMeetings } from "@/api/meetings";
 import { useLeads } from "@/api/leads";
-import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/stat-card";
@@ -13,7 +11,6 @@ function todayDateString(): string {
 }
 
 export function DashboardPage() {
-  const navigate = useNavigate();
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: meetings } = useMeetings();
   const { data: leads } = useLeads();
@@ -36,13 +33,6 @@ export function DashboardPage() {
         >
           Dashboard
         </h1>
-        <Button
-          variant="primary"
-          size="default"
-          onClick={() => void navigate("/dialer")}
-        >
-          Nästa kund
-        </Button>
       </div>
 
       {/* Stats */}
