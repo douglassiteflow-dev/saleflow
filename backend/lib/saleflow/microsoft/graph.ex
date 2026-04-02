@@ -95,10 +95,17 @@ defmodule Saleflow.Microsoft.Graph do
            headers: [{"authorization", "Bearer #{access_token}"}]
          ) do
       {:ok, %{status: 201, body: resp_body}} ->
+        Logger.info("MS Graph event created. onlineMeeting=#{inspect(resp_body["onlineMeeting"])}")
+
+        join_url =
+          get_in(resp_body, ["onlineMeeting", "joinUrl"]) ||
+          get_in(resp_body, ["onlineMeeting", "joinWebUrl"]) ||
+          resp_body["webLink"]
+
         {:ok,
          %{
            event_id: resp_body["id"],
-           join_url: get_in(resp_body, ["onlineMeeting", "joinUrl"]),
+           join_url: join_url,
            web_link: resp_body["webLink"]
          }}
 
