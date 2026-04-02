@@ -65,6 +65,7 @@ defmodule Saleflow.Sales do
     resource Saleflow.Sales.LeadList
     resource Saleflow.Sales.LeadListAssignment
     resource Saleflow.Sales.Request
+    resource Saleflow.Sales.PhoneCall
   end
 
   # ---------------------------------------------------------------------------
@@ -737,5 +738,40 @@ defmodule Saleflow.Sales do
     request
     |> Ash.Changeset.for_update(:update_status, params)
     |> Ash.update()
+  end
+
+  # ---------------------------------------------------------------------------
+  # PhoneCall functions
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Records a phone call from the Telavox webhook.
+
+  Required params: `:caller`, `:callee`
+  Optional params: `:lead_id`, `:user_id`, `:duration`, `:call_log_id`
+  """
+  @spec create_phone_call(map()) :: {:ok, Saleflow.Sales.PhoneCall.t()} | {:error, Ash.Error.t()}
+  def create_phone_call(params) do
+    Saleflow.Sales.PhoneCall
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create()
+  end
+
+  @doc """
+  Returns the number of phone calls received today for a given user.
+  """
+  @spec count_phone_calls_today(Ecto.UUID.t()) :: {:ok, non_neg_integer()} | {:error, term()}
+  def count_phone_calls_today(user_id) do
+    query = """
+    SELECT COUNT(*)
+    FROM phone_calls
+    WHERE user_id = $1
+      AND received_at::date = CURRENT_DATE
+    """
+
+    case Saleflow.Repo.query(query, [Ecto.UUID.dump!(user_id)]) do
+      {:ok, %{rows: [[count]]}} -> {:ok, count}
+      {:error, error} -> {:error, error}
+    end
   end
 end
