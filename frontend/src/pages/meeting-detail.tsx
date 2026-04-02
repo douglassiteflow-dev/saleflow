@@ -127,18 +127,28 @@ export function MeetingDetailPage() {
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center h-10 rounded-md bg-purple-600 text-white font-medium text-sm px-4 hover:bg-purple-700 transition-colors"
             >
-              Ga med i Teams-mote
+              Gå med i Teams-möte
             </a>
           )}
           {!meeting.teams_join_url && meeting.status === "scheduled" && msStatus?.connected && (
             <Button
               variant="secondary"
               size="default"
-              onClick={() => id && createTeamsMeeting.mutate(id)}
+              onClick={() => id && createTeamsMeeting.mutate(id, {
+                onSuccess: () => {
+                  alert("Teams-möte skapat! Sidan uppdateras.");
+                },
+                onError: (err) => {
+                  alert("Kunde inte skapa Teams-möte: " + (err.message || "Okänt fel"));
+                },
+              })}
               disabled={createTeamsMeeting.isPending}
             >
-              {createTeamsMeeting.isPending ? "Skapar..." : "Skapa Teams-mote"}
+              {createTeamsMeeting.isPending ? "Skapar Teams-möte..." : "Skapa Teams-möte"}
             </Button>
+          )}
+          {createTeamsMeeting.isSuccess && !meeting.teams_join_url && (
+            <span className="text-sm text-emerald-600 font-medium">✓ Teams-möte skapat</span>
           )}
           {meeting.status === "scheduled" && (
             <>

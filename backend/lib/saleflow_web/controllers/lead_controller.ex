@@ -194,8 +194,10 @@ defmodule SaleflowWeb.LeadController do
   end
 
   defp apply_outcome(lead, "not_interested", user, _params) do
-    # Permanent quarantine — quarantine_until = nil means never auto-released
-    with {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :quarantine, quarantine_until: :permanent}) do
+    # Permanent quarantine — set a far-future date (year 2099) so it never auto-releases
+    permanent_until = ~U[2099-12-31 23:59:59Z]
+
+    with {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :quarantine, quarantine_until: permanent_until}) do
       {:ok, _q} = Sales.create_quarantine(%{
         lead_id: lead.id,
         user_id: user.id,

@@ -44,7 +44,7 @@ function StatsBar({ stats }: { stats: LeadListStats }) {
     { key: "new", count: stats.new, color: "bg-blue-500", label: "Nya" },
     { key: "assigned", count: stats.assigned, color: "bg-indigo-500", label: "Tilldelade" },
     { key: "callback", count: stats.callback, color: "bg-amber-500", label: "Callback" },
-    { key: "meeting_booked", count: stats.meeting_booked, color: "bg-emerald-500", label: "Mote bokat" },
+    { key: "meeting_booked", count: stats.meeting_booked, color: "bg-emerald-500", label: "Möte bokat" },
     { key: "customer", count: stats.customer, color: "bg-purple-500", label: "Kund" },
     { key: "quarantine", count: stats.quarantine, color: "bg-orange-500", label: "Karantan" },
     { key: "bad_number", count: stats.bad_number, color: "bg-slate-400", label: "Fel nr" },
@@ -148,7 +148,7 @@ function LeadTable({ listId }: { listId: string }) {
       </p>
       <Input
         type="text"
-        placeholder="Sok foretag..."
+        placeholder="Sök företag..."
         value={search}
         onChange={(e) => handleSearch(e.target.value)}
       />
@@ -161,7 +161,7 @@ function LeadTable({ listId }: { listId: string }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wider text-[var(--color-text-secondary)] border-b border-[var(--color-border)]">
-                <th className="py-2 pr-3">Foretag</th>
+                <th className="py-2 pr-3">Företag</th>
                 <th className="py-2 pr-3">Telefon</th>
                 <th className="py-2 pr-3">Stad</th>
                 <th className="py-2">Status</th>
