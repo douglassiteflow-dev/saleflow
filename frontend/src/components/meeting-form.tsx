@@ -2,6 +2,11 @@ import { useState } from "react";
 import { useCreateMeeting } from "@/api/meetings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TimeSelect } from "@/components/ui/time-select";
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 interface MeetingFormProps {
   onCancel: () => void;
@@ -36,11 +41,13 @@ export function MeetingForm({ onCancel }: MeetingFormProps) {
     }
 
     try {
+      // time is "HH:MM" from TimeSelect; append seconds for API
+      const timeWithSeconds = time.length === 5 ? time + ":00" : time;
       await createMeeting.mutateAsync({
         lead_id: leadId.trim(),
         title: title.trim(),
         meeting_date: date,
-        meeting_time: time,
+        meeting_time: timeWithSeconds,
         notes: notes.trim() || undefined,
       });
       reset();
@@ -105,6 +112,7 @@ export function MeetingForm({ onCancel }: MeetingFormProps) {
           <Input
             type="date"
             value={date}
+            min={todayISO()}
             onChange={(e) => setDate(e.target.value)}
           />
         </div>
@@ -116,10 +124,10 @@ export function MeetingForm({ onCancel }: MeetingFormProps) {
           >
             Tid
           </label>
-          <Input
-            type="time"
+          <TimeSelect
             value={time}
-            onChange={(e) => setTime(e.target.value)}
+            onChange={setTime}
+            disabled={createMeeting.isPending}
           />
         </div>
       </div>

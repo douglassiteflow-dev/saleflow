@@ -5,8 +5,13 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TimeSelect } from "@/components/ui/time-select";
 import { HistoryTimeline } from "@/components/history-timeline";
 import { formatDate, formatTime, formatPhone } from "@/lib/format";
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export function MeetingDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -41,11 +46,13 @@ export function MeetingDetailPage() {
 
   function handleSave() {
     if (!id) return;
+    // editTime is already "HH:MM" from TimeSelect; append seconds for API
+    const timeWithSeconds = editTime.length === 5 ? editTime + ":00" : editTime;
     updateMeeting.mutate(
       {
         id,
         meeting_date: editDate,
-        meeting_time: editTime + ":00",
+        meeting_time: timeWithSeconds,
         notes: editNotes,
         status: editStatus,
       },
@@ -124,7 +131,12 @@ export function MeetingDetailPage() {
                 >
                   Datum
                 </label>
-                <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+                <Input
+                  type="date"
+                  value={editDate}
+                  min={todayISO()}
+                  onChange={(e) => setEditDate(e.target.value)}
+                />
               </div>
               <div className="space-y-1">
                 <label
@@ -133,7 +145,11 @@ export function MeetingDetailPage() {
                 >
                   Tid
                 </label>
-                <Input type="time" value={editTime} onChange={(e) => setEditTime(e.target.value)} />
+                <TimeSelect
+                  value={editTime}
+                  onChange={setEditTime}
+                  disabled={updateMeeting.isPending}
+                />
               </div>
               <div className="space-y-1">
                 <label

@@ -2,7 +2,12 @@ import { useState } from "react";
 import type { Outcome } from "@/api/types";
 import { useSubmitOutcome } from "@/api/leads";
 import { Card, CardTitle } from "@/components/ui/card";
+import { TimeSelect } from "@/components/ui/time-select";
 import { cn } from "@/lib/cn";
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 interface OutcomeConfig {
   outcome: Outcome;
@@ -98,6 +103,10 @@ export function OutcomePanel({ leadId, onOutcomeSubmitted }: OutcomePanelProps) 
         setError("Välj datum och tid för mötet.");
         return;
       }
+      if (meetingDate < todayISO()) {
+        setError("Mötesdatumet kan inte vara i det förflutna.");
+        return;
+      }
     }
 
     submitOutcome.mutate(
@@ -188,21 +197,20 @@ export function OutcomePanel({ leadId, onOutcomeSubmitted }: OutcomePanelProps) 
             <input
               type="date"
               value={meetingDate}
+              min={todayISO()}
               onChange={(e) => setMeetingDate(e.target.value)}
               required
-              className="flex w-full rounded-md border border-[var(--color-border-input)] bg-white px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+              className="flex w-full rounded-[6px] border border-[var(--color-border-input)] bg-white px-[var(--spacing-input-x)] py-[var(--spacing-input-y)] text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] transition-colors duration-150"
             />
           </div>
           <div className="space-y-1.5">
             <label className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
               Mötestid
             </label>
-            <input
-              type="time"
+            <TimeSelect
               value={meetingTime}
-              onChange={(e) => setMeetingTime(e.target.value)}
-              required
-              className="flex w-full rounded-md border border-[var(--color-border-input)] bg-white px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+              onChange={setMeetingTime}
+              disabled={submitOutcome.isPending}
             />
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/cn";
 
@@ -7,7 +8,7 @@ interface StatCardProps {
   className?: string;
 }
 
-export function StatCard({ label, value, className }: StatCardProps) {
+export const StatCard = memo(function StatCard({ label, value, className }: StatCardProps) {
   return (
     <Card className={cn("flex flex-col gap-1", className)}>
       <p
@@ -23,4 +24,4 @@ export function StatCard({ label, value, className }: StatCardProps) {
       </p>
     </Card>
   );
-}
+});

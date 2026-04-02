@@ -1,8 +1,35 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/api/auth";
+import { api } from "@/api/client";
 import { cn } from "@/lib/cn";
 import { ReportModal } from "@/components/report-modal";
+import type { DashboardData } from "@/api/types";
+import type { Meeting } from "@/api/types";
+
+// Map of routes → prefetch thunks. Called once on first hover.
+function usePrefetchForRoute(to: string) {
+  const qc = useQueryClient();
+
+  return function prefetch() {
+    if (to === "/dashboard") {
+      void qc.prefetchQuery({
+        queryKey: ["dashboard"],
+        queryFn: () => api<DashboardData>("/api/dashboard"),
+        staleTime: 60_000,
+      });
+    } else if (to === "/meetings") {
+      void qc.prefetchQuery({
+        queryKey: ["meetings"],
+        queryFn: () =>
+          api<{ meetings: Meeting[] }>("/api/meetings").then((r) => r.meetings),
+        staleTime: 60_000,
+      });
+    }
+    // dialer, history, profile — no cheap prefetch target
+  };
+}
 
 interface NavItemProps {
   to: string;
@@ -11,6 +38,8 @@ interface NavItemProps {
 }
 
 export function NavItem({ to, label, disabled }: NavItemProps) {
+  const prefetch = usePrefetchForRoute(to);
+
   if (disabled) {
     return (
       <span
@@ -25,6 +54,7 @@ export function NavItem({ to, label, disabled }: NavItemProps) {
   return (
     <NavLink
       to={to}
+      onMouseEnter={prefetch}
       className={({ isActive }) =>
         cn(
           "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150",
