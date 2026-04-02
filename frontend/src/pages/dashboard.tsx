@@ -36,18 +36,34 @@ export function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
         <StatCard
           label="Totalt leads"
           value={statsLoading ? "—" : (stats?.total_leads ?? 0)}
         />
         <StatCard
-          label="Nya"
+          label="Nya i kön"
           value={statsLoading ? "—" : (stats?.new ?? 0)}
+          color="var(--color-accent)"
         />
         <StatCard
-          label="Möten"
-          value={meetings == null ? "—" : meetings.length}
+          label="Tilldelade"
+          value={statsLoading ? "—" : (stats?.assigned ?? 0)}
+        />
+        <StatCard
+          label="Möten bokade"
+          value={statsLoading ? "—" : (stats?.meeting_booked ?? 0)}
+          color="var(--color-success)"
+        />
+        <StatCard
+          label="Kunder"
+          value={statsLoading ? "—" : (stats?.customer ?? 0)}
+          color="var(--color-success)"
+        />
+        <StatCard
+          label="Karantän"
+          value={statsLoading ? "—" : (stats?.quarantine ?? 0)}
+          color="var(--color-danger)"
         />
       </div>
 

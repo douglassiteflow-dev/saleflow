@@ -113,10 +113,25 @@ defmodule SaleflowWeb.AdminController do
 
     {:ok, %{rows: rows}} = Repo.query(query)
 
-    stats =
+    by_status =
       Enum.into(rows, %{}, fn [status, count] ->
         {status, count}
       end)
+
+    total = Enum.reduce(rows, 0, fn [_status, count], acc -> acc + count end)
+
+    stats =
+      %{
+        "total_leads" => total,
+        "new" => 0,
+        "assigned" => 0,
+        "callback" => 0,
+        "meeting_booked" => 0,
+        "quarantine" => 0,
+        "bad_number" => 0,
+        "customer" => 0
+      }
+      |> Map.merge(by_status)
 
     json(conn, %{stats: stats})
   end
