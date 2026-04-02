@@ -71,11 +71,13 @@ defmodule Saleflow.Microsoft.Graph do
     # Step 1: Create the Teams online meeting
     Logger.info("MS Graph: Step 1 — creating online meeting")
 
-    # onlineMeetings API needs proper datetime. Use same format as calendar events.
+    # onlineMeetings API requires ISO 8601 string with timezone offset (NOT nested object)
+    # Sweden is UTC+2 in summer (CEST), UTC+1 in winter (CET)
+    # Use +02:00 for now (April = summer time)
     online_params = %{
       subject: params.subject,
-      startDateTime: %{dateTime: params.start_datetime, timeZone: "Europe/Stockholm"},
-      endDateTime: %{dateTime: params.end_datetime, timeZone: "Europe/Stockholm"}
+      startDateTime: params.start_datetime <> "+02:00",
+      endDateTime: params.end_datetime <> "+02:00"
     }
 
     with {:ok, online_result} <- do_create_online_meeting(access_token, online_params) do
