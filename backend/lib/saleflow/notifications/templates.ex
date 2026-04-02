@@ -16,7 +16,9 @@ defmodule Saleflow.Notifications.Templates do
       Saleflow.Notifications.Mailer.send_email_async(user.email, subject, html)
   """
 
-  @templates_dir Path.join(:code.priv_dir(:saleflow), "templates/email")
+  defp templates_dir do
+    Application.app_dir(:saleflow, "priv/templates/email")
+  end
 
   # ---------------------------------------------------------------------------
   # Public API
@@ -96,10 +98,10 @@ defmodule Saleflow.Notifications.Templates do
 
   # Renders an inner template then wraps it in the layout.
   defp render(template_name, assigns) do
-    inner_path = Path.join(@templates_dir, template_name)
+    inner_path = Path.join(templates_dir(), template_name)
     inner_content = EEx.eval_file(inner_path, assigns: assigns)
 
-    layout_path = Path.join(@templates_dir, "layout.html.eex")
+    layout_path = Path.join(templates_dir(), "layout.html.eex")
     EEx.eval_file(layout_path, assigns: [inner_content: inner_content])
   end
 end
