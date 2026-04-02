@@ -32,6 +32,8 @@ defmodule Saleflow.Accounts do
     resource Saleflow.Accounts.Token
     resource Saleflow.Accounts.OtpCode
     resource Saleflow.Accounts.LoginSession
+    resource Saleflow.Accounts.TrustedDevice
+    resource Saleflow.Accounts.PasswordResetToken
   end
 
   @doc """
@@ -255,6 +257,174 @@ defmodule Saleflow.Accounts do
     Saleflow.Accounts.LoginSession
     |> Ash.Query.for_read(:list_all_for_user, %{user_id: user_id})
     |> Ash.read()
+  end
+
+  # ---------------------------------------------------------------------------
+  # Trusted devices (remember me)
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Creates a trusted device for the given user.
+
+  Returns `{:ok, trusted_device}` with a unique `device_token`.
+  """
+  @spec create_trusted_device(Saleflow.Accounts.User.t(), String.t() | nil) ::
+          {:ok, Saleflow.Accounts.TrustedDevice.t()} | {:error, term()}
+  def create_trusted_device(user, device_name \\ nil) do
+    Saleflow.Accounts.TrustedDevice
+    |> Ash.Changeset.for_create(:create, %{user_id: user.id, device_name: device_name})
+    |> Ash.create()
+  end
+
+  @doc """
+  Finds a valid (non-expired) trusted device by user_id and device_token.
+
+  Returns `{:ok, trusted_device}` if found and valid, `{:ok, nil}` if not.
+  """
+  @spec find_trusted_device(Ecto.UUID.t(), String.t()) ::
+          {:ok, Saleflow.Accounts.TrustedDevice.t() | nil} | {:error, term()}
+  def find_trusted_device(user_id, token) do
+    require Ash.Query
+    now = DateTime.utc_now()
+
+    Saleflow.Accounts.TrustedDevice
+    |> Ash.Query.filter(user_id == ^user_id and device_token == ^token and expires_at > ^now)
+    |> Ash.read_one()
+  end
+
+  @doc """
+  Deletes all expired trusted devices. Returns `:ok`.
+  """
+  @spec delete_expired_trusted_devices() :: :ok
+  def delete_expired_trusted_devices do
+    require Ash.Query
+    now = DateTime.utc_now()
+
+    {:ok, expired} =
+      Saleflow.Accounts.TrustedDevice
+      |> Ash.Query.filter(expires_at <= ^now)
+      |> Ash.read()
+
+    for device <- expired do
+      Ash.destroy(device)
+    end
+
+    :ok
+  end
+
+  @doc """
+  Deletes all trusted devices for a user. Returns `:ok`.
+  """
+  @spec delete_trusted_devices_for_user(Ecto.UUID.t()) :: :ok
+  def delete_trusted_devices_for_user(user_id) do
+    require Ash.Query
+
+    {:ok, devices} =
+      Saleflow.Accounts.TrustedDevice
+      |> Ash.Query.filter(user_id == ^user_id)
+      |> Ash.read()
+
+    for device <- devices do
+      Ash.destroy(device)
+    end
+
+    :ok
+  end
+
+  # ---------------------------------------------------------------------------
+  # Password reset
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Requests a password reset for the given email.
+
+  Creates a reset token and sends an email with a link. Always returns `:ok`
+  regardless of whether the email exists (to avoid leaking user existence).
+  """
+  @spec request_password_reset(String.t()) :: :ok
+  def request_password_reset(email) do
+    require Ash.Query
+
+    case Saleflow.Accounts.User
+         |> Ash.Query.filter(email == ^email)
+         |> Ash.read_one() do
+      {:ok, nil} ->
+        :ok
+
+      {:ok, user} ->
+        {:ok, reset_token} =
+          Saleflow.Accounts.PasswordResetToken
+          |> Ash.Changeset.for_create(:create, %{user_id: user.id})
+          |> Ash.create()
+
+        frontend_url = Application.get_env(:saleflow, :frontend_url, "http://localhost:5173")
+        reset_url = "#{frontend_url}/reset-password?token=#{reset_token.token}"
+
+        {subject, html} =
+          Saleflow.Notifications.Templates.render_password_reset(user.name, reset_url)
+
+        Saleflow.Notifications.Mailer.send_email(to_string(user.email), subject, html)
+
+        :ok
+
+      {:error, _} ->
+        :ok
+    end
+  end
+
+  @doc """
+  Resets a user's password using a valid reset token.
+
+  On success, marks the token as used and invalidates all active sessions
+  (forcing re-login everywhere).
+
+  Returns `{:ok, user}` on success, `{:error, reason}` on failure.
+  """
+  @spec reset_password(String.t(), String.t(), String.t()) ::
+          {:ok, Saleflow.Accounts.User.t()} | {:error, atom() | term()}
+  def reset_password(token, new_password, new_password_confirmation) do
+    require Ash.Query
+
+    if new_password != new_password_confirmation do
+      {:error, :passwords_do_not_match}
+    else
+      now = DateTime.utc_now()
+
+      case Saleflow.Accounts.PasswordResetToken
+           |> Ash.Query.filter(token == ^token and is_nil(used_at) and expires_at > ^now)
+           |> Ash.read_one() do
+        {:ok, nil} ->
+          {:error, :invalid_or_expired_token}
+
+        {:ok, reset_token} ->
+          # Mark token as used
+          reset_token
+          |> Ash.Changeset.for_update(:mark_used, %{})
+          |> Ash.update!()
+
+          # Update user password
+          {:ok, user} = Ash.get(Saleflow.Accounts.User, reset_token.user_id)
+
+          {:ok, user} =
+            user
+            |> Ash.Changeset.for_update(:update_password, %{
+              password: new_password,
+              password_confirmation: new_password_confirmation
+            })
+            |> Ash.update()
+
+          # Invalidate all sessions
+          force_logout_all(user.id)
+
+          # Delete all trusted devices
+          delete_trusted_devices_for_user(user.id)
+
+          {:ok, user}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end
   end
 
   # ---------------------------------------------------------------------------

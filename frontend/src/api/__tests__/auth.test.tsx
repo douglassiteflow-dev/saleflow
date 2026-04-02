@@ -26,7 +26,7 @@ describe("useMe", () => {
   it("returns user data on success", async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ id: "1", email: "test@test.se", name: "Test", role: "agent" }),
+      json: () => Promise.resolve({ user: { id: "1", email: "test@test.se", name: "Test", role: "agent" } }),
     });
 
     const { result } = renderHook(() => useMe(), { wrapper: createWrapper() });

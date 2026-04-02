@@ -104,5 +104,18 @@ defmodule Saleflow.Accounts.User do
       description "Update user name or role"
       accept [:name, :role]
     end
+
+    update :update_password do
+      description "Update user password (used by password reset)"
+      argument :password, :string, allow_nil?: false, sensitive?: true
+      argument :password_confirmation, :string, allow_nil?: false, sensitive?: true
+      require_atomic? false
+
+      change fn changeset, _context ->
+        password = Ash.Changeset.get_argument(changeset, :password)
+        hashed = Bcrypt.hash_pwd_salt(password)
+        Ash.Changeset.force_change_attribute(changeset, :hashed_password, hashed)
+      end
+    end
   end
 end

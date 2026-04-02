@@ -12,8 +12,20 @@ export interface LoginResponse {
   user_id: string;
 }
 
+export interface LoginTrustedResponse {
+  user: User;
+}
+
 export interface VerifyOtpResponse {
   user: User;
+}
+
+export interface ForgotPasswordResponse {
+  ok: boolean;
+}
+
+export interface ResetPasswordResponse {
+  ok: boolean;
 }
 
 export interface LoginSession {

@@ -123,6 +123,176 @@ defmodule SaleflowWeb.AuthControllerTest do
   end
 
   # ---------------------------------------------------------------------------
+  # POST /api/auth/verify-otp with remember_me
+  # ---------------------------------------------------------------------------
+
+  describe "POST /api/auth/verify-otp with remember_me" do
+    test "sets device_token cookie when remember_me is true", %{conn: conn, user: user} do
+      {:ok, otp} = Accounts.create_otp(user)
+
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> post("/api/auth/verify-otp", %{
+          user_id: user.id,
+          code: otp.code,
+          remember_me: true
+        })
+
+      assert %{"user" => _} = json_response(conn, 200)
+      assert conn.resp_cookies["saleflow_device_token"] != nil
+      assert conn.resp_cookies["saleflow_device_token"].value != ""
+    end
+
+    test "does not set device_token cookie when remember_me is not true", %{
+      conn: conn,
+      user: user
+    } do
+      {:ok, otp} = Accounts.create_otp(user)
+
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> post("/api/auth/verify-otp", %{user_id: user.id, code: otp.code})
+
+      assert %{"user" => _} = json_response(conn, 200)
+      assert conn.resp_cookies["saleflow_device_token"] == nil
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # POST /api/auth/sign-in with trusted device
+  # ---------------------------------------------------------------------------
+
+  describe "POST /api/auth/sign-in with trusted device" do
+    test "skips OTP when valid device_token cookie exists", %{conn: conn, user: user} do
+      # Create a trusted device
+      {:ok, device} = Accounts.create_trusted_device(user, "Chrome / Desktop")
+
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> put_req_cookie("saleflow_device_token", device.device_token)
+        |> post("/api/auth/sign-in", %{email: "agent@example.com", password: "password123"})
+
+      # Should return user directly (no OTP step)
+      assert %{"user" => user_json} = json_response(conn, 200)
+      assert user_json["email"] == "agent@example.com"
+      refute Map.has_key?(json_response(conn, 200), "otp_sent")
+    end
+
+    test "falls back to OTP when device_token is invalid", %{conn: conn} do
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> put_req_cookie("saleflow_device_token", "invalid-token")
+        |> post("/api/auth/sign-in", %{email: "agent@example.com", password: "password123"})
+
+      assert %{"otp_sent" => true} = json_response(conn, 200)
+    end
+
+    test "falls back to OTP when no device_token cookie", %{conn: conn} do
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> post("/api/auth/sign-in", %{email: "agent@example.com", password: "password123"})
+
+      assert %{"otp_sent" => true} = json_response(conn, 200)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # POST /api/auth/forgot-password
+  # ---------------------------------------------------------------------------
+
+  describe "POST /api/auth/forgot-password" do
+    test "returns ok for existing email", %{conn: conn} do
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> post("/api/auth/forgot-password", %{email: "agent@example.com"})
+
+      assert %{"ok" => true} = json_response(conn, 200)
+    end
+
+    test "returns ok for non-existing email (no leak)", %{conn: conn} do
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> post("/api/auth/forgot-password", %{email: "nobody@example.com"})
+
+      assert %{"ok" => true} = json_response(conn, 200)
+    end
+
+    test "returns 400 when email is missing", %{conn: conn} do
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> post("/api/auth/forgot-password", %{})
+
+      assert %{"error" => _} = json_response(conn, 400)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # POST /api/auth/reset-password
+  # ---------------------------------------------------------------------------
+
+  describe "POST /api/auth/reset-password" do
+    test "resets password with valid token", %{conn: conn} do
+      Accounts.request_password_reset("agent@example.com")
+
+      {:ok, [reset_token | _]} = Saleflow.Accounts.PasswordResetToken |> Ash.read()
+
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> post("/api/auth/reset-password", %{
+          token: reset_token.token,
+          password: "newpassword456",
+          password_confirmation: "newpassword456"
+        })
+
+      assert %{"ok" => true} = json_response(conn, 200)
+    end
+
+    test "returns error with invalid token", %{conn: conn} do
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> post("/api/auth/reset-password", %{
+          token: "invalid-token",
+          password: "newpassword456",
+          password_confirmation: "newpassword456"
+        })
+
+      assert %{"error" => _} = json_response(conn, 400)
+    end
+
+    test "returns error when passwords don't match", %{conn: conn} do
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> post("/api/auth/reset-password", %{
+          token: "any-token",
+          password: "pass1",
+          password_confirmation: "pass2"
+        })
+
+      assert %{"error" => "Passwords do not match"} = json_response(conn, 400)
+    end
+
+    test "returns 400 with missing params", %{conn: conn} do
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> post("/api/auth/reset-password", %{})
+
+      assert %{"error" => _} = json_response(conn, 400)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
   # GET /api/auth/me
   # ---------------------------------------------------------------------------
 

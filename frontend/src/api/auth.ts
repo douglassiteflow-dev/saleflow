@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "./client";
-import type { User, LoginResponse, VerifyOtpResponse } from "./types";
+import type {
+  User,
+  LoginResponse,
+  LoginTrustedResponse,
+  VerifyOtpResponse,
+  ForgotPasswordResponse,
+  ResetPasswordResponse,
+} from "./types";
 
 export function useMe() {
   return useQuery<User | null>({
@@ -26,19 +33,37 @@ interface LoginParams {
   password: string;
 }
 
+export type SignInResponse = LoginResponse | LoginTrustedResponse;
+
+function isLoginTrustedResponse(
+  resp: SignInResponse,
+): resp is LoginTrustedResponse {
+  return "user" in resp;
+}
+
+export { isLoginTrustedResponse };
+
 export function useLogin() {
-  return useMutation<LoginResponse, ApiError, LoginParams>({
+  const queryClient = useQueryClient();
+
+  return useMutation<SignInResponse, ApiError, LoginParams>({
     mutationFn: (params) =>
-      api<LoginResponse>("/api/auth/sign-in", {
+      api<SignInResponse>("/api/auth/sign-in", {
         method: "POST",
         body: JSON.stringify(params),
       }),
+    onSuccess: (data) => {
+      if (isLoginTrustedResponse(data)) {
+        queryClient.setQueryData(["auth", "me"], data.user);
+      }
+    },
   });
 }
 
 interface VerifyOtpParams {
   user_id: string;
   code: string;
+  remember_me?: boolean;
 }
 
 export function useVerifyOtp() {
@@ -77,5 +102,35 @@ export function useLogout() {
     onSuccess: () => {
       queryClient.clear();
     },
+  });
+}
+
+interface ForgotPasswordParams {
+  email: string;
+}
+
+export function useForgotPassword() {
+  return useMutation<ForgotPasswordResponse, ApiError, ForgotPasswordParams>({
+    mutationFn: (params) =>
+      api<ForgotPasswordResponse>("/api/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify(params),
+      }),
+  });
+}
+
+interface ResetPasswordParams {
+  token: string;
+  password: string;
+  password_confirmation: string;
+}
+
+export function useResetPassword() {
+  return useMutation<ResetPasswordResponse, ApiError, ResetPasswordParams>({
+    mutationFn: (params) =>
+      api<ResetPasswordResponse>("/api/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify(params),
+      }),
   });
 }

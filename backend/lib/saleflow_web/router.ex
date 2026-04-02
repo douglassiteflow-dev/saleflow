@@ -21,6 +21,8 @@ defmodule SaleflowWeb.Router do
 
     post "/auth/sign-in", AuthController, :sign_in
     post "/auth/verify-otp", AuthController, :verify_otp
+    post "/auth/forgot-password", AuthController, :forgot_password
+    post "/auth/reset-password", AuthController, :reset_password
   end
 
   # Authenticated

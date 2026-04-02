@@ -11,12 +11,14 @@ const verifyOtpMutateMock = vi.fn();
 const useVerifyOtpMock = vi.fn();
 const resendOtpMutateMock = vi.fn();
 const useResendOtpMock = vi.fn();
+const isLoginTrustedResponseMock = vi.fn();
 
 vi.mock("@/api/auth", () => ({
   useMe: () => useMeMock(),
   useLogin: () => useLoginMock(),
   useVerifyOtp: () => useVerifyOtpMock(),
   useResendOtp: () => useResendOtpMock(),
+  isLoginTrustedResponse: (resp: unknown) => isLoginTrustedResponseMock(resp),
 }));
 
 function Wrapper({ children }: { children: React.ReactNode }) {
@@ -27,6 +29,7 @@ function Wrapper({ children }: { children: React.ReactNode }) {
         <Routes>
           <Route path="/login" element={children} />
           <Route path="/dashboard" element={<div>Dashboard</div>} />
+          <Route path="/forgot-password" element={<div>Forgot Password</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -35,6 +38,7 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 
 describe("LoginPage", () => {
   beforeEach(() => {
+    isLoginTrustedResponseMock.mockReturnValue(false);
     useLoginMock.mockReturnValue({
       mutate: loginMutateMock,
       isPending: false,
@@ -78,6 +82,25 @@ describe("LoginPage", () => {
     expect(screen.getByLabelText(/E-post/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Lösenord/i)).toBeInTheDocument();
     expect(screen.getByText("Logga in")).toBeInTheDocument();
+  });
+
+  it("renders 'Kom ihåg mig' checkbox", () => {
+    useMeMock.mockReturnValue({ data: null, isLoading: false });
+    render(<LoginPage />, { wrapper: Wrapper });
+    expect(screen.getByText("Kom ihåg mig")).toBeInTheDocument();
+  });
+
+  it("renders 'Glömt lösenord?' link", () => {
+    useMeMock.mockReturnValue({ data: null, isLoading: false });
+    render(<LoginPage />, { wrapper: Wrapper });
+    expect(screen.getByText("Glömt lösenord?")).toBeInTheDocument();
+  });
+
+  it("navigates to forgot-password page when link is clicked", () => {
+    useMeMock.mockReturnValue({ data: null, isLoading: false });
+    render(<LoginPage />, { wrapper: Wrapper });
+    fireEvent.click(screen.getByText("Glömt lösenord?"));
+    expect(screen.getByText("Forgot Password")).toBeInTheDocument();
   });
 
   it("calls login on form submit", () => {
@@ -131,6 +154,26 @@ describe("LoginPage", () => {
 
     render(<LoginPage />, { wrapper: Wrapper });
     expect(screen.getByText("Inloggningen misslyckades")).toBeInTheDocument();
+  });
+
+  // --- Trusted device (skip OTP) ---
+
+  it("navigates directly to dashboard when trusted device response", () => {
+    useMeMock.mockReturnValue({ data: null, isLoading: false });
+    isLoginTrustedResponseMock.mockReturnValue(true);
+    loginMutateMock.mockImplementation(
+      (_params: unknown, opts: { onSuccess?: (data: { user: { id: string; name: string } }) => void }) => {
+        opts?.onSuccess?.({ user: { id: "u-trusted", name: "Trusted" } });
+      },
+    );
+
+    render(<LoginPage />, { wrapper: Wrapper });
+    fireEvent.change(screen.getByLabelText(/E-post/i), { target: { value: "test@test.se" } });
+    fireEvent.change(screen.getByLabelText(/Lösenord/i), { target: { value: "pass123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Logga in" }));
+
+    // Should navigate directly to dashboard (no OTP step)
+    expect(screen.getByText("Dashboard")).toBeInTheDocument();
   });
 
   // --- OTP step ---
@@ -252,7 +295,7 @@ describe("LoginPage", () => {
     expect(screen.getByText("Verifieringen misslyckades")).toBeInTheDocument();
   });
 
-  it("calls verifyOtp with user_id and code on OTP complete", () => {
+  it("calls verifyOtp with user_id, code, and remember_me on OTP complete", () => {
     useMeMock.mockReturnValue({ data: null, isLoading: false });
     loginMutateMock.mockImplementation(
       (_params: unknown, opts: { onSuccess?: (data: { otp_sent: boolean; user_id: string }) => void }) => {
@@ -275,7 +318,39 @@ describe("LoginPage", () => {
     fireEvent.change(inputs[5]!, { target: { value: "6" } });
 
     expect(verifyOtpMutateMock).toHaveBeenCalledWith(
-      { user_id: "u-456", code: "123456" },
+      { user_id: "u-456", code: "123456", remember_me: false },
+      expect.any(Object),
+    );
+  });
+
+  it("passes remember_me: true when checkbox is checked", () => {
+    useMeMock.mockReturnValue({ data: null, isLoading: false });
+    loginMutateMock.mockImplementation(
+      (_params: unknown, opts: { onSuccess?: (data: { otp_sent: boolean; user_id: string }) => void }) => {
+        opts?.onSuccess?.({ otp_sent: true, user_id: "u-456" });
+      },
+    );
+
+    render(<LoginPage />, { wrapper: Wrapper });
+
+    // Check the "Kom ihåg mig" checkbox before submitting
+    fireEvent.click(screen.getByText("Kom ihåg mig"));
+
+    fireEvent.change(screen.getByLabelText(/E-post/i), { target: { value: "test@test.se" } });
+    fireEvent.change(screen.getByLabelText(/Lösenord/i), { target: { value: "pass123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Logga in" }));
+
+    // Fill in OTP
+    const inputs = screen.getAllByRole("textbox");
+    fireEvent.change(inputs[0]!, { target: { value: "1" } });
+    fireEvent.change(inputs[1]!, { target: { value: "2" } });
+    fireEvent.change(inputs[2]!, { target: { value: "3" } });
+    fireEvent.change(inputs[3]!, { target: { value: "4" } });
+    fireEvent.change(inputs[4]!, { target: { value: "5" } });
+    fireEvent.change(inputs[5]!, { target: { value: "6" } });
+
+    expect(verifyOtpMutateMock).toHaveBeenCalledWith(
+      { user_id: "u-456", code: "123456", remember_me: true },
       expect.any(Object),
     );
   });

@@ -68,6 +68,17 @@ defmodule Saleflow.Notifications.Templates do
   end
 
   @doc """
+  Renders the password-reset email.
+
+  Returns `{"Återställ ditt lösenord - SaleFlow", html}`.
+  """
+  @spec render_password_reset(String.t(), String.t()) :: {String.t(), String.t()}
+  def render_password_reset(name, reset_url) do
+    html = render("password_reset.html.eex", name: name, reset_url: reset_url)
+    {"Återställ ditt lösenord - SaleFlow", html}
+  end
+
+  @doc """
   Renders a callback-reminder email.
 
   Returns `{"Påminnelse: återuppringning till <company>", html}`.

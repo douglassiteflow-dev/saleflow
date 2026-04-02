@@ -1,6 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
-import { useMe, useLogin, useVerifyOtp, useResendOtp } from "@/api/auth";
+import { Navigate, useNavigate, Link } from "react-router-dom";
+import {
+  useMe,
+  useLogin,
+  useVerifyOtp,
+  useResendOtp,
+  isLoginTrustedResponse,
+} from "@/api/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -17,6 +23,7 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [userId, setUserId] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
 
   if (isLoading) {
     return (
@@ -36,8 +43,13 @@ export function LoginPage() {
       { email, password },
       {
         onSuccess: (data) => {
-          setUserId(data.user_id);
-          setStep("otp");
+          if (isLoginTrustedResponse(data)) {
+            // Trusted device — skip OTP, go directly to dashboard
+            void navigate("/dashboard");
+          } else {
+            setUserId(data.user_id);
+            setStep("otp");
+          }
         },
       },
     );
@@ -45,7 +57,7 @@ export function LoginPage() {
 
   function handleOtpComplete(code: string) {
     verifyOtp.mutate(
-      { user_id: userId, code },
+      { user_id: userId, code, remember_me: rememberMe },
       {
         onSuccess: () => {
           void navigate("/dashboard");
@@ -117,6 +129,24 @@ export function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                 />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  Kom ihåg mig
+                </label>
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-indigo-600 hover:text-indigo-500"
+                >
+                  Glömt lösenord?
+                </Link>
               </div>
 
               {login.isError && (
