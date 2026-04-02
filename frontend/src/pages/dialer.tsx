@@ -115,8 +115,8 @@ export function DialerPage() {
         </div>
       </div>
 
-      {/* Three-column grid: LeadInfo | OutcomePanel | Google Search */}
-      <div className="grid gap-6" style={{ gridTemplateColumns: "2fr 1.5fr 2fr" }}>
+      {/* Responsive grid: LeadInfo | OutcomePanel | Google Search */}
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-[2fr_1.5fr] xl:grid-cols-[2fr_1.5fr_2fr]">
         <div className="space-y-6">
           <LeadInfo lead={lead} />
           <HistoryTimeline callLogs={calls} auditLogs={auditLogs} />

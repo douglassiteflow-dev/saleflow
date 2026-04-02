@@ -258,6 +258,7 @@ defmodule SaleflowWeb.MeetingController do
       id: lead.id,
       företag: lead.företag,
       telefon: lead.telefon,
+      telefon_2: lead.telefon_2,
       epost: lead.epost,
       hemsida: lead.hemsida,
       adress: lead.adress,

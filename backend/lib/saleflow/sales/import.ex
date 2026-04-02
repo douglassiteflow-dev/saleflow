@@ -41,6 +41,7 @@ defmodule Saleflow.Sales.Import do
   @field_mapping %{
     "företag" => :företag,
     "telefon" => :telefon,
+    "telefon_2" => :telefon_2,
     "epost" => :epost,
     "hemsida" => :hemsida,
     "adress" => :adress,

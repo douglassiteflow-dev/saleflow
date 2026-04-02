@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MeetingForm } from "@/components/meeting-form";
+import { MeetingCalendar } from "@/components/meeting-calendar";
 import { formatDate, formatTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import Loader from "@/components/kokonutui/loader";
@@ -23,10 +24,14 @@ function todayDateString(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+type ViewMode = "list" | "calendar";
+
 export function MeetingsPage() {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState<FilterTab>("upcoming");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
 
   const { data: meetings, isLoading } = useMeetings();
   const cancelMeeting = useCancelMeeting();
@@ -66,12 +71,36 @@ export function MeetingsPage() {
         >
           Möten
         </h1>
-        <Button
-          variant={showForm ? "secondary" : "primary"}
-          onClick={() => setShowForm((v) => !v)}
-        >
-          {showForm ? "Stäng formulär" : "Nytt möte"}
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex rounded-md border border-[var(--color-border)] overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              className={cn(
+                "px-3 py-1.5 text-sm font-medium transition-colors",
+                viewMode === "list" ? "bg-[var(--color-accent)] text-white" : "bg-white text-[var(--color-text-secondary)] hover:bg-slate-50",
+              )}
+            >
+              Lista
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("calendar")}
+              className={cn(
+                "px-3 py-1.5 text-sm font-medium transition-colors",
+                viewMode === "calendar" ? "bg-[var(--color-accent)] text-white" : "bg-white text-[var(--color-text-secondary)] hover:bg-slate-50",
+              )}
+            >
+              Kalender
+            </button>
+          </div>
+          <Button
+            variant={showForm ? "secondary" : "primary"}
+            onClick={() => setShowForm((v) => !v)}
+          >
+            {showForm ? "Stäng formulär" : "Nytt möte"}
+          </Button>
+        </div>
       </div>
 
       {/* Inline form */}
@@ -98,8 +127,20 @@ export function MeetingsPage() {
         ))}
       </div>
 
+      {/* Calendar view */}
+      {viewMode === "calendar" && (
+        <Card>
+          <MeetingCalendar
+            meetings={meetings ?? []}
+            currentMonth={calendarMonth}
+            onMonthChange={setCalendarMonth}
+            onMeetingClick={(id) => void navigate(`/meetings/${id}`)}
+          />
+        </Card>
+      )}
+
       {/* Table */}
-      <Card>
+      {viewMode === "list" && <Card>
         <CardTitle className="mb-4">
           {TABS.find((t) => t.key === activeTab)?.label ?? "Möten"}
         </CardTitle>
@@ -193,7 +234,7 @@ export function MeetingsPage() {
             </table>
           </div>
         )}
-      </Card>
+      </Card>}
     </div>
   );
 }

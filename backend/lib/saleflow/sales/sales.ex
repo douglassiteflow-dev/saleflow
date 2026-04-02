@@ -143,6 +143,17 @@ defmodule Saleflow.Sales do
   end
 
   @doc """
+  Updates editable fields on a lead (e.g. telefon_2).
+  """
+  @spec update_lead_fields(Saleflow.Sales.Lead.t(), map()) ::
+          {:ok, Saleflow.Sales.Lead.t()} | {:error, Ash.Error.t()}
+  def update_lead_fields(lead, params) do
+    lead
+    |> Ash.Changeset.for_update(:update_fields, params)
+    |> Ash.update()
+  end
+
+  @doc """
   Gets a lead by ID.
 
   Returns `{:ok, lead}` or `{:error, %Ash.Error.Query.NotFound{}}`.

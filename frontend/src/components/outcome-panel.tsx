@@ -36,20 +36,28 @@ const OUTCOMES: OutcomeConfig[] = [
     hoverBg: "#FEF3C7",
   },
   {
-    outcome: "not_interested",
-    label: "Inte intresserad",
-    color: "#DC2626",
-    bgColor: "#FEF2F2",
-    borderColor: "#FECACA",
-    hoverBg: "#FEE2E2",
-  },
-  {
     outcome: "no_answer",
     label: "Svarar ej",
     color: "#64748B",
     bgColor: "#F8FAFC",
     borderColor: "#CBD5E1",
     hoverBg: "#F1F5F9",
+  },
+  {
+    outcome: "call_later",
+    label: "Ring senare",
+    color: "#B45309",
+    bgColor: "#FFFBEB",
+    borderColor: "#FDE68A",
+    hoverBg: "#FEF3C7",
+  },
+  {
+    outcome: "not_interested",
+    label: "Inte intresserad",
+    color: "#DC2626",
+    bgColor: "#FEF2F2",
+    borderColor: "#FECACA",
+    hoverBg: "#FEE2E2",
   },
   {
     outcome: "bad_number",
@@ -153,7 +161,7 @@ export function OutcomePanel({ leadId, onOutcomeSubmitted }: OutcomePanelProps) 
               disabled={submitOutcome.isPending}
               onClick={() => handleSelect(cfg.outcome)}
               className={cn(
-                "flex items-center justify-center rounded-md border-2 px-3 py-2.5 text-sm font-medium transition-all duration-150 cursor-pointer",
+                "flex items-center justify-center rounded-md border-2 px-3 py-2.5 text-xs lg:text-sm font-medium transition-all duration-150 cursor-pointer whitespace-nowrap truncate",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
                 "disabled:pointer-events-none disabled:opacity-50",
                 isSelected
@@ -179,6 +187,16 @@ export function OutcomePanel({ leadId, onOutcomeSubmitted }: OutcomePanelProps) 
           <label className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
             Datum för återuppringning
           </label>
+          <button
+            type="button"
+            onClick={() => {
+              const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+              setCallbackDate(d.toISOString().slice(0, 16));
+            }}
+            className="w-full rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors mb-2"
+          >
+            Om 24 timmar
+          </button>
           <input
             type="datetime-local"
             value={callbackDate}

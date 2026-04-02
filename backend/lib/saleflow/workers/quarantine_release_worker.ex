@@ -45,6 +45,7 @@ defmodule Saleflow.Workers.QuarantineReleaseWorker do
     query = """
     SELECT id FROM leads
     WHERE status = 'quarantine'
+      AND quarantine_until IS NOT NULL
       AND quarantine_until < $1
     """
 

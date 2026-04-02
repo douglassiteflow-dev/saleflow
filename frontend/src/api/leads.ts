@@ -61,6 +61,23 @@ export function useNextLead() {
   });
 }
 
+export function useUpdateLead(leadId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<Lead, ApiError, { telefon_2?: string | null }>({
+    mutationFn: async (params) => {
+      const data = await api<{ lead: Lead }>(`/api/leads/${leadId}`, {
+        method: "PATCH",
+        body: JSON.stringify(params),
+      });
+      return data.lead;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["leads", "detail", leadId] });
+    },
+  });
+}
+
 export function useSubmitOutcome(leadId: string) {
   const queryClient = useQueryClient();
 

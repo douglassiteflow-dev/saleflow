@@ -1,8 +1,11 @@
+import { useState } from "react";
 import type { Lead } from "@/api/types";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPhone } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { api } from "@/api/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface InfoRowProps {
   label: string;
@@ -34,6 +37,27 @@ interface LeadInfoProps {
 }
 
 export function LeadInfo({ lead }: LeadInfoProps) {
+  const queryClient = useQueryClient();
+  const [editingPhone2, setEditingPhone2] = useState(false);
+  const [phone2Value, setPhone2Value] = useState(lead.telefon_2 ?? "");
+  const [savingPhone2, setSavingPhone2] = useState(false);
+
+  async function handleSavePhone2() {
+    setSavingPhone2(true);
+    try {
+      await api(`/api/leads/${lead.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ telefon_2: phone2Value || null }),
+      });
+      void queryClient.invalidateQueries({ queryKey: ["leads", "detail", lead.id] });
+      setEditingPhone2(false);
+    } catch {
+      // ignore
+    } finally {
+      setSavingPhone2(false);
+    }
+  }
+
   return (
     <Card>
       <div className="flex items-start justify-between mb-4">
@@ -53,6 +77,57 @@ export function LeadInfo({ lead }: LeadInfoProps) {
             </a>
           }
         />
+        <div className="flex flex-col gap-0.5 py-2 border-b border-[var(--color-border)]">
+          <span className="text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
+            Telefon 2
+          </span>
+          {editingPhone2 ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={phone2Value}
+                onChange={(e) => setPhone2Value(e.target.value)}
+                placeholder="+46..."
+                className="flex-1 rounded-md border border-[var(--color-border-input)] bg-white px-2 py-1 text-sm font-mono"
+              />
+              <button
+                type="button"
+                onClick={handleSavePhone2}
+                disabled={savingPhone2}
+                className="text-xs font-medium text-emerald-600 hover:text-emerald-700"
+              >
+                {savingPhone2 ? "..." : "Spara"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setEditingPhone2(false); setPhone2Value(lead.telefon_2 ?? ""); }}
+                className="text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+              >
+                Avbryt
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              {lead.telefon_2 ? (
+                <a
+                  href={`tel:${lead.telefon_2}`}
+                  className="font-mono text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
+                >
+                  {formatPhone(lead.telefon_2)}
+                </a>
+              ) : (
+                <span className="text-sm text-[var(--color-text-secondary)]">—</span>
+              )}
+              <button
+                type="button"
+                onClick={() => { setPhone2Value(lead.telefon_2 ?? ""); setEditingPhone2(true); }}
+                className="text-xs text-[var(--color-accent)] hover:underline"
+              >
+                {lead.telefon_2 ? "Ändra" : "Lägg till"}
+              </button>
+            </div>
+          )}
+        </div>
         <InfoRow label="Org.nr" value={lead.orgnr} mono />
         <InfoRow label="Adress" value={lead.adress} />
         <InfoRow label="Postnummer" value={lead.postnummer} mono />

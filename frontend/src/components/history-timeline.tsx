@@ -24,6 +24,7 @@ const OUTCOME_LABELS: Record<string, string> = {
   callback: "Återuppringning",
   not_interested: "Ej intresserad",
   no_answer: "Ej svar",
+  call_later: "Ring senare",
   bad_number: "Fel nummer",
   customer: "Kund",
   other: "Övrigt",
@@ -268,8 +269,8 @@ export function HistoryTimeline({ callLogs = [], auditLogs = [] }: HistoryTimeli
                       </span>
                     )}
                     {userName && (
-                      <span className="text-[11px] font-medium text-[var(--color-accent)]">
-                        {userName}
+                      <span className="text-[11px] font-semibold text-[var(--color-text-primary)]">
+                        — {userName}
                       </span>
                     )}
                     <span className="text-[11px] font-mono text-[var(--color-text-secondary)]">

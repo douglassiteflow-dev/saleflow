@@ -54,6 +54,7 @@ export type Outcome =
   | "callback"
   | "not_interested"
   | "no_answer"
+  | "call_later"
   | "bad_number"
   | "customer";
 
@@ -61,6 +62,7 @@ export interface Lead {
   id: string;
   företag: string;
   telefon: string;
+  telefon_2: string | null;
   epost: string | null;
   hemsida: string | null;
   adress: string | null;

@@ -41,6 +41,7 @@ defmodule SaleflowWeb.Router do
     get "/leads", LeadController, :index
     get "/leads/:id", LeadController, :show
     post "/leads/next", LeadController, :next
+    patch "/leads/:id", LeadController, :update
     post "/leads/:id/outcome", LeadController, :outcome
 
     get "/dashboard", DashboardController, :index

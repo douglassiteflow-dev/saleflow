@@ -39,7 +39,7 @@ defmodule Saleflow.Sales.CallLog do
     end
 
     attribute :outcome, :atom do
-      constraints one_of: [:meeting_booked, :callback, :not_interested, :no_answer, :bad_number, :customer, :other]
+      constraints one_of: [:meeting_booked, :callback, :not_interested, :no_answer, :call_later, :bad_number, :customer, :other]
       allow_nil? false
       public? true
     end

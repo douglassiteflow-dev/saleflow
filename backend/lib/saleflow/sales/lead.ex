@@ -103,6 +103,11 @@ defmodule Saleflow.Sales.Lead do
       public? true
     end
 
+    attribute :telefon_2, :string do
+      allow_nil? true
+      public? true
+    end
+
     attribute :källa, :string do
       allow_nil? true
       public? true
@@ -165,6 +170,7 @@ defmodule Saleflow.Sales.Lead do
         :anställda,
         :vd_namn,
         :bolagsform,
+        :telefon_2,
         :status,
         :quarantine_until,
         :callback_at,
@@ -180,7 +186,7 @@ defmodule Saleflow.Sales.Lead do
       description "Create a lead without audit log (for bulk import)"
 
       accept [
-        :företag, :telefon, :epost, :hemsida, :adress, :postnummer, :stad,
+        :företag, :telefon, :telefon_2, :epost, :hemsida, :adress, :postnummer, :stad,
         :bransch, :orgnr, :omsättning_tkr, :vinst_tkr, :anställda, :vd_namn,
         :bolagsform, :status, :imported_at, :källa, :lead_list_id
       ]
@@ -195,12 +201,19 @@ defmodule Saleflow.Sales.Lead do
       change fn changeset, _context ->
         case Ash.Changeset.get_attribute(changeset, :status) do
           :quarantine ->
-            # Only auto-set quarantine_until if caller didn't provide an explicit value
-            if is_nil(Ash.Changeset.get_attribute(changeset, :quarantine_until)) do
-              seven_days_from_now = DateTime.add(DateTime.utc_now(), 7, :day)
-              Ash.Changeset.force_change_attribute(changeset, :quarantine_until, seven_days_from_now)
-            else
-              changeset
+            case Ash.Changeset.get_attribute(changeset, :quarantine_until) do
+              # :permanent sentinel → set quarantine_until to nil (permanent quarantine)
+              :permanent ->
+                Ash.Changeset.force_change_attribute(changeset, :quarantine_until, nil)
+
+              # Explicit DateTime provided → use it
+              %DateTime{} ->
+                changeset
+
+              # No value provided → default to 7 days
+              nil ->
+                seven_days_from_now = DateTime.add(DateTime.utc_now(), 7, :day)
+                Ash.Changeset.force_change_attribute(changeset, :quarantine_until, seven_days_from_now)
             end
 
           _ ->
@@ -209,6 +222,15 @@ defmodule Saleflow.Sales.Lead do
       end
 
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "lead.status_changed"}
+    end
+
+    update :update_fields do
+      description "Update editable fields on a lead (e.g. telefon_2)"
+      require_atomic? false
+
+      accept [:telefon_2]
+
+      change {Saleflow.Audit.Changes.CreateAuditLog, action: "lead.updated"}
     end
 
     update :mark_callback_reminded do

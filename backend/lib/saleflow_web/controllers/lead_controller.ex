@@ -90,6 +90,19 @@ defmodule SaleflowWeb.LeadController do
   end
 
   @doc """
+  Update editable fields on a lead (e.g. telefon_2).
+  """
+  def update(conn, %{"id" => id} = params) do
+    with {:ok, lead} <- Sales.get_lead(id),
+         {:ok, updated} <- Sales.update_lead_fields(lead, %{telefon_2: params["telefon_2"]}) do
+      json(conn, %{lead: serialize_lead(updated)})
+    else
+      {:error, _} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "Failed to update lead"})
+    end
+  end
+
+  @doc """
   Submit an outcome for a lead: logs the call, releases the assignment,
   updates lead status, and optionally creates a meeting or quarantine.
   """
@@ -107,6 +120,9 @@ defmodule SaleflowWeb.LeadController do
          {:ok, _lead} <- apply_outcome(lead, outcome, user, params) do
       json(conn, %{ok: true})
     else
+      {:error, message} when is_binary(message) ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: message})
+
       {:error, _reason} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: "Failed to process outcome"})
     end
@@ -132,30 +148,39 @@ defmodule SaleflowWeb.LeadController do
   end
 
   defp apply_outcome(lead, "meeting_booked", user, params) do
-    with {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :meeting_booked}) do
-      # Also create the meeting
-      meeting_params = %{
-        lead_id: lead.id,
-        user_id: user.id,
-        title: params["title"] || "Meeting",
-        meeting_date: parse_date(params["meeting_date"]),
-        meeting_time: parse_time(params["meeting_time"])
-      }
+    meeting_date = parse_date(params["meeting_date"])
+    meeting_time = parse_time(params["meeting_time"])
 
-      meeting_params =
-        if params["meeting_notes"],
-          do: Map.put(meeting_params, :notes, params["meeting_notes"]),
-          else: meeting_params
+    # Double booking check
+    case check_meeting_conflict(user.id, meeting_date, meeting_time) do
+      {:error, :conflict, date_str, time_str} ->
+        {:error, "Du har redan ett möte den #{date_str} kl #{time_str}"}
 
-      {:ok, _meeting} = Sales.create_meeting(meeting_params)
-      {:ok, updated_lead}
+      :ok ->
+        with {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :meeting_booked}) do
+          meeting_params = %{
+            lead_id: lead.id,
+            user_id: user.id,
+            title: params["title"] || "Meeting",
+            meeting_date: meeting_date,
+            meeting_time: meeting_time
+          }
+
+          meeting_params =
+            if params["meeting_notes"],
+              do: Map.put(meeting_params, :notes, params["meeting_notes"]),
+              else: meeting_params
+
+          {:ok, _meeting} = Sales.create_meeting(meeting_params)
+          {:ok, updated_lead}
+        end
     end
   end
 
   defp apply_outcome(lead, "callback", _user, params) do
     callback_at =
       case params["callback_at"] do
-        nil -> DateTime.utc_now() |> DateTime.add(1, :hour)
+        nil -> DateTime.utc_now() |> DateTime.add(24, :hour)
         dt_string -> parse_datetime(dt_string)
       end
 
@@ -163,7 +188,8 @@ defmodule SaleflowWeb.LeadController do
   end
 
   defp apply_outcome(lead, "not_interested", user, _params) do
-    with {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :quarantine}) do
+    # Permanent quarantine — quarantine_until = nil means never auto-released
+    with {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :quarantine, quarantine_until: :permanent}) do
       {:ok, _q} = Sales.create_quarantine(%{
         lead_id: lead.id,
         user_id: user.id,
@@ -173,8 +199,32 @@ defmodule SaleflowWeb.LeadController do
     end
   end
 
-  defp apply_outcome(lead, "no_answer", _user, _params) do
-    Sales.update_lead_status(lead, %{status: :new})
+  defp apply_outcome(lead, "no_answer", user, _params) do
+    # 24h quarantine instead of going back to queue immediately
+    quarantine_until = DateTime.utc_now() |> DateTime.add(24, :hour)
+
+    with {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :quarantine, quarantine_until: quarantine_until}) do
+      {:ok, _q} = Sales.create_quarantine(%{
+        lead_id: lead.id,
+        user_id: user.id,
+        reason: "No answer"
+      })
+      {:ok, updated_lead}
+    end
+  end
+
+  defp apply_outcome(lead, "call_later", user, _params) do
+    # 24h quarantine — same as no_answer
+    quarantine_until = DateTime.utc_now() |> DateTime.add(24, :hour)
+
+    with {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :quarantine, quarantine_until: quarantine_until}) do
+      {:ok, _q} = Sales.create_quarantine(%{
+        lead_id: lead.id,
+        user_id: user.id,
+        reason: "Call later"
+      })
+      {:ok, updated_lead}
+    end
   end
 
   defp apply_outcome(lead, "bad_number", _user, _params) do
@@ -190,6 +240,28 @@ defmodule SaleflowWeb.LeadController do
   end
 
   # ---------------------------------------------------------------------------
+  # Double booking check
+  # ---------------------------------------------------------------------------
+
+  defp check_meeting_conflict(user_id, date, time) do
+    query = """
+    SELECT id FROM meetings
+    WHERE user_id = $1 AND meeting_date = $2 AND meeting_time = $3 AND status = 'scheduled'
+    """
+
+    case Saleflow.Repo.query(query, [Ecto.UUID.dump!(user_id), date, time]) do
+      {:ok, %{rows: []}} ->
+        :ok
+
+      {:ok, %{rows: [_ | _]}} ->
+        {:error, :conflict, Date.to_iso8601(date), Time.to_string(time) |> String.slice(0, 5)}
+
+      {:error, _} ->
+        :ok
+    end
+  end
+
+  # ---------------------------------------------------------------------------
   # Serializers
   # ---------------------------------------------------------------------------
 
@@ -198,6 +270,7 @@ defmodule SaleflowWeb.LeadController do
       id: lead.id,
       företag: lead.företag,
       telefon: lead.telefon,
+      telefon_2: lead.telefon_2,
       epost: lead.epost,
       hemsida: lead.hemsida,
       adress: lead.adress,
