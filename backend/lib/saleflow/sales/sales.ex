@@ -3,7 +3,8 @@ defmodule Saleflow.Sales do
   Sales domain for SaleFlow.
 
   Manages leads and the full sales workflow. Exposes the Lead, Assignment,
-  CallLog, Meeting, and Quarantine resources.
+  CallLog, Meeting, Quarantine, PhoneCall, LeadList, LeadListAssignment,
+  and Request resources.
 
   ## Usage
 

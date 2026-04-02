@@ -91,6 +91,21 @@ defmodule Saleflow.Sales.PhoneCallTest do
       assert DateTime.diff(DateTime.utc_now(), phone_call.received_at, :second) < 5
     end
 
+    test "received_at is not in accept list (always server-set)" do
+      # Verify that passing received_at as a param is rejected by Ash
+      # because it's not in the accept list — only force_change_attribute sets it
+      result =
+        Saleflow.Sales.PhoneCall
+        |> Ash.Changeset.for_create(:create, %{
+          caller: "+46701234567",
+          callee: "+46709876543",
+          received_at: ~U[2020-01-01 00:00:00.000000Z]
+        })
+        |> Ash.create()
+
+      assert {:error, _} = result
+    end
+
     test "accepts optional call_log_id" do
       lead = create_lead!()
       user = create_user!()
