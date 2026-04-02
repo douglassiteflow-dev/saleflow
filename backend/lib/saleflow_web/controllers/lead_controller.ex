@@ -446,26 +446,34 @@ defmodule SaleflowWeb.LeadController do
         attendee_name: attendee_overrides[:name] || lead.vd_namn || lead.företag
       }
 
-      case Graph.create_calendar_event(ms_conn.access_token, event_params) do
-        {:ok, result} ->
-          meeting
-          |> Ash.Changeset.for_update(:update_teams, %{
-            teams_join_url: result.join_url,
-            teams_event_id: result.event_id
-          })
-          |> Ash.update()
+      try do
+        Logger.info("Teams: calling Graph API with attendee=#{event_params.attendee_email}")
 
-          # Audit log
-          Saleflow.Audit.create_log(%{
-            user_id: user.id,
-            action: "teams.meeting_created",
-            resource_type: "Meeting",
-            resource_id: meeting.id
-          })
+        case Graph.create_calendar_event(ms_conn.access_token, event_params) do
+          {:ok, result} ->
+            Logger.info("Teams: calendar event created! join_url=#{result.join_url}")
 
-        {:error, reason} ->
-          require Logger
-          Logger.warning("Auto Teams meeting creation failed: #{inspect(reason)}")
+            meeting
+            |> Ash.Changeset.for_update(:update_teams, %{
+              teams_join_url: result.join_url,
+              teams_event_id: result.event_id
+            })
+            |> Ash.update()
+
+            Saleflow.Audit.create_log(%{
+              user_id: user.id,
+              action: "teams.meeting_created",
+              resource_type: "Meeting",
+              resource_id: meeting.id
+            })
+
+          {:error, reason} ->
+            Logger.warning("Teams: Graph API returned error: #{inspect(reason)}")
+            :ok
+        end
+      rescue
+        e ->
+          Logger.error("Teams: CRASHED during Graph API call: #{inspect(e)}")
           :ok
       end
     else
