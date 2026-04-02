@@ -421,7 +421,7 @@ defmodule Saleflow.Sales do
           NOT EXISTS (SELECT 1 FROM lead_list_assignments lla WHERE lla.user_id = $1)
           OR l.lead_list_id IN (SELECT lla.lead_list_id FROM lead_list_assignments lla WHERE lla.user_id = $1)
         )
-      ORDER BY l.inserted_at ASC
+      ORDER BY RANDOM()
       LIMIT 1
       FOR UPDATE OF l SKIP LOCKED
       """
