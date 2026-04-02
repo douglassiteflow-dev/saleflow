@@ -128,14 +128,58 @@ export function DialerPage() {
               Webbsökning — {lead.företag}
             </p>
           </div>
-          <iframe
-            key={lead.id}
-            src={`https://duckduckgo.com/?q=${encodeURIComponent(lead.företag + " " + (lead.stad ?? ""))}`}
-            title="Webbsökning"
-            className="w-full border-0"
-            style={{ height: "calc(100% - 40px)" }}
-            referrerPolicy="no-referrer"
-          />
+          <div className="p-4 space-y-3">
+            {/* Main search button */}
+            <a
+              href={`https://www.google.com/search?q=${encodeURIComponent(lead.företag + " " + (lead.stad ?? ""))}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full h-12 rounded-md bg-[var(--color-accent)] text-white font-medium text-sm hover:bg-[var(--color-accent-hover)] transition-colors"
+            >
+              Sök på Google
+            </a>
+
+            {/* Quick links */}
+            <p className="text-xs font-medium uppercase tracking-wider text-[var(--color-text-secondary)] pt-2">
+              Snabblänkar
+            </p>
+            <div className="space-y-2">
+              {[
+                { label: "Google", url: `https://www.google.com/search?q=${encodeURIComponent(lead.företag + " " + (lead.stad ?? ""))}` },
+                { label: "Google Maps", url: `https://www.google.com/maps/search/${encodeURIComponent(lead.företag + " " + (lead.stad ?? ""))}` },
+                { label: "Hitta.se", url: `https://www.hitta.se/sök?vad=${encodeURIComponent(lead.företag)}&var=${encodeURIComponent(lead.stad ?? "")}` },
+                { label: "Eniro", url: `https://www.eniro.se/s/${encodeURIComponent(lead.företag)}` },
+                { label: "Allabolag", url: lead.orgnr ? `https://www.allabolag.se/${lead.orgnr}` : `https://www.allabolag.se/what/${encodeURIComponent(lead.företag)}` },
+                { label: `"${lead.företag}" hemsida`, url: `https://www.google.com/search?q=${encodeURIComponent('"' + lead.företag + '" hemsida')}` },
+              ].map((link) => (
+                <a
+                  key={link.label}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between px-3 py-2.5 rounded-md border border-[var(--color-border)] text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-bg-panel)] transition-colors"
+                >
+                  <span>{link.label}</span>
+                  <span className="text-[var(--color-text-secondary)]">↗</span>
+                </a>
+              ))}
+            </div>
+
+            {/* Phone quick action */}
+            {lead.telefon && (
+              <>
+                <p className="text-xs font-medium uppercase tracking-wider text-[var(--color-text-secondary)] pt-2">
+                  Ring
+                </p>
+                <a
+                  href={`tel:${lead.telefon}`}
+                  className="flex items-center justify-center gap-2 w-full h-12 rounded-md bg-emerald-600 text-white font-medium text-sm hover:bg-emerald-700 transition-colors"
+                >
+                  {lead.telefon}
+                </a>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
