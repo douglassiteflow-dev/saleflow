@@ -153,7 +153,7 @@ defmodule SaleflowWeb.MicrosoftController do
       start_dt = build_datetime(meeting.meeting_date, meeting.meeting_time)
       end_dt = NaiveDateTime.add(start_dt, 3600)
 
-      case Graph.create_calendar_event(ms_conn.access_token, %{
+      case Graph.create_meeting_with_invite(ms_conn.access_token, %{
              subject: meeting.title,
              start_datetime: NaiveDateTime.to_iso8601(start_dt),
              end_datetime: NaiveDateTime.to_iso8601(end_dt)

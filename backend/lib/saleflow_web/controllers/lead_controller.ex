@@ -449,9 +449,9 @@ defmodule SaleflowWeb.LeadController do
       try do
         Logger.info("Teams: calling Graph API with attendee=#{event_params.attendee_email}")
 
-        case Graph.create_calendar_event(ms_conn.access_token, event_params) do
+        case Graph.create_meeting_with_invite(ms_conn.access_token, event_params) do
           {:ok, result} ->
-            Logger.info("Teams: calendar event created! join_url=#{result.join_url}")
+            Logger.info("Teams: meeting created! join_url=#{result.join_url}")
 
             meeting
             |> Ash.Changeset.for_update(:update_teams, %{

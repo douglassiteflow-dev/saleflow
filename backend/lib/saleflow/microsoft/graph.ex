@@ -61,60 +61,100 @@ defmodule Saleflow.Microsoft.Graph do
   end
 
   @doc """
-  Creates a calendar event with Teams meeting link via MS Graph.
+  Creates a Teams meeting + calendar event with invitation.
+
+  Strategy:
+  1. Create online meeting via /me/onlineMeetings (gets join URL)
+  2. Create calendar event with the join URL embedded + attendee (sends email invitation)
   """
-  def create_calendar_event(access_token, params) do
-    body = %{
+  def create_meeting_with_invite(access_token, params) do
+    # Step 1: Create the Teams online meeting
+    Logger.info("MS Graph: Step 1 — creating online meeting")
+
+    online_params = %{
       subject: params.subject,
-      start: %{dateTime: params.start_datetime, timeZone: "Europe/Stockholm"},
-      end: %{dateTime: params.end_datetime, timeZone: "Europe/Stockholm"},
-      location: %{displayName: params[:location] || ""},
-      body: %{contentType: "text", content: params[:description] || ""},
-      isOnlineMeeting: true,
-      onlineMeetingProvider: "teamsForBusiness",
-      reminderMinutesBeforeStart: 15
+      startDateTime: params.start_datetime <> ".0000000",
+      endDateTime: params.end_datetime <> ".0000000"
     }
 
-    body =
-      if params[:attendee_email] do
-        Map.put(body, :attendees, [
-          %{
-            emailAddress: %{
-              address: params.attendee_email,
-              name: params[:attendee_name] || ""
-            },
-            type: "required"
-          }
-        ])
-      else
-        body
-      end
+    with {:ok, online_result} <- do_create_online_meeting(access_token, online_params) do
+      join_url = online_result.join_url
+      Logger.info("MS Graph: Step 1 OK — join_url=#{join_url}")
 
-    case Req.post("#{@graph_url}/me/events",
+      # Step 2: Create calendar event with attendee + Teams link
+      Logger.info("MS Graph: Step 2 — creating calendar event with attendee")
+
+      meeting_body = """
+      #{params[:description] || ""}
+
+      Gå med i Teams-mötet:
+      #{join_url}
+      """
+
+      event_body = %{
+        subject: params.subject,
+        start: %{dateTime: params.start_datetime, timeZone: "Europe/Stockholm"},
+        end: %{dateTime: params.end_datetime, timeZone: "Europe/Stockholm"},
+        body: %{contentType: "text", content: String.trim(meeting_body)},
+        reminderMinutesBeforeStart: 15
+      }
+
+      event_body =
+        if params[:attendee_email] && params[:attendee_email] != "" do
+          Map.put(event_body, :attendees, [
+            %{
+              emailAddress: %{
+                address: params.attendee_email,
+                name: params[:attendee_name] || ""
+              },
+              type: "required"
+            }
+          ])
+        else
+          event_body
+        end
+
+      case Req.post("#{@graph_url}/me/events",
+             json: event_body,
+             headers: [{"authorization", "Bearer #{access_token}"}]
+           ) do
+        {:ok, %{status: 201, body: resp_body}} ->
+          Logger.info("MS Graph: Step 2 OK — calendar event created, invitation sent")
+          {:ok, %{
+            event_id: resp_body["id"],
+            join_url: join_url,
+            web_link: resp_body["webLink"]
+          }}
+
+        {:ok, %{status: status, body: resp_body}} ->
+          Logger.warning("MS Graph: Step 2 failed (#{status}), but Teams meeting exists. join_url=#{join_url}")
+          # Return success with just the Teams link even if calendar fails
+          {:ok, %{event_id: nil, join_url: join_url, web_link: nil}}
+
+        {:error, reason} ->
+          Logger.warning("MS Graph: Step 2 error: #{inspect(reason)}, but Teams meeting exists")
+          {:ok, %{event_id: nil, join_url: join_url, web_link: nil}}
+      end
+    end
+  end
+
+  defp do_create_online_meeting(access_token, body) do
+    case Req.post("#{@graph_url}/me/onlineMeetings",
            json: body,
            headers: [{"authorization", "Bearer #{access_token}"}]
          ) do
       {:ok, %{status: 201, body: resp_body}} ->
-        Logger.info("MS Graph event created. onlineMeeting=#{inspect(resp_body["onlineMeeting"])}")
-
-        join_url =
-          get_in(resp_body, ["onlineMeeting", "joinUrl"]) ||
-          get_in(resp_body, ["onlineMeeting", "joinWebUrl"]) ||
-          resp_body["webLink"]
-
-        {:ok,
-         %{
-           event_id: resp_body["id"],
-           join_url: join_url,
-           web_link: resp_body["webLink"]
-         }}
+        {:ok, %{
+          join_url: resp_body["joinWebUrl"],
+          meeting_id: resp_body["id"]
+        }}
 
       {:ok, %{status: status, body: resp_body}} ->
-        Logger.error("MS Graph create_calendar_event failed: #{status} #{inspect(resp_body)}")
+        Logger.error("MS Graph onlineMeetings failed: #{status} #{inspect(resp_body)}")
         {:error, {status, resp_body}}
 
       {:error, reason} ->
-        Logger.error("MS Graph create_calendar_event error: #{inspect(reason)}")
+        Logger.error("MS Graph onlineMeetings error: #{inspect(reason)}")
         {:error, reason}
     end
   end
