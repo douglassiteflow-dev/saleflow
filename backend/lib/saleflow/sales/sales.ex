@@ -67,6 +67,7 @@ defmodule Saleflow.Sales do
     resource Saleflow.Sales.LeadListAssignment
     resource Saleflow.Sales.Request
     resource Saleflow.Sales.PhoneCall
+    resource Saleflow.Sales.Goal
   end
 
   # ---------------------------------------------------------------------------
@@ -774,5 +775,91 @@ defmodule Saleflow.Sales do
       {:ok, %{rows: [[count]]}} -> {:ok, count}
       {:error, error} -> {:error, error}
     end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Goal functions
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Creates a new goal.
+
+  Required params: `:scope`, `:metric`, `:target_value`, `:set_by_id`, `:period`
+  Optional params: `:user_id`, `:active`
+  """
+  @spec create_goal(map()) :: {:ok, Saleflow.Sales.Goal.t()} | {:error, Ash.Error.t()}
+  def create_goal(params) do
+    Saleflow.Sales.Goal
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create()
+  end
+
+  @doc """
+  Returns the effective active goals for a user.
+
+  Fetches all active goals where `user_id` is nil (global) or matches the given
+  user. Groups by metric and picks the highest priority per metric:
+
+  1. Admin-set personal goal (set_by_id != user_id)
+  2. Self-set personal goal (set_by_id == user_id)
+  3. Global goal
+  """
+  @spec list_active_goals(Ecto.UUID.t()) ::
+          {:ok, list(Saleflow.Sales.Goal.t())} | {:error, Ash.Error.t()}
+  def list_active_goals(user_id) do
+    require Ash.Query
+
+    with {:ok, goals} <-
+           Saleflow.Sales.Goal
+           |> Ash.Query.filter(active == true and (is_nil(user_id) or user_id == ^user_id))
+           |> Ash.read() do
+      effective =
+        goals
+        |> Enum.group_by(& &1.metric)
+        |> Enum.map(fn {_metric, metric_goals} ->
+          pick_highest_priority(metric_goals, user_id)
+        end)
+
+      {:ok, effective}
+    end
+  end
+
+  defp pick_highest_priority(goals, user_id) do
+    # Priority: admin-set personal > self-set personal > global
+    admin_personal =
+      Enum.find(goals, fn g ->
+        g.scope == :personal and g.user_id == user_id and g.set_by_id != user_id
+      end)
+
+    self_personal =
+      Enum.find(goals, fn g ->
+        g.scope == :personal and g.user_id == user_id and g.set_by_id == user_id
+      end)
+
+    global = Enum.find(goals, fn g -> g.scope == :global end)
+
+    admin_personal || self_personal || global
+  end
+
+  @doc """
+  Updates a goal's target_value or active status.
+  """
+  @spec update_goal(Saleflow.Sales.Goal.t(), map()) ::
+          {:ok, Saleflow.Sales.Goal.t()} | {:error, Ash.Error.t()}
+  def update_goal(goal, params) do
+    goal
+    |> Ash.Changeset.for_update(:update, params)
+    |> Ash.update()
+  end
+
+  @doc """
+  Soft-deletes a goal by setting active to false.
+  """
+  @spec deactivate_goal(Saleflow.Sales.Goal.t()) ::
+          {:ok, Saleflow.Sales.Goal.t()} | {:error, Ash.Error.t()}
+  def deactivate_goal(goal) do
+    goal
+    |> Ash.Changeset.for_update(:deactivate, %{})
+    |> Ash.update()
   end
 end
