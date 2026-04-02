@@ -32,7 +32,7 @@ function actionLabel(action: string): string {
 const HIDDEN_FIELDS = new Set([
   "id", "user_id", "lead_id", "inserted_at", "updated_at", "created_at",
   "session_token", "user_agent", "ip_address", "hashed_password",
-  "code", "expires_at", "used_at", "last_active_at", "logged_in_at",
+  "logged_in_at", "last_active_at",
 ]);
 
 // Swedish labels for common fields
@@ -66,6 +66,15 @@ const FIELD_LABELS: Record<string, string> = {
   role: "Roll",
   name: "Namn",
   email: "E-post",
+  assigned_at: "Tilldelad",
+  released_at: "Släppt",
+  called_at: "Samtalstid",
+  logged_out_at: "Utloggad",
+  code: "Kod",
+  expires_at: "Gäller till",
+  used_at: "Använd",
+  quarantined_at: "Karantän från",
+  imported_at: "Importerad",
 };
 
 // Friendly values for known enums
@@ -104,23 +113,48 @@ const VALUE_LABELS: Record<string, Record<string, string>> = {
   },
 };
 
+// Fields that contain timestamps
+const TIMESTAMP_FIELDS = new Set([
+  "assigned_at", "released_at", "called_at", "logged_out_at",
+  "expires_at", "used_at", "quarantined_at", "callback_at",
+  "quarantine_until", "imported_at", "reminded_at",
+]);
+
 function formatValue(field: string, val: unknown): string {
   if (val === null || val === undefined || val === "nil") return "—";
   const str = String(val);
   // Check if there's a friendly label for this field+value
   const labels = VALUE_LABELS[field];
   if (labels && str in labels) return labels[str]!;
+  // Boolean
+  if (str === "true") return "Ja";
+  if (str === "false") return "Nej";
+  // Timestamps → format nicely
+  if (TIMESTAMP_FIELDS.has(field) && str.includes("T")) {
+    return formatDateTime(str);
+  }
   // Truncate long values (UUIDs, tokens)
   if (str.length > 40) return str.slice(0, 20) + "…";
   return str;
 }
 
-function changesSummary(changes: Record<string, unknown> | null): string {
+// Friendly summaries for actions that typically have no visible changes
+const ACTION_SUMMARIES: Record<string, string> = {
+  "otp.created": "Verifieringskod skickad",
+  "otp.verified": "Verifieringskod godkänd",
+};
+
+function changesSummary(changes: Record<string, unknown> | null, action?: string): string {
+  if (!changes && action && ACTION_SUMMARIES[action]) return ACTION_SUMMARIES[action];
   if (!changes) return "—";
 
   const meaningful = Object.entries(changes).filter(
     ([key]) => !HIDDEN_FIELDS.has(key),
   );
+
+  if (meaningful.length === 0 && action && ACTION_SUMMARIES[action]) {
+    return ACTION_SUMMARIES[action];
+  }
 
   if (meaningful.length === 0) return "—";
 
@@ -295,7 +329,7 @@ export function HistoryPage() {
                         {resourceLabel(log.resource_type)}
                       </td>
                       <td className="px-4 py-3 text-[var(--color-text-secondary)] max-w-xs truncate">
-                        {changesSummary(log.changes)}
+                        {changesSummary(log.changes, log.action)}
                       </td>
                     </tr>
                   );

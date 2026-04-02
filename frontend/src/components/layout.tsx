@@ -15,7 +15,7 @@ export function Layout() {
       >
         <div
           style={{
-            maxWidth: "1280px",
+            maxWidth: "1600px",
             margin: "0 auto",
             padding: "24px",
           }}
