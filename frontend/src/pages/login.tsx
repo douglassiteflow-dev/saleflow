@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { OtpInput } from "@/components/otp-input";
+import Loader from "@/components/kokonutui/loader";
 
 export function LoginPage() {
   const { data: user, isLoading } = useMe();
@@ -28,7 +29,7 @@ export function LoginPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-[var(--color-text-secondary)]">Laddar...</p>
+        <Loader size="sm" title="Laddar..." />
       </div>
     );
   }

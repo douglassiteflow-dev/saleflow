@@ -3,6 +3,7 @@ import { useLeads } from "@/api/leads";
 import { StatCard } from "@/components/stat-card";
 import { Card, CardTitle } from "@/components/ui/card";
 import type { LeadStatus } from "@/api/types";
+import Loader from "@/components/kokonutui/loader";
 
 const STATUS_LABELS: Record<LeadStatus, string> = {
   new: "Nya",
@@ -79,9 +80,7 @@ export function AdminStatsPage() {
         <CardTitle className="mb-6">Leads per status</CardTitle>
 
         {isLoading ? (
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            Laddar statistik...
-          </p>
+          <Loader size="sm" title="Laddar statistik" />
         ) : (
           <div className="space-y-4">
             {statuses.map((status) => {

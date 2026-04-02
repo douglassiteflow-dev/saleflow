@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { TimeSelect } from "@/components/ui/time-select";
 import { HistoryTimeline } from "@/components/history-timeline";
 import { formatDate, formatTime, formatPhone } from "@/lib/format";
+import Loader from "@/components/kokonutui/loader";
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -29,7 +30,7 @@ export function MeetingDetailPage() {
   if (isLoading || !data) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-[var(--color-text-secondary)]">Laddar möte...</p>
+        <Loader size="sm" title="Laddar möte" />
       </div>
     );
   }

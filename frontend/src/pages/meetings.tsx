@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { MeetingForm } from "@/components/meeting-form";
 import { formatDate, formatTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import Loader from "@/components/kokonutui/loader";
 
 type FilterTab = "upcoming" | "today" | "all" | "completed" | "cancelled";
 
@@ -104,9 +105,7 @@ export function MeetingsPage() {
         </CardTitle>
 
         {isLoading ? (
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            Laddar möten...
-          </p>
+          <Loader size="sm" title="Laddar möten" />
         ) : filtered.length === 0 ? (
           <p className="text-sm text-[var(--color-text-secondary)]">
             Inga möten att visa.

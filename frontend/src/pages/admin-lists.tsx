@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import type { LeadList, LeadListStats, User, Lead } from "@/api/types";
+import Loader from "@/components/kokonutui/loader";
 
 const statusBadgeStyles: Record<string, string> = {
   active: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -152,7 +153,7 @@ function LeadTable({ listId }: { listId: string }) {
         onChange={(e) => handleSearch(e.target.value)}
       />
       {isLoading ? (
-        <p className="text-sm text-[var(--color-text-secondary)]">Laddar...</p>
+        <Loader size="sm" title="Laddar..." />
       ) : !leads || leads.length === 0 ? (
         <p className="text-sm text-[var(--color-text-secondary)]">Inga leads</p>
       ) : (
@@ -227,7 +228,7 @@ export function AdminListsPage() {
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-[var(--color-text-secondary)]">Laddar listor...</p>
+        <Loader size="sm" title="Laddar..." />
       ) : !lists || lists.length === 0 ? (
         <Card>
           <p className="text-sm text-[var(--color-text-secondary)]">

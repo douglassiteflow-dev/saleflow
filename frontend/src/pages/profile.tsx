@@ -3,6 +3,7 @@ import { useMySessions, useLogoutAll, useForceLogoutSession } from "@/api/sessio
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SessionList } from "@/components/session-list";
+import Loader from "@/components/kokonutui/loader";
 
 export function ProfilePage() {
   const { data: user } = useMe();
@@ -62,7 +63,7 @@ export function ProfilePage() {
           </div>
 
           {sessionsLoading ? (
-            <p className="text-sm text-[var(--color-text-secondary)]">Laddar sessioner...</p>
+            <Loader size="sm" title="Laddar profil" />
           ) : (
             <SessionList
               sessions={sessions ?? []}

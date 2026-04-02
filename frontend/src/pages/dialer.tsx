@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { LeadInfo } from "@/components/lead-info";
 import { OutcomePanel } from "@/components/outcome-panel";
 import { HistoryTimeline } from "@/components/history-timeline";
+import Loader from "@/components/kokonutui/loader";
 
 export function DialerPage() {
   const navigate = useNavigate();
@@ -78,7 +79,7 @@ export function DialerPage() {
   if (leadLoading || !leadData) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-[var(--color-text-secondary)]">Laddar kund...</p>
+        <Loader size="sm" title="Laddar kundkort" subtitle="Hämtar företagsinfo" />
       </div>
     );
   }

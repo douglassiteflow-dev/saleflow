@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/format";
 import type { AuditLog } from "@/api/types";
+import Loader from "@/components/kokonutui/loader";
 
 const ACTION_OPTIONS = [
   { value: "", label: "Alla händelser" },
@@ -260,9 +261,7 @@ export function HistoryPage() {
         <CardTitle className="mb-4">Händelselogg</CardTitle>
 
         {isLoading ? (
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            Laddar historik...
-          </p>
+          <Loader size="sm" title="Laddar historik" />
         ) : filtered.length === 0 ? (
           <p className="text-sm text-[var(--color-text-secondary)]">
             Inga händelser hittades.

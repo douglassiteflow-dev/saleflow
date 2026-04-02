@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { useLeadDetail } from "@/api/leads";
 import { LeadInfo } from "@/components/lead-info";
 import { HistoryTimeline } from "@/components/history-timeline";
+import Loader from "@/components/kokonutui/loader";
 
 export function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -10,7 +11,7 @@ export function LeadDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-[var(--color-text-secondary)]">Laddar kund...</p>
+        <Loader size="sm" title="Laddar kundkort" />
       </div>
     );
   }

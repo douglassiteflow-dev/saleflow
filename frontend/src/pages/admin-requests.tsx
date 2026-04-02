@@ -3,6 +3,7 @@ import { useRequests, useUpdateRequest } from "@/api/requests";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { UserRequest } from "@/api/types";
+import Loader from "@/components/kokonutui/loader";
 
 // ---------------------------------------------------------------------------
 // Status badge
@@ -214,7 +215,7 @@ export function AdminRequestsPage() {
         </CardTitle>
 
         {isLoading ? (
-          <p className="text-sm text-[var(--color-text-secondary)]">Laddar förfrågningar...</p>
+          <Loader size="sm" title="Laddar förfrågningar" />
         ) : filtered.length === 0 ? (
           <p className="text-sm text-[var(--color-text-secondary)]">Inga förfrågningar hittades.</p>
         ) : (

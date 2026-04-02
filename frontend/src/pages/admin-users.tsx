@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardTitle } from "@/components/ui/card";
 import { SessionList } from "@/components/session-list";
 import type { UserRole } from "@/api/types";
+import Loader from "@/components/kokonutui/loader";
 
 function UserForm({ onCancel }: { onCancel: () => void }) {
   const [email, setEmail] = useState("");
@@ -177,7 +178,7 @@ function UserSessionsRow({ userId }: { userId: string }) {
         </Button>
       </div>
       {isLoading ? (
-        <p className="text-sm text-[var(--color-text-secondary)]">Laddar sessioner...</p>
+        <Loader size="sm" title="Laddar..." />
       ) : (
         <SessionList
           sessions={sessions ?? []}
@@ -221,7 +222,7 @@ export function AdminUsersPage() {
         <CardTitle className="mb-4">Alla användare</CardTitle>
 
         {isLoading ? (
-          <p className="text-sm text-[var(--color-text-secondary)]">Laddar användare...</p>
+          <Loader size="sm" title="Laddar..." />
         ) : !users || users.length === 0 ? (
           <p className="text-sm text-[var(--color-text-secondary)]">Inga användare hittades.</p>
         ) : (
