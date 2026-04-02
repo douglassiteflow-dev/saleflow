@@ -174,6 +174,8 @@ defmodule SaleflowWeb.LeadController do
       status: lead.status,
       quarantine_until: lead.quarantine_until,
       callback_at: lead.callback_at,
+      källa: lead.källa,
+      lead_list_id: lead.lead_list_id,
       imported_at: lead.imported_at,
       inserted_at: lead.inserted_at,
       updated_at: lead.updated_at
