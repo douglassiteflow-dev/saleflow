@@ -11,9 +11,12 @@ defmodule SaleflowWeb.WebhookController do
   matches are found.
   """
   def telavox_hangup(conn, params) do
-    caller = Map.get(params, "caller", "")
-    callee = Map.get(params, "callee", "")
-    duration = Map.get(params, "duration", 0)
+    require Logger
+    Logger.info("Telavox hangup webhook: #{inspect(params)}")
+
+    caller = to_string(Map.get(params, "caller", ""))
+    callee = to_string(Map.get(params, "callee", ""))
+    duration = parse_duration(Map.get(params, "duration", 0))
 
     lead_id = find_lead_id(callee)
     user_id = find_user_id(caller)
@@ -58,4 +61,13 @@ defmodule SaleflowWeb.WebhookController do
   end
 
   defp find_user_id(_), do: nil
+
+  defp parse_duration(val) when is_integer(val), do: val
+  defp parse_duration(val) when is_binary(val) do
+    case Integer.parse(val) do
+      {n, _} -> n
+      :error -> 0
+    end
+  end
+  defp parse_duration(_), do: 0
 end
