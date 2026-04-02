@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useNextLead, useLeadDetail } from "@/api/leads";
+import { useNextLead, useLeadDetail, useSubmitOutcome } from "@/api/leads";
 import { Button } from "@/components/ui/button";
 import { LeadInfo } from "@/components/lead-info";
 import { OutcomePanel } from "@/components/outcome-panel";
@@ -27,8 +27,14 @@ export function DialerPage() {
     });
   }
 
+  const skipOutcome = useSubmitOutcome(currentLeadId ?? "");
+
   function handleSkip() {
-    setCurrentLeadId(null);
+    if (!currentLeadId) return;
+    skipOutcome.mutate(
+      { outcome: "no_answer", notes: "Hoppade över" },
+      { onSuccess: () => handleNextLead() }
+    );
   }
 
   function handleOutcomeSubmitted() {
@@ -95,7 +101,7 @@ export function DialerPage() {
             variant="secondary"
             size="default"
             onClick={handleSkip}
-            disabled={nextLeadMutation.isPending}
+            disabled={skipOutcome.isPending || nextLeadMutation.isPending}
           >
             Hoppa över
           </Button>
