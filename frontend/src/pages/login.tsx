@@ -165,6 +165,28 @@ export function LoginPage() {
               >
                 {login.isPending ? "Loggar in..." : "Logga in"}
               </Button>
+
+              <div className="relative my-2">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-[var(--color-border)]" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-[var(--color-text-secondary)]">eller</span>
+                </div>
+              </div>
+
+              <a
+                href="/api/auth/microsoft/login"
+                className="flex w-full items-center justify-center gap-3 rounded-md border border-[var(--color-border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-bg-panel)] transition-colors"
+              >
+                <svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                  <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                  <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                  <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                </svg>
+                Logga in med Microsoft
+              </a>
             </form>
           ) : (
             <div className="space-y-5">

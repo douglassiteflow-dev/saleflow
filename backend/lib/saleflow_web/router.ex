@@ -30,6 +30,9 @@ defmodule SaleflowWeb.Router do
 
     # Microsoft OAuth callback (browser redirect, no session auth)
     get "/auth/microsoft/callback", MicrosoftController, :callback
+
+    # Microsoft SSO login (no auth required — this IS the login)
+    get "/auth/microsoft/login", MicrosoftController, :login_authorize
   end
 
   # Authenticated

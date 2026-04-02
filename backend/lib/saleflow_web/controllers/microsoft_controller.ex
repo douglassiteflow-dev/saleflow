@@ -7,7 +7,7 @@ defmodule SaleflowWeb.MicrosoftController do
   @scopes "openid profile email Calendars.ReadWrite OnlineMeetings.ReadWrite User.Read offline_access"
 
   @doc """
-  GET /api/auth/microsoft — redirects the user to Microsoft login.
+  GET /api/auth/microsoft — redirects the user to Microsoft login (for linking Teams, requires auth).
   """
   def authorize(conn, _params) do
     user = conn.assigns.current_user
@@ -19,48 +19,82 @@ defmodule SaleflowWeb.MicrosoftController do
           response_type: "code",
           redirect_uri: Graph.redirect_uri(),
           scope: @scopes,
-          state: user.id
+          state: "link:#{user.id}"
         })
 
     json(conn, %{url: authorize_url})
   end
 
   @doc """
+  GET /api/auth/microsoft/login — Microsoft SSO login (no auth required).
+  Redirects browser to Microsoft, callback will create session.
+  """
+  def login_authorize(conn, _params) do
+    authorize_url =
+      "https://login.microsoftonline.com/#{Graph.tenant_id()}/oauth2/v2.0/authorize?" <>
+        URI.encode_query(%{
+          client_id: Graph.client_id(),
+          response_type: "code",
+          redirect_uri: Graph.redirect_uri(),
+          scope: @scopes,
+          state: "login"
+        })
+
+    redirect(conn, external: authorize_url)
+  end
+
+  @doc """
   GET /api/auth/microsoft/callback — receives code from Microsoft.
   This is hit by the browser redirect, so we redirect back to the frontend.
   """
-  def callback(conn, %{"code" => code, "state" => user_id}) do
+  def callback(conn, %{"code" => code, "state" => "login"}) do
+    # Microsoft SSO login flow
+    with {:ok, tokens} <- Graph.exchange_code(code),
+         {:ok, ms_user} <- Graph.get_me(tokens.access_token),
+         {:ok, user} <- find_user_by_email(ms_user.email) do
+      # Create login session
+      ip = conn.remote_ip |> :inet.ntoa() |> to_string()
+      ua = Plug.Conn.get_req_header(conn, "user-agent") |> List.first("")
+
+      {:ok, session} =
+        Saleflow.Accounts.create_login_session(user, %{ip_address: ip, user_agent: ua})
+
+      # Save/update Microsoft connection
+      save_microsoft_connection(user.id, tokens, ms_user)
+
+      conn
+      |> put_session(:session_token, session.session_token)
+      |> redirect(external: frontend_url() <> "/dashboard?login=microsoft")
+    else
+      {:error, :user_not_found} ->
+        Logger.warning("Microsoft SSO: no SaleFlow user for email")
+        redirect(conn, external: frontend_url() <> "/login?error=no_account")
+
+      {:error, reason} ->
+        Logger.error("Microsoft SSO login failed: #{inspect(reason)}")
+        redirect(conn, external: frontend_url() <> "/login?error=microsoft")
+    end
+  end
+
+  def callback(conn, %{"code" => code, "state" => "link:" <> user_id}) do
+    # Link Teams to existing account
     with {:ok, tokens} <- Graph.exchange_code(code),
          {:ok, ms_user} <- Graph.get_me(tokens.access_token) do
-      expires_at =
-        DateTime.utc_now()
-        |> DateTime.add(tokens.expires_in, :second)
+      save_microsoft_connection(user_id, tokens, ms_user)
+      redirect(conn, external: frontend_url() <> "/profile?microsoft=connected")
+    else
+      {:error, reason} ->
+        Logger.error("Microsoft OAuth callback failed: #{inspect(reason)}")
+        redirect(conn, external: frontend_url() <> "/profile?microsoft=error")
+    end
+  end
 
-      attrs = %{
-        user_id: user_id,
-        microsoft_user_id: ms_user.id,
-        email: ms_user.email,
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        token_expires_at: expires_at
-      }
-
-      # Upsert: delete existing, then create
-      case get_connection_for_user(user_id) do
-        {:ok, existing} -> Ash.destroy!(existing)
-        _ -> :ok
-      end
-
-      case Saleflow.Accounts.MicrosoftConnection
-           |> Ash.Changeset.for_create(:create, attrs)
-           |> Ash.create() do
-        {:ok, _conn} ->
-          redirect(conn, external: frontend_url() <> "/profile?microsoft=connected")
-
-        {:error, reason} ->
-          Logger.error("Failed to save Microsoft connection: #{inspect(reason)}")
-          redirect(conn, external: frontend_url() <> "/profile?microsoft=error")
-      end
+  # Legacy callback format (state = user_id directly)
+  def callback(conn, %{"code" => code, "state" => user_id}) when is_binary(user_id) do
+    with {:ok, tokens} <- Graph.exchange_code(code),
+         {:ok, ms_user} <- Graph.get_me(tokens.access_token) do
+      save_microsoft_connection(user_id, tokens, ms_user)
+      redirect(conn, external: frontend_url() <> "/profile?microsoft=connected")
     else
       {:error, reason} ->
         Logger.error("Microsoft OAuth callback failed: #{inspect(reason)}")
@@ -160,6 +194,40 @@ defmodule SaleflowWeb.MicrosoftController do
   end
 
   # --- Helpers ---
+
+  defp find_user_by_email(email) do
+    require Ash.Query
+
+    case Saleflow.Accounts.User
+         |> Ash.Query.filter(email == ^email)
+         |> Ash.read_one() do
+      {:ok, nil} -> {:error, :user_not_found}
+      {:ok, user} -> {:ok, user}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp save_microsoft_connection(user_id, tokens, ms_user) do
+    expires_at = DateTime.utc_now() |> DateTime.add(tokens.expires_in, :second)
+
+    attrs = %{
+      user_id: user_id,
+      microsoft_user_id: ms_user.id,
+      email: ms_user.email,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      token_expires_at: expires_at
+    }
+
+    case get_connection_for_user(user_id) do
+      {:ok, existing} -> Ash.destroy!(existing)
+      _ -> :ok
+    end
+
+    Saleflow.Accounts.MicrosoftConnection
+    |> Ash.Changeset.for_create(:create, attrs)
+    |> Ash.create()
+  end
 
   defp get_connection_for_user(user_id) do
     require Ash.Query
