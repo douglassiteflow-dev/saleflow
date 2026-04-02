@@ -286,7 +286,10 @@ defmodule SaleflowWeb.LeadController do
 
   defp parse_time(nil), do: ~T[10:00:00]
   defp parse_time(time_string) when is_binary(time_string) do
-    case Time.from_iso8601(time_string) do
+    # HTML time input sends "HH:MM", Time.from_iso8601 requires "HH:MM:SS"
+    padded = if String.length(time_string) == 5, do: time_string <> ":00", else: time_string
+
+    case Time.from_iso8601(padded) do
       {:ok, time} -> time
       _ -> ~T[10:00:00]
     end
