@@ -269,7 +269,7 @@ export function AdminListsPage() {
                   {list.stats && list.stats.total > 0 && (
                     <div className="hidden md:flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
                       <span className="text-blue-600">{list.stats.new} nya</span>
-                      <span className="text-emerald-600">{list.stats.meeting_booked} moten</span>
+                      <span className="text-emerald-600">{list.stats.meeting_booked} möten</span>
                       <span className="text-purple-600">{list.stats.customer} kunder</span>
                     </div>
                   )}
