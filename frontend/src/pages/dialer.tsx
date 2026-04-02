@@ -115,17 +115,29 @@ export function DialerPage() {
         </div>
       </div>
 
-      {/* Two-column grid: 3/5 LeadInfo, 2/5 OutcomePanel */}
-      <div className="grid gap-6" style={{ gridTemplateColumns: "3fr 2fr" }}>
-        <LeadInfo lead={lead} />
+      {/* Three-column grid: LeadInfo | OutcomePanel | Google Search */}
+      <div className="grid gap-6" style={{ gridTemplateColumns: "2fr 1.5fr 2fr" }}>
+        <div className="space-y-6">
+          <LeadInfo lead={lead} />
+          <HistoryTimeline callLogs={calls} auditLogs={auditLogs} />
+        </div>
         <OutcomePanel leadId={lead.id} onOutcomeSubmitted={handleOutcomeSubmitted} />
+        <div className="rounded-lg border border-[var(--color-border)] bg-white overflow-hidden" style={{ height: "calc(100vh - 160px)", position: "sticky", top: "80px" }}>
+          <div className="px-4 py-2.5 bg-[var(--color-bg-panel)] border-b border-[var(--color-border)]">
+            <p className="text-xs font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
+              Webbsökning — {lead.företag}
+            </p>
+          </div>
+          <iframe
+            key={lead.id}
+            src={`https://www.google.com/search?igu=1&q=${encodeURIComponent(lead.företag + " " + (lead.stad ?? ""))}`}
+            title="Google-sökning"
+            className="w-full border-0"
+            style={{ height: "calc(100% - 40px)" }}
+            sandbox="allow-scripts allow-same-origin allow-popups"
+          />
+        </div>
       </div>
-
-      {/* History timeline */}
-      <HistoryTimeline
-        callLogs={calls}
-        auditLogs={auditLogs}
-      />
     </div>
   );
 }
