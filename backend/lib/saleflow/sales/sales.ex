@@ -295,7 +295,59 @@ defmodule Saleflow.Sales do
   end
 
   @doc """
-  Returns all upcoming scheduled meetings (status = `:scheduled`, date >= today),
+  Updates meeting fields (meeting_date, meeting_time, notes, status).
+  """
+  @spec update_meeting(Saleflow.Sales.Meeting.t(), map()) ::
+          {:ok, Saleflow.Sales.Meeting.t()} | {:error, Ash.Error.t()}
+  def update_meeting(meeting, params) do
+    meeting
+    |> Ash.Changeset.for_update(:update, params)
+    |> Ash.update()
+  end
+
+  @doc """
+  Returns meeting detail: meeting + lead + calls + audit logs for the meeting's lead.
+  """
+  @spec get_meeting_detail(Ecto.UUID.t()) ::
+          {:ok, map()} | {:error, term()}
+  def get_meeting_detail(meeting_id) do
+    with {:ok, meeting} <- Ash.get(Saleflow.Sales.Meeting, meeting_id),
+         {:ok, lead} <- get_lead(meeting.lead_id),
+         {:ok, calls} <- list_calls_for_lead(meeting.lead_id),
+         {:ok, audit_logs} <- Saleflow.Audit.list_for_resource("Lead", meeting.lead_id) do
+      {:ok, %{meeting: meeting, lead: lead, calls: calls, audit_logs: audit_logs}}
+    end
+  end
+
+  @doc """
+  Returns all meetings (all statuses), sorted by meeting_date descending.
+  """
+  @spec list_all_meetings() ::
+          {:ok, list(Saleflow.Sales.Meeting.t())} | {:error, Ash.Error.t()}
+  def list_all_meetings do
+    require Ash.Query
+
+    Saleflow.Sales.Meeting
+    |> Ash.Query.sort(meeting_date: :desc)
+    |> Ash.read()
+  end
+
+  @doc """
+  Returns all meetings for a specific user, sorted by meeting_date descending.
+  """
+  @spec list_all_meetings_for_user(Ecto.UUID.t()) ::
+          {:ok, list(Saleflow.Sales.Meeting.t())} | {:error, Ash.Error.t()}
+  def list_all_meetings_for_user(user_id) do
+    require Ash.Query
+
+    Saleflow.Sales.Meeting
+    |> Ash.Query.filter(user_id == ^user_id)
+    |> Ash.Query.sort(meeting_date: :desc)
+    |> Ash.read()
+  end
+
+  @doc """
+  Returns upcoming scheduled meetings (status = `:scheduled`, date >= today),
   sorted by meeting_date ascending.
   """
   @spec list_upcoming_meetings() ::

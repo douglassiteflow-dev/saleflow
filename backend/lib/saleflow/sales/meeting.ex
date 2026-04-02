@@ -115,5 +115,13 @@ defmodule Saleflow.Sales.Meeting do
         Ash.Changeset.force_change_attribute(changeset, :reminded_at, DateTime.utc_now())
       end
     end
+
+    update :update do
+      description "Update meeting fields (date, time, notes, status)"
+      require_atomic? false
+      accept [:meeting_date, :meeting_time, :notes, :status]
+
+      change {Saleflow.Audit.Changes.CreateAuditLog, action: "meeting.updated"}
+    end
   end
 end

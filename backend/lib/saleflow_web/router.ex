@@ -43,8 +43,12 @@ defmodule SaleflowWeb.Router do
     post "/leads/next", LeadController, :next
     post "/leads/:id/outcome", LeadController, :outcome
 
+    get "/dashboard", DashboardController, :index
+
     get "/meetings", MeetingController, :index
+    get "/meetings/:id", MeetingController, :show
     post "/meetings", MeetingController, :create
+    put "/meetings/:id", MeetingController, :update
     post "/meetings/:id/cancel", MeetingController, :cancel
 
     get "/audit", AuditController, :index

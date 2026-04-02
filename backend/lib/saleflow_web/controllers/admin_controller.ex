@@ -145,6 +145,14 @@ defmodule SaleflowWeb.AdminController do
   """
   def my_stats(conn, _params) do
     user = conn.assigns.current_user
+    stats = compute_my_stats(user)
+    json(conn, %{stats: stats})
+  end
+
+  @doc """
+  Computes my_stats for a user. Shared between my_stats endpoint and dashboard.
+  """
+  def compute_my_stats(user) do
     today = Date.utc_today()
 
     {calls_today, total_calls, meetings_today, total_meetings} =
@@ -198,14 +206,12 @@ defmodule SaleflowWeb.AdminController do
           {ct, tc, mt, tm}
       end
 
-    json(conn, %{
-      stats: %{
-        calls_today: calls_today,
-        total_calls: total_calls,
-        meetings_today: meetings_today,
-        total_meetings: total_meetings
-      }
-    })
+    %{
+      calls_today: calls_today,
+      total_calls: total_calls,
+      meetings_today: meetings_today,
+      total_meetings: total_meetings
+    }
   end
 
   # ---------------------------------------------------------------------------
