@@ -205,6 +205,23 @@ defmodule SaleflowWeb.TelavoxControllerTest do
       assert response["name"] == user.name
     end
 
+    test "repairs missing extension_number when API responds", %{conn: conn} do
+      {conn, user} = authenticated_conn(conn)
+      _user = set_telavox_token(user, "valid-token")
+
+      MockClient
+      |> expect(:get_as, fn "valid-token", "/extensions/me" ->
+        {:ok, %{"extension" => "9999", "name" => "Agent Name"}}
+      end)
+
+      get(conn, "/api/telavox/status")
+
+      {:ok, %{rows: [[ext]]}} =
+        Saleflow.Repo.query("SELECT extension_number FROM users WHERE id = $1", [Ecto.UUID.dump!(user.id)])
+
+      assert ext == "9999"
+    end
+
     test "requires authentication", %{conn: conn} do
       conn =
         conn

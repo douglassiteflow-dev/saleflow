@@ -49,6 +49,10 @@ defmodule SaleflowWeb.TelavoxController do
     if connected do
       case client().get_as(user.telavox_token, "/extensions/me") do
         {:ok, %{"extension" => ext, "name" => name}} ->
+          if user.extension_number != ext do
+            Ash.update(user, %{extension_number: ext}, action: :update_user)
+          end
+
           json(conn, %{connected: true, extension: ext, name: name})
 
         {:error, :unauthorized} ->
