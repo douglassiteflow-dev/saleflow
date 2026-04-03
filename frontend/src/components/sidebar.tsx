@@ -93,7 +93,7 @@ export function Sidebar() {
           <NavItem to="/dashboard" label="Dashboard" />
           <NavItem to="/dialer" label="Ringare" />
           <NavItem to="/meetings" label="Möten" />
-          <NavItem to="/history" label="Historik" />
+          <NavItem to="/history" label="Samtalshistorik" />
           <NavItem to="/profile" label="Profil" />
 
           {isAdmin && (
@@ -106,6 +106,7 @@ export function Sidebar() {
               <NavItem to="/admin/lists" label="Listor" />
               <NavItem to="/admin/stats" label="Statistik" />
               <NavItem to="/admin/requests" label="Förfrågningar" />
+              <NavItem to="/admin/logs" label="Loggar" />
             </>
           )}
         </nav>

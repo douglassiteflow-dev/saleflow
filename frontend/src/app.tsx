@@ -15,8 +15,11 @@ import { LeadDetailPage } from "@/pages/lead-detail";
 import { MeetingsPage } from "@/pages/meetings";
 import { MeetingDetailPage } from "@/pages/meeting-detail";
 
-// Lazy imports: admin pages, history, profile
-const HistoryPage = lazy(() => import("@/pages/history").then((m) => ({ default: m.HistoryPage })));
+// Eager import: history (now a simpler page)
+import { HistoryPage } from "@/pages/history";
+
+// Lazy imports: admin pages, profile
+const AdminLogsPage = lazy(() => import("@/pages/admin-logs").then((m) => ({ default: m.AdminLogsPage })));
 const AdminUsersPage = lazy(() => import("@/pages/admin-users").then((m) => ({ default: m.AdminUsersPage })));
 const AdminImportPage = lazy(() => import("@/pages/admin-import").then((m) => ({ default: m.AdminImportPage })));
 const AdminStatsPage = lazy(() => import("@/pages/admin-stats").then((m) => ({ default: m.AdminStatsPage })));
@@ -51,7 +54,7 @@ export function App() {
               <Route path="/leads/:id" element={<LeadDetailPage />} />
               <Route path="/meetings" element={<MeetingsPage />} />
               <Route path="/meetings/:id" element={<MeetingDetailPage />} />
-              <Route path="/history" element={<Suspense fallback={<LazyFallback />}><HistoryPage /></Suspense>} />
+              <Route path="/history" element={<HistoryPage />} />
               <Route path="/profile" element={<Suspense fallback={<LazyFallback />}><ProfilePage /></Suspense>} />
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<Suspense fallback={<LazyFallback />}><AdminUsersPage /></Suspense>} />
@@ -59,6 +62,7 @@ export function App() {
                 <Route path="/admin/lists" element={<Suspense fallback={<LazyFallback />}><AdminListsPage /></Suspense>} />
                 <Route path="/admin/stats" element={<Suspense fallback={<LazyFallback />}><AdminStatsPage /></Suspense>} />
                 <Route path="/admin/requests" element={<Suspense fallback={<LazyFallback />}><AdminRequestsPage /></Suspense>} />
+                <Route path="/admin/logs" element={<Suspense fallback={<LazyFallback />}><AdminLogsPage /></Suspense>} />
               </Route>
             </Route>
           </Route>
