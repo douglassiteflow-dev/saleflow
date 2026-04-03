@@ -33,9 +33,12 @@ defmodule Saleflow.Workers.RecordingFetchWorker do
   defp get_agent_token(_), do: Application.get_env(:saleflow, :telavox_api_token, "")
 
   defp fetch_and_store_recording(phone_call_id, callee, token, attempt) do
+    Logger.info("RecordingFetchWorker: fetching /calls for #{phone_call_id}, callee=#{callee}, token=#{String.slice(token || "", 0..19)}...")
+
     case client().get_as(token, "/calls?withRecordings=true") do
       {:ok, %{"outgoing" => outgoing, "incoming" => incoming}} ->
         all_calls = (outgoing || []) ++ (incoming || [])
+        Logger.info("RecordingFetchWorker: got #{length(outgoing || [])} outgoing, #{length(incoming || [])} incoming. Looking for callee=#{callee}")
 
         case find_matching_call(all_calls, callee) do
           nil ->
