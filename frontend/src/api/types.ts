@@ -255,3 +255,28 @@ export interface LeadListStats {
   bad_number: number;
   callback: number;
 }
+
+export interface TelavoxStatus {
+  connected: boolean;
+  expired?: boolean;
+  extension?: string;
+  name?: string;
+}
+
+export interface LiveCall {
+  user_id: string | null;
+  agent_name: string;
+  extension: string;
+  callerid: string;
+  direction: "in" | "out" | "unknown";
+  linestatus: "up" | "down" | "ringing";
+}
+
+export interface DialResponse {
+  ok: boolean;
+  number?: string;
+}
+
+export interface RecordingResponse {
+  url: string;
+}
