@@ -9,7 +9,8 @@ export function useDashboard() {
       const data = await api<DashboardData>("/api/dashboard");
       return data;
     },
-    staleTime: 60_000,
+    staleTime: 10_000,
+    refetchInterval: 30_000,
   });
 }
 
