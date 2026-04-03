@@ -3,6 +3,7 @@ defmodule SaleflowWeb.DashboardController do
 
   alias Saleflow.Sales
   alias Saleflow.Accounts
+  alias Saleflow.Stats
   alias Saleflow.Repo
 
   @doc """
@@ -10,47 +11,7 @@ defmodule SaleflowWeb.DashboardController do
   in a single response. Role-aware: agents see own data, admins see all.
   """
   def leaderboard(conn, _params) do
-    query = """
-    SELECT u.id, u.name,
-      COALESCE(c.calls_today, 0) as calls_today,
-      COALESCE(m.booked_today, 0) as meetings_booked_today,
-      COALESCE(m.cancelled_today, 0) as meetings_cancelled_today,
-      COALESCE(m.booked_today, 0) - COALESCE(m.cancelled_today, 0) as net_meetings_today
-    FROM users u
-    LEFT JOIN (
-      SELECT user_id, COUNT(*) as calls_today
-      FROM phone_calls
-      WHERE received_at::date = CURRENT_DATE
-      GROUP BY user_id
-    ) c ON c.user_id = u.id
-    LEFT JOIN (
-      SELECT user_id,
-        COUNT(*) as booked_today,
-        COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled_today
-      FROM meetings
-      WHERE inserted_at::date = CURRENT_DATE
-      GROUP BY user_id
-    ) m ON m.user_id = u.id
-    WHERE u.role = 'agent' OR (c.calls_today > 0 OR m.booked_today > 0)
-    ORDER BY COALESCE(m.booked_today, 0) - COALESCE(m.cancelled_today, 0) DESC,
-             COALESCE(c.calls_today, 0) DESC
-    """
-
-    {:ok, %{rows: rows, columns: _cols}} = Repo.query(query)
-
-    entries =
-      Enum.map(rows, fn [id, name, calls_today, meetings_booked_today, meetings_cancelled_today, net_meetings_today] ->
-        %{
-          user_id: Ecto.UUID.cast!(id),
-          name: name,
-          calls_today: calls_today,
-          meetings_booked_today: meetings_booked_today,
-          meetings_cancelled_today: meetings_cancelled_today,
-          net_meetings_today: net_meetings_today
-        }
-      end)
-
-    json(conn, %{leaderboard: entries})
+    json(conn, %{leaderboard: Stats.leaderboard()})
   end
 
   def index(conn, _params) do
@@ -99,73 +60,25 @@ defmodule SaleflowWeb.DashboardController do
   # ---------------------------------------------------------------------------
 
   defp compute_my_stats(user) do
-    today = Date.utc_today()
-
-    {calls_today, total_calls, meetings_today, total_meetings} =
+    {ct, tc, mt, tm} =
       case user.role do
         :admin ->
-          {:ok, %{rows: [[ct]]}} =
-            Repo.query("SELECT COUNT(*) FROM phone_calls WHERE received_at::date = $1", [today])
-
-          {:ok, %{rows: [[tc]]}} =
-            Repo.query("SELECT COUNT(*) FROM phone_calls", [])
-
-          {:ok, %{rows: [[mt]]}} =
-            Repo.query(
-              "SELECT COUNT(*) FROM meetings WHERE inserted_at::date = $1",
-              [today]
-            )
-
-          {:ok, %{rows: [[tm]]}} =
-            Repo.query("SELECT COUNT(*) FROM meetings", [])
-
-          {ct, tc, mt, tm}
+          {Stats.all_calls_today(), Stats.all_total_calls(),
+           Stats.all_meetings_booked_today(), Stats.all_total_meetings()}
 
         _ ->
-          uid = Ecto.UUID.dump!(user.id)
-
-          {:ok, %{rows: [[ct]]}} =
-            Repo.query(
-              "SELECT COUNT(*) FROM phone_calls WHERE user_id = $1 AND received_at::date = $2",
-              [uid, today]
-            )
-
-          {:ok, %{rows: [[tc]]}} =
-            Repo.query("SELECT COUNT(*) FROM phone_calls WHERE user_id = $1", [uid])
-
-          {:ok, %{rows: [[mt]]}} =
-            Repo.query(
-              "SELECT COUNT(*) FROM meetings WHERE user_id = $1 AND inserted_at::date = $2",
-              [uid, today]
-            )
-
-          {:ok, %{rows: [[tm]]}} =
-            Repo.query(
-              "SELECT COUNT(*) FROM meetings WHERE user_id = $1",
-              [uid]
-            )
-
-          {ct, tc, mt, tm}
+          {Stats.calls_today(user.id), Stats.total_calls(user.id),
+           Stats.meetings_booked_today(user.id), Stats.total_meetings(user.id)}
       end
 
-    %{
-      calls_today: calls_today,
-      total_calls: total_calls,
-      meetings_today: meetings_today,
-      total_meetings: total_meetings
-    }
+    %{calls_today: ct, total_calls: tc, meetings_today: mt, total_meetings: tm}
   end
 
   defp compute_conversion(%{calls_today: calls_today, meetings_today: meetings_today}) do
-    rate =
-      if calls_today == 0,
-        do: 0.0,
-        else: Float.round(meetings_today / calls_today * 100, 1)
-
     %{
       calls_today: calls_today,
       meetings_today: meetings_today,
-      rate: rate
+      rate: Stats.conversion_rate(calls_today, meetings_today)
     }
   end
 
@@ -191,16 +104,7 @@ defmodule SaleflowWeb.DashboardController do
   end
 
   defp compute_goal_current_value(%{metric: :calls_per_day, period: :daily}, user) do
-    today = Date.utc_today()
-    uid = Ecto.UUID.dump!(user.id)
-
-    {:ok, %{rows: [[count]]}} =
-      Repo.query(
-        "SELECT COUNT(*) FROM phone_calls WHERE user_id = $1 AND received_at::date = $2",
-        [uid, today]
-      )
-
-    count
+    Stats.calls_today(user.id)
   end
 
   defp compute_goal_current_value(%{metric: :meetings_per_week, period: :weekly}, user) do
@@ -210,7 +114,7 @@ defmodule SaleflowWeb.DashboardController do
 
     {:ok, %{rows: [[count]]}} =
       Repo.query(
-        "SELECT COUNT(*) FROM meetings WHERE user_id = $1 AND meeting_date >= $2 AND meeting_date <= $3 AND status != 'cancelled'",
+        "SELECT COUNT(*) FROM meetings WHERE user_id = $1 AND inserted_at::date >= $2 AND inserted_at::date <= $3 AND status != 'cancelled'",
         [uid, start_of_week, today]
       )
 
