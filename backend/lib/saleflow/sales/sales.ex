@@ -761,24 +761,6 @@ defmodule Saleflow.Sales do
     |> Ash.create()
   end
 
-  @doc """
-  Returns the number of phone calls received today for a given user.
-  """
-  @spec count_phone_calls_today(Ecto.UUID.t()) :: {:ok, non_neg_integer()} | {:error, term()}
-  def count_phone_calls_today(user_id) do
-    query = """
-    SELECT COUNT(*)
-    FROM phone_calls
-    WHERE user_id = $1
-      AND received_at::date = CURRENT_DATE
-    """
-
-    case Saleflow.Repo.query(query, [Ecto.UUID.dump!(user_id)]) do
-      {:ok, %{rows: [[count]]}} -> {:ok, count}
-      {:error, error} -> {:error, error}
-    end
-  end
-
   # ---------------------------------------------------------------------------
   # Goal functions
   # ---------------------------------------------------------------------------
