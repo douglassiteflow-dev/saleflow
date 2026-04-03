@@ -45,15 +45,15 @@ export function DashboardPage() {
       {/* Personliga KPI:er */}
       <div className="grid grid-cols-3 gap-[var(--spacing-element)]">
         <StatCard
-          label="Samtal idag"
+          label="Utgående samtal idag"
           value={isLoading ? "—" : (myStats?.calls_today ?? 0)}
         />
         <StatCard
-          label="Möten idag"
+          label="Nya möten idag"
           value={isLoading ? "—" : (myStats?.meetings_today ?? 0)}
         />
         <StatCard
-          label="Konvertering"
+          label="Konvertering idag"
           value={isLoading ? "—" : (conversion?.rate ?? 0)}
           suffix="%"
         />
