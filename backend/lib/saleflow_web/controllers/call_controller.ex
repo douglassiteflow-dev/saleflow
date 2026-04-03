@@ -94,19 +94,10 @@ defmodule SaleflowWeb.CallController do
       cl.id, cl.called_at, cl.outcome::text, cl.notes,
       cl.user_id, cl.lead_id,
       u.name as user_name,
-      l.företag as lead_name, l.telefon as lead_phone,
-      pc.duration, pc.recording_key
+      l.företag as lead_name, l.telefon as lead_phone
     FROM call_logs cl
     JOIN users u ON u.id = cl.user_id
     LEFT JOIN leads l ON l.id = cl.lead_id
-    LEFT JOIN LATERAL (
-      SELECT duration, recording_key FROM phone_calls
-      WHERE phone_calls.user_id = cl.user_id
-        AND phone_calls.received_at::date = cl.called_at::date
-        AND phone_calls.direction = 'outgoing'
-      ORDER BY ABS(EXTRACT(EPOCH FROM (phone_calls.received_at - cl.called_at)))
-      LIMIT 1
-    ) pc ON true
     WHERE cl.called_at::date = $1
     """
 
@@ -124,7 +115,7 @@ defmodule SaleflowWeb.CallController do
 
     calls =
       Enum.map(rows, fn [id, called_at, outcome, notes, user_id, lead_id,
-                          user_name, lead_name, lead_phone, duration, recording_key] ->
+                          user_name, lead_name, lead_phone] ->
         %{
           id: Saleflow.Sales.decode_uuid(id),
           called_at: called_at && NaiveDateTime.to_iso8601(called_at),
@@ -134,9 +125,7 @@ defmodule SaleflowWeb.CallController do
           user_name: user_name,
           lead_id: lead_id && Saleflow.Sales.decode_uuid(lead_id),
           lead_name: lead_name,
-          lead_phone: lead_phone,
-          duration: duration || 0,
-          has_recording: recording_key != nil
+          lead_phone: lead_phone
         }
       end)
 

@@ -107,8 +107,6 @@ export interface CallHistoryEntry {
   lead_id: string | null;
   lead_name: string | null;
   lead_phone: string | null;
-  duration: number;
-  has_recording: boolean;
 }
 
 export interface AuditLog {
