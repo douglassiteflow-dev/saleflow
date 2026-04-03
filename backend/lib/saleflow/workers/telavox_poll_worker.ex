@@ -4,7 +4,7 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
   Broadcasts live call status via PubSub to the calls:live channel.
   """
 
-  use Oban.Worker, queue: :default, max_attempts: 1
+  use Oban.Worker, queue: :default, max_attempts: 1, unique: [period: 4]
 
   require Logger
 
