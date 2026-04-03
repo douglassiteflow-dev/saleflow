@@ -186,6 +186,12 @@ export function MeetingsPage() {
                   >
                     Status
                   </th>
+                  <th
+                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
+                    style={{ fontSize: "12px" }}
+                  >
+                    Skapad
+                  </th>
                   <th className="px-4 py-2.5" />
                 </tr>
               </thead>
@@ -222,6 +228,9 @@ export function MeetingsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <Badge status={meeting.status} />
+                    </td>
+                    <td className="px-4 py-3 font-mono text-[var(--color-text-secondary)]">
+                      {formatDate(meeting.inserted_at?.slice(0, 10) ?? "")}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {meeting.status === "scheduled" && (
