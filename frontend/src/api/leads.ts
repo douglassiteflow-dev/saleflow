@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "./client";
-import type { Lead, CallLog, AuditLog } from "./types";
+import type { Lead, CallLog } from "./types";
 
 export interface OutcomeParams {
   outcome: string;
@@ -30,7 +30,6 @@ export function useLeads(search?: string) {
 export interface LeadDetailData {
   lead: Lead;
   calls: CallLog[];
-  audit_logs: AuditLog[];
 }
 
 export function useLeadDetail(id: string | null | undefined) {
@@ -59,7 +58,7 @@ export function useNextLead() {
       void queryClient.invalidateQueries({ queryKey: ["leads", "list"] });
       // Pre-populate lead detail cache from next-lead response
       if (lead) {
-        queryClient.setQueryData(["leads", "detail", lead.id], { lead, calls: [], audit_logs: [] });
+        queryClient.setQueryData(["leads", "detail", lead.id], { lead, calls: [] });
       }
     },
   });
