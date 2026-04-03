@@ -91,6 +91,10 @@ defmodule SaleflowWeb.Router do
     post "/telavox/connect", TelavoxController, :connect
     post "/telavox/disconnect", TelavoxController, :disconnect
     get "/telavox/status", TelavoxController, :status
+
+    # Calls
+    post "/calls/dial", CallController, :dial
+    post "/calls/hangup", CallController, :hangup
   end
 
   # Admin only
