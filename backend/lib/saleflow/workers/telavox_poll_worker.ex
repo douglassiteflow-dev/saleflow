@@ -1,73 +1,94 @@
 defmodule Saleflow.Workers.TelavoxPollWorker do
   @moduledoc """
-  Polls Telavox GET /extensions/ every 5 seconds using the shared token.
+  GenServer that polls Telavox GET /extensions/ every 5 seconds.
 
   - Broadcasts live call status via PubSub to the calls:live channel.
-  - Detects when calls end (disappear from poll) → creates PhoneCall record
-    + broadcasts dashboard update + enqueues recording fetch.
-  - Replaces the need for Telavox webhooks entirely.
+  - Detects when calls end → creates PhoneCall record + dashboard update + recording fetch.
   """
 
-  use Oban.Worker, queue: :default, max_attempts: 1, unique: [period: 4, states: [:available, :scheduled, :executing]]
+  use GenServer
 
   require Logger
 
   alias Saleflow.Sales
 
-  # ETS table to track previous poll state
-  @state_table :telavox_poll_state
+  @poll_interval 5_000
 
-  @impl Oban.Worker
-  def perform(%Oban.Job{}) do
+  # --- Public API ---
+
+  def start_link(_opts) do
+    GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
+  end
+
+  # --- GenServer callbacks ---
+
+  @impl true
+  def init(_state) do
     token = Application.get_env(:saleflow, :telavox_api_token, "")
 
     if token != "" do
+      Logger.info("TelavoxPollWorker: started, polling every #{@poll_interval}ms")
+      :timer.send_interval(@poll_interval, :poll)
+      {:ok, %{previous_calls: []}}
+    else
+      Logger.info("TelavoxPollWorker: no TELAVOX_API_TOKEN, not polling")
+      {:ok, %{previous_calls: []}}
+    end
+  end
+
+  @impl true
+  def handle_info(:poll, state) do
+    new_state =
       try do
-        case client().get("/extensions/") do
-          {:ok, extensions} when is_list(extensions) ->
-            current_calls = extract_live_calls(extensions)
-            previous_calls = get_previous_calls()
-
-            # Broadcast live calls
-            broadcast_calls(current_calls)
-
-            # Detect ended calls (were in previous, not in current)
-            ended_calls = find_ended_calls(previous_calls, current_calls)
-
-            Enum.each(ended_calls, fn call ->
-              handle_call_ended(call)
-            end)
-
-            # Store current state for next poll
-            store_calls(current_calls)
-
-            if length(current_calls) > 0 || length(ended_calls) > 0 do
-              Logger.info("TelavoxPollWorker: #{length(current_calls)} active, #{length(ended_calls)} ended")
-            end
-
-          {:error, :unauthorized} ->
-            Logger.warning("TelavoxPollWorker: shared token expired (401)")
-
-          {:error, reason} ->
-            Logger.warning("TelavoxPollWorker: API error: #{inspect(reason)}")
-        end
+        do_poll(state)
       rescue
         e ->
           Logger.error("TelavoxPollWorker: crashed: #{inspect(e)}")
+          state
       end
-    end
 
-    reschedule()
-    :ok
+    {:noreply, new_state}
+  end
+
+  # --- Poll logic ---
+
+  defp do_poll(state) do
+    case client().get("/extensions/") do
+      {:ok, extensions} when is_list(extensions) ->
+        current_calls = extract_live_calls(extensions)
+        previous_calls = state.previous_calls
+
+        # Broadcast live calls to dashboard
+        broadcast_calls(current_calls)
+
+        # Detect ended calls
+        ended_calls = find_ended_calls(previous_calls, current_calls)
+
+        Enum.each(ended_calls, fn call ->
+          handle_call_ended(call)
+        end)
+
+        if length(current_calls) > 0 || length(ended_calls) > 0 do
+          Logger.info("TelavoxPollWorker: #{length(current_calls)} active, #{length(ended_calls)} ended")
+        end
+
+        %{state | previous_calls: current_calls}
+
+      {:error, :unauthorized} ->
+        Logger.warning("TelavoxPollWorker: shared token expired (401)")
+        state
+
+      {:error, reason} ->
+        Logger.warning("TelavoxPollWorker: API error: #{inspect(reason)}")
+        state
+    end
   end
 
   defp handle_call_ended(call) do
     Logger.info("TelavoxPollWorker: call ended — #{call.agent_name} → #{call.callerid}")
 
-    # Find lead by callee number
     lead_id = find_lead_id(call.callerid)
 
-    # Map direction
     direction =
       case call.direction do
         "out" -> :outgoing
@@ -75,7 +96,6 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
         _ -> :outgoing
       end
 
-    # Create PhoneCall record
     attrs = %{
       caller: call.extension,
       callee: call.callerid,
@@ -87,14 +107,12 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
 
     case Sales.create_phone_call(attrs) do
       {:ok, phone_call} ->
-        # Broadcast dashboard update
         Phoenix.PubSub.broadcast(
           Saleflow.PubSub,
           "dashboard:updates",
           {:dashboard_update, %{event: "call_completed", user_id: call.user_id}}
         )
 
-        # Enqueue recording fetch
         if call.user_id do
           %{phone_call_id: phone_call.id, user_id: call.user_id}
           |> Saleflow.Workers.RecordingFetchWorker.new(schedule_in: 30)
@@ -116,29 +134,6 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
   end
 
   defp find_lead_id(_), do: nil
-
-  # --- State management via ETS ---
-
-  defp ensure_table do
-    case :ets.whereis(@state_table) do
-      :undefined -> :ets.new(@state_table, [:named_table, :public, :set])
-      _ -> @state_table
-    end
-  end
-
-  defp get_previous_calls do
-    ensure_table()
-
-    case :ets.lookup(@state_table, :calls) do
-      [{:calls, calls}] -> calls
-      [] -> []
-    end
-  end
-
-  defp store_calls(calls) do
-    ensure_table()
-    :ets.insert(@state_table, {:calls, calls})
-  end
 
   # --- Call diffing ---
 
@@ -195,19 +190,6 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
       "calls:live",
       {:live_calls, calls}
     )
-  end
-
-  @doc false
-  def reschedule do
-    oban_conf = Application.get_env(:saleflow, Oban, [])
-
-    unless oban_conf[:testing] == :inline do
-      %{}
-      |> __MODULE__.new(schedule_in: 5)
-      |> Oban.insert()
-    end
-
-    :ok
   end
 
   defp client do
