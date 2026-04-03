@@ -1,5 +1,5 @@
 defmodule Saleflow.Workers.RecordingFetchWorker do
-  @moduledoc "Fetches call recordings from Telavox and stores them in R2."
+  @moduledoc "Fetches call recordings from Telavox and enriches phone_call records."
 
   use Oban.Worker, queue: :default, max_attempts: 3
 
@@ -24,19 +24,23 @@ defmodule Saleflow.Workers.RecordingFetchWorker do
   defp get_agent_token(_), do: Application.get_env(:saleflow, :telavox_api_token, "")
 
   defp enrich_phone_call(phone_call_id, token, attempt) do
+    # Fetch the phone_call's received_at + callee to match against Telavox data
+    phone_call = get_phone_call(phone_call_id)
+
     case client().get_as(token, "/calls?withRecordings=true") do
       {:ok, response} when is_map(response) ->
         outgoing = response["outgoing"] || []
-        most_recent = List.first(outgoing)
 
-        if most_recent do
-          enrich_from_call(phone_call_id, most_recent)
+        matched = find_matching_call(outgoing, phone_call)
+
+        if matched do
+          enrich_from_call(phone_call_id, matched)
         else
           if attempt < 3 do
-            Logger.info("RecordingFetchWorker: no calls yet for #{phone_call_id}, will retry")
-            {:error, "No calls yet"}
+            Logger.info("RecordingFetchWorker: no matching call for #{phone_call_id}, will retry")
+            {:error, "No matching call yet"}
           else
-            Logger.info("RecordingFetchWorker: no calls for #{phone_call_id} after #{attempt} attempts")
+            Logger.info("RecordingFetchWorker: no match for #{phone_call_id} after #{attempt} attempts")
             :ok
           end
         end
@@ -47,18 +51,56 @@ defmodule Saleflow.Workers.RecordingFetchWorker do
     end
   end
 
+  defp get_phone_call(phone_call_id) do
+    case Saleflow.Repo.query(
+           "SELECT received_at, callee FROM phone_calls WHERE id = $1",
+           [Ecto.UUID.dump!(phone_call_id)]
+         ) do
+      {:ok, %{rows: [[received_at, callee]]}} -> %{received_at: received_at, callee: callee}
+      _ -> %{received_at: nil, callee: nil}
+    end
+  end
+
+  # Match by closest timestamp within 2 minutes
+  defp find_matching_call(telavox_calls, %{received_at: received_at}) when not is_nil(received_at) do
+    telavox_calls
+    |> Enum.map(fn call ->
+      telavox_time = parse_telavox_datetime(call["dateTimeISO"])
+      diff = if telavox_time, do: abs(NaiveDateTime.diff(received_at, telavox_time, :second)), else: 999_999
+      {call, diff}
+    end)
+    |> Enum.filter(fn {_call, diff} -> diff < 120 end)
+    |> Enum.min_by(fn {_call, diff} -> diff end, fn -> nil end)
+    |> case do
+      {call, _diff} -> call
+      nil -> nil
+    end
+  end
+
+  defp find_matching_call(_telavox_calls, _phone_call), do: nil
+
+  defp parse_telavox_datetime(nil), do: nil
+  defp parse_telavox_datetime(iso_string) do
+    # Telavox returns "2026-04-03T13:41:23.467+0200" — parse and convert to naive UTC
+    case DateTime.from_iso8601(iso_string) do
+      {:ok, dt, _offset} -> DateTime.to_naive(DateTime.shift_zone!(dt, "Etc/UTC"))
+      _ -> nil
+    end
+  end
+
   defp enrich_from_call(phone_call_id, call_data) do
     number = call_data["number"] || ""
     duration = call_data["duration"] || 0
     recording_id = call_data["recordingId"]
+    telavox_call_id = call_data["callId"]
 
-    Logger.info("RecordingFetchWorker: #{phone_call_id} → number=#{number}, duration=#{duration}s, recording=#{recording_id || "none"}")
+    Logger.info("RecordingFetchWorker: #{phone_call_id} → number=#{number}, duration=#{duration}s, callId=#{telavox_call_id || "none"}, recording=#{recording_id || "none"}")
 
     lead_id = find_lead_id(number)
 
     Saleflow.Repo.query(
-      "UPDATE phone_calls SET callee = $1, duration = $2, lead_id = $3 WHERE id = $4",
-      [number, duration, lead_id && Ecto.UUID.dump!(lead_id), Ecto.UUID.dump!(phone_call_id)]
+      "UPDATE phone_calls SET callee = $1, duration = $2, lead_id = $3, telavox_call_id = $4 WHERE id = $5",
+      [number, duration, lead_id && Ecto.UUID.dump!(lead_id), telavox_call_id, Ecto.UUID.dump!(phone_call_id)]
     )
 
     Phoenix.PubSub.broadcast(

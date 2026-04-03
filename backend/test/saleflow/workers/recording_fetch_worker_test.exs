@@ -13,7 +13,7 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
   # ---------------------------------------------------------------------------
 
   defp create_phone_call(attrs \\ %{}) do
-    default = %{caller: "+46701111111", callee: "+46812345678", duration: 30}
+    default = %{caller: "+46701111111", callee: "+46812345678", duration: 0, direction: :outgoing}
     {:ok, phone_call} = Saleflow.Sales.create_phone_call(Map.merge(default, attrs))
     phone_call
   end
@@ -25,36 +25,80 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
     }
   end
 
+  # Build a Telavox call entry with dateTimeISO close to phone_call's received_at
+  defp telavox_call(phone_call, overrides \\ %{}) do
+    # phone_call.received_at is a DateTime — format as ISO 8601 with +0000 offset
+    iso = DateTime.to_iso8601(phone_call.received_at)
+
+    Map.merge(
+      %{
+        "number" => "+46812345678",
+        "duration" => 42,
+        "dateTimeISO" => iso,
+        "callId" => Ecto.UUID.generate()
+      },
+      overrides
+    )
+  end
+
   # ---------------------------------------------------------------------------
-  # perform/1 — phone_call not found
+  # perform/1 — matching and enrichment
   # ---------------------------------------------------------------------------
 
-  describe "perform/1 when phone_call not found" do
-    test "returns :ok when API has no outgoing calls" do
-      fake_id = Ecto.UUID.generate()
+  describe "perform/1 with matching call" do
+    test "enriches phone_call with duration and callee from matched Telavox call" do
+      phone_call = create_phone_call(%{callee: "+46000000000"})
       user_id = Ecto.UUID.generate()
 
       MockClient
       |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
         {:ok,
          %{
-           "outgoing" => [],
+           "outgoing" => [telavox_call(phone_call, %{"number" => "+46812345678", "duration" => 42})],
            "incoming" => []
          }}
       end)
 
-      job = build_job(fake_id, user_id, 3)
-
+      job = build_job(phone_call.id, user_id)
       assert :ok = RecordingFetchWorker.perform(job)
+
+      {:ok, %{rows: [[callee, duration]]}} =
+        Saleflow.Repo.query(
+          "SELECT callee, duration FROM phone_calls WHERE id = $1",
+          [Ecto.UUID.dump!(phone_call.id)]
+        )
+
+      assert callee == "+46812345678"
+      assert duration == 42
     end
-  end
 
-  # ---------------------------------------------------------------------------
-  # perform/1 — API returns calls with recording
-  # ---------------------------------------------------------------------------
+    test "sets telavox_call_id on phone_call" do
+      phone_call = create_phone_call()
+      user_id = Ecto.UUID.generate()
+      call_id = Ecto.UUID.generate()
 
-  describe "perform/1 with matching recording" do
-    test "downloads and stores recording, updates phone_call" do
+      MockClient
+      |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
+        {:ok,
+         %{
+           "outgoing" => [telavox_call(phone_call, %{"callId" => call_id})],
+           "incoming" => []
+         }}
+      end)
+
+      job = build_job(phone_call.id, user_id)
+      assert :ok = RecordingFetchWorker.perform(job)
+
+      {:ok, %{rows: [[saved_call_id]]}} =
+        Saleflow.Repo.query(
+          "SELECT telavox_call_id FROM phone_calls WHERE id = $1",
+          [Ecto.UUID.dump!(phone_call.id)]
+        )
+
+      assert saved_call_id == call_id
+    end
+
+    test "downloads and stores recording when present" do
       phone_call = create_phone_call()
       user_id = Ecto.UUID.generate()
 
@@ -62,12 +106,7 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
       |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
         {:ok,
          %{
-           "outgoing" => [
-             %{
-               "number" => "+46812345678",
-               "recordingId" => "rec-123"
-             }
-           ],
+           "outgoing" => [telavox_call(phone_call, %{"recordingId" => "rec-123"})],
            "incoming" => []
          }}
       end)
@@ -78,10 +117,8 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
       end)
 
       job = build_job(phone_call.id, user_id)
-
       assert :ok = RecordingFetchWorker.perform(job)
 
-      # Verify recording_key and recording_id were set
       {:ok, %{rows: [[recording_key, recording_id]]}} =
         Saleflow.Repo.query(
           "SELECT recording_key, recording_id FROM phone_calls WHERE id = $1",
@@ -95,43 +132,33 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
   end
 
   # ---------------------------------------------------------------------------
-  # perform/1 — no matching recording (attempt < 3)
+  # perform/1 — no matching call
   # ---------------------------------------------------------------------------
 
-  describe "perform/1 with no outgoing calls" do
+  describe "perform/1 with no matching call" do
     test "returns error for retry when attempt < 3" do
       phone_call = create_phone_call()
       user_id = Ecto.UUID.generate()
 
       MockClient
       |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
-        {:ok,
-         %{
-           "outgoing" => [],
-           "incoming" => []
-         }}
+        {:ok, %{"outgoing" => [], "incoming" => []}}
       end)
 
       job = build_job(phone_call.id, user_id, 1)
-
-      assert {:error, "No calls yet"} = RecordingFetchWorker.perform(job)
+      assert {:error, "No matching call yet"} = RecordingFetchWorker.perform(job)
     end
 
-    test "returns :ok on final attempt (attempt 3)" do
+    test "returns :ok on final attempt" do
       phone_call = create_phone_call()
       user_id = Ecto.UUID.generate()
 
       MockClient
       |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
-        {:ok,
-         %{
-           "outgoing" => [],
-           "incoming" => []
-         }}
+        {:ok, %{"outgoing" => [], "incoming" => []}}
       end)
 
       job = build_job(phone_call.id, user_id, 3)
-
       assert :ok = RecordingFetchWorker.perform(job)
     end
   end
@@ -151,7 +178,6 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
       end)
 
       job = build_job(phone_call.id, user_id)
-
       assert {:error, "API error"} = RecordingFetchWorker.perform(job)
     end
   end
@@ -169,9 +195,7 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
       |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
         {:ok,
          %{
-           "outgoing" => [
-             %{"number" => "+46812345678", "recordingId" => "rec-456"}
-           ],
+           "outgoing" => [telavox_call(phone_call, %{"recordingId" => "rec-456"})],
            "incoming" => []
          }}
       end)
@@ -182,87 +206,7 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
       end)
 
       job = build_job(phone_call.id, user_id)
-
       assert {:error, "Download failed"} = RecordingFetchWorker.perform(job)
-    end
-  end
-
-  # ---------------------------------------------------------------------------
-  # perform/1 — recording stored with disabled storage (noop)
-  # ---------------------------------------------------------------------------
-
-  describe "perform/1 stores recording with disabled storage" do
-    test "updates phone_call recording fields when storage returns noop" do
-      phone_call = create_phone_call()
-      user_id = Ecto.UUID.generate()
-
-      MockClient
-      |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
-        {:ok,
-         %{
-           "outgoing" => [
-             %{"number" => "+46812345678", "recordingId" => "rec-789"}
-           ],
-           "incoming" => []
-         }}
-      end)
-
-      MockClient
-      |> expect(:get_binary, fn "/recordings/rec-789" ->
-        {:ok, <<0xFF, 0xFB>>}
-      end)
-
-      job = build_job(phone_call.id, user_id)
-
-      # Storage is disabled in test, so upload returns {:ok, :noop}
-      assert :ok = RecordingFetchWorker.perform(job)
-
-      # Verify recording fields were updated
-      {:ok, %{rows: [[recording_key, recording_id]]}} =
-        Saleflow.Repo.query(
-          "SELECT recording_key, recording_id FROM phone_calls WHERE id = $1",
-          [Ecto.UUID.dump!(phone_call.id)]
-        )
-
-      assert recording_key =~ "recordings/"
-      assert recording_key =~ "#{phone_call.id}.mp3"
-      assert recording_id == "rec-789"
-    end
-  end
-
-  # ---------------------------------------------------------------------------
-  # perform/1 — enriches phone_call with data from most recent outgoing call
-  # ---------------------------------------------------------------------------
-
-  describe "perform/1 enriches phone_call from most recent outgoing call" do
-    test "updates callee, duration, and lead_id from API response" do
-      phone_call = create_phone_call(%{callee: "+46000000000"})
-      user_id = Ecto.UUID.generate()
-
-      MockClient
-      |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
-        {:ok,
-         %{
-           "outgoing" => [
-             %{"number" => "+46812345678", "duration" => 42}
-           ],
-           "incoming" => []
-         }}
-      end)
-
-      job = build_job(phone_call.id, user_id)
-
-      assert :ok = RecordingFetchWorker.perform(job)
-
-      # Verify callee and duration were updated
-      {:ok, %{rows: [[callee, duration]]}} =
-        Saleflow.Repo.query(
-          "SELECT callee, duration FROM phone_calls WHERE id = $1",
-          [Ecto.UUID.dump!(phone_call.id)]
-        )
-
-      assert callee == "+46812345678"
-      assert duration == 42
     end
   end
 end
