@@ -106,16 +106,22 @@ defmodule SaleflowWeb.LeadController do
   Submit an outcome for a lead: logs the call, releases the assignment,
   updates lead status, and optionally creates a meeting or quarantine.
   """
-  def outcome(conn, %{"id" => id, "outcome" => outcome} = params) do
-    user = conn.assigns.current_user
+  @valid_outcomes ~w(meeting_booked callback not_interested no_answer call_later bad_number customer other)
 
-    with {:ok, lead} <- Sales.get_lead(id),
-         {:ok, _call} <- Sales.log_call(%{
-           lead_id: lead.id,
-           user_id: user.id,
-           outcome: String.to_existing_atom(outcome),
-           notes: params["notes"]
-         }),
+  def outcome(conn, %{"id" => id, "outcome" => outcome} = params) do
+    if outcome not in @valid_outcomes do
+      conn |> put_status(422) |> json(%{error: "Ogiltigt outcome: #{outcome}"})
+    else
+      user = conn.assigns.current_user
+      outcome_atom = String.to_existing_atom(outcome)
+
+      with {:ok, lead} <- Sales.get_lead(id),
+           {:ok, _call} <- Sales.log_call(%{
+             lead_id: lead.id,
+             user_id: user.id,
+             outcome: outcome_atom,
+             notes: params["notes"]
+           }),
          :ok <- release_active(user),
          {:ok, _lead} <- apply_outcome(lead, outcome, user, params) do
       json(conn, %{ok: true})
@@ -125,6 +131,7 @@ defmodule SaleflowWeb.LeadController do
 
       {:error, _reason} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: "Failed to process outcome"})
+    end
     end
   end
 

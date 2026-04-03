@@ -117,7 +117,12 @@ defmodule SaleflowWeb.GoalController do
     case params[key] do
       nil -> nil
       val when is_atom(val) -> val
-      val -> String.to_existing_atom(val)
+      val when is_binary(val) ->
+        try do
+          String.to_existing_atom(val)
+        rescue
+          ArgumentError -> nil
+        end
     end
   end
 
