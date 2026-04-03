@@ -99,17 +99,7 @@ defmodule Saleflow.Workers.RecordingFetchWorker do
     end
   end
 
-  defp find_lead_id(number) when is_binary(number) and number != "" do
-    query = "SELECT id FROM leads WHERE telefon = $1 OR telefon LIKE $2 LIMIT 1"
-    like = "%" <> number
-
-    case Saleflow.Repo.query(query, [number, like]) do
-      {:ok, %{rows: [[id]]}} -> Saleflow.Sales.decode_uuid(id)
-      _ -> nil
-    end
-  end
-
-  defp find_lead_id(_), do: nil
+  defp find_lead_id(number), do: Saleflow.Telavox.UserLookup.find_lead_id(number)
 
   defp download_and_store(phone_call_id, recording_id) do
     case client().get_binary("/recordings/#{recording_id}") do

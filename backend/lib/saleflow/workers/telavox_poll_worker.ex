@@ -122,17 +122,6 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
     end
   end
 
-  defp find_lead_id(callee) when is_binary(callee) and callee != "" do
-    query = "SELECT id FROM leads WHERE telefon = $1 LIMIT 1"
-
-    case Saleflow.Repo.query(query, [callee]) do
-      {:ok, %{rows: [[id]]}} -> Sales.decode_uuid(id)
-      _ -> nil
-    end
-  end
-
-  defp find_lead_id(_), do: nil
-
   # --- Call diffing ---
 
   @doc false
@@ -172,22 +161,7 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
   end
 
   @doc false
-  def build_user_map do
-    case Saleflow.Repo.query(
-           "SELECT id, extension_number, phone_number FROM users WHERE extension_number IS NOT NULL OR phone_number IS NOT NULL"
-         ) do
-      {:ok, %{rows: rows}} ->
-        Enum.reduce(rows, %{}, fn [id, ext, phone], acc ->
-          user_id = Sales.decode_uuid(id)
-          acc
-          |> then(fn a -> if ext, do: Map.put(a, ext, user_id), else: a end)
-          |> then(fn a -> if phone, do: Map.put(a, phone, user_id), else: a end)
-        end)
-
-      _ ->
-        %{}
-    end
-  end
+  def build_user_map, do: Saleflow.Telavox.UserLookup.build_user_map()
 
   defp broadcast_calls(calls) do
     Phoenix.PubSub.broadcast(
