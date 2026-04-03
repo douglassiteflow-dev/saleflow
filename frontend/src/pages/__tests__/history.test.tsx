@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HistoryPage } from "../history";
@@ -10,52 +10,46 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => navigateMock };
 });
 
-const useAuditLogsMock = vi.fn();
-
-vi.mock("@/api/audit", () => ({
-  useAuditLogs: () => useAuditLogsMock(),
+const useCallHistoryMock = vi.fn();
+vi.mock("@/api/calls", () => ({
+  useCallHistory: (...args: unknown[]) => useCallHistoryMock(...args),
 }));
 
-const defaultLogs = [
+const useMeMock = vi.fn();
+vi.mock("@/api/auth", () => ({
+  useMe: () => useMeMock(),
+}));
+
+const defaultCalls = [
   {
-    id: "a1",
+    id: "c1",
+    caller: "+46701234567",
+    callee: "+46709999999",
+    duration: 95,
+    direction: "outgoing",
+    received_at: "2024-03-15T10:00:00Z",
     user_id: "u1",
-    action: "lead.created",
-    resource_type: "lead",
-    resource_id: "l1",
-    changes: { source: { from: "", to: "import" } },
-    metadata: {},
-    inserted_at: "2024-03-15T10:00:00Z",
+    user_name: "Anna B",
+    lead_id: "l1",
+    lead_name: "Acme AB",
+    has_recording: false,
+    outcome: "meeting_booked",
+    notes: null,
   },
   {
-    id: "a2",
-    user_id: null,
-    action: "call.logged",
-    resource_type: "call",
-    resource_id: "l2",
-    changes: {},
-    metadata: {},
-    inserted_at: "2024-03-14T09:00:00Z",
-  },
-  {
-    id: "a3",
-    user_id: null,
-    action: "meeting.created",
-    resource_type: "meeting",
-    resource_id: "l3",
-    changes: {},
-    metadata: {},
-    inserted_at: "2024-03-13T09:00:00Z",
-  },
-  {
-    id: "a4",
-    user_id: null,
-    action: "system.unknown",
-    resource_type: "system",
-    resource_id: "l4",
-    changes: {},
-    metadata: {},
-    inserted_at: "2024-03-12T09:00:00Z",
+    id: "c2",
+    caller: "+46701234567",
+    callee: "+46708888888",
+    duration: 0,
+    direction: "outgoing",
+    received_at: "2024-03-15T09:30:00Z",
+    user_id: "u1",
+    user_name: "Anna B",
+    lead_id: "l2",
+    lead_name: "Beta Corp",
+    has_recording: false,
+    outcome: "no_answer",
+    notes: null,
   },
 ];
 
@@ -71,151 +65,69 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 describe("HistoryPage", () => {
   beforeEach(() => {
     navigateMock.mockClear();
-    useAuditLogsMock.mockReturnValue({
-      data: defaultLogs,
+    useMeMock.mockReturnValue({ data: { role: "agent" } });
+    useCallHistoryMock.mockReturnValue({
+      data: defaultCalls,
       isLoading: false,
     });
   });
 
-  it("renders page title", () => {
+  it("renders 'Samtalshistorik' heading", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Historik")).toBeInTheDocument();
+    expect(screen.getByText("Samtalshistorik")).toBeInTheDocument();
   });
 
-  it("renders event log table", () => {
+  it("renders call data in table (företag, telefon, utfall badge)", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Händelselogg")).toBeInTheDocument();
-    // "Lead skapad" appears in both dropdown option and table cell
-    expect(screen.getAllByText("Lead skapad").length).toBeGreaterThanOrEqual(2);
-    // "Samtal loggat" appears in both dropdown option and table cell
-    expect(screen.getAllByText("Samtal loggat").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("Acme AB")).toBeInTheDocument();
+    expect(screen.getByText("+46709999999")).toBeInTheDocument();
+    expect(screen.getByText("Möte bokat")).toBeInTheDocument();
+    expect(screen.getByText("Beta Corp")).toBeInTheDocument();
+    expect(screen.getByText("+46708888888")).toBeInTheDocument();
+    expect(screen.getByText("Ej svar")).toBeInTheDocument();
   });
 
-  it("renders dash for empty changes", () => {
+  it("renders empty state when no calls", () => {
+    useCallHistoryMock.mockReturnValue({ data: [], isLoading: false });
     render(<HistoryPage />, { wrapper: Wrapper });
-    const dashes = screen.getAllByText("—");
-    expect(dashes.length).toBeGreaterThan(0);
-  });
-
-  it("renders resource type labels", () => {
-    render(<HistoryPage />, { wrapper: Wrapper });
-    // resource_type in test data is lowercase ("lead", "call"), which falls through
-    // to raw value when not in RESOURCE_LABELS (which uses "Lead", "CallLog")
-    expect(screen.getByText("lead")).toBeInTheDocument();
-    expect(screen.getByText("call")).toBeInTheDocument();
-  });
-
-  it("renders meeting resource type", () => {
-    render(<HistoryPage />, { wrapper: Wrapper });
-    // resource_type "meeting" (lowercase, not in RESOURCE_LABELS as "Meeting")
-    expect(screen.getByText("meeting")).toBeInTheDocument();
-  });
-
-  it("renders dash for unknown action resource type", () => {
-    render(<HistoryPage />, { wrapper: Wrapper });
-    const cells = screen.getAllByText("—");
-    expect(cells.length).toBeGreaterThan(0);
-  });
-
-  it("filters by search text", () => {
-    render(<HistoryPage />, { wrapper: Wrapper });
-    const searchInput = screen.getByPlaceholderText("Sök händelse...");
-    fireEvent.change(searchInput, { target: { value: "l1" } });
-    // a1 has resource_id "l1", should be shown (also in dropdown option)
-    expect(screen.getAllByText("Lead skapad").length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("renders changes summary", () => {
-    render(<HistoryPage />, { wrapper: Wrapper });
-    expect(screen.getByText(/source:/)).toBeInTheDocument();
-  });
-
-  it("renders action filter dropdown", () => {
-    render(<HistoryPage />, { wrapper: Wrapper });
-    expect(screen.getByDisplayValue("Alla händelser")).toBeInTheDocument();
-  });
-
-  it("uses actionLabel for unknown action", () => {
-    render(<HistoryPage />, { wrapper: Wrapper });
-    expect(screen.getByText("system.unknown")).toBeInTheDocument();
-  });
-
-  it("navigates on row click for lead/call/meeting actions", () => {
-    render(<HistoryPage />, { wrapper: Wrapper });
-    const rows = document.querySelectorAll("tbody tr");
-    expect(rows.length).toBeGreaterThan(0);
-    fireEvent.click(rows[0]!);
-    expect(navigateMock).toHaveBeenCalledWith("/leads/l1");
-  });
-
-  it("does not navigate for non-navigable actions", () => {
-    render(<HistoryPage />, { wrapper: Wrapper });
-    const rows = document.querySelectorAll("tbody tr");
-    const lastRow = rows[rows.length - 1]!;
-    fireEvent.click(lastRow);
-    expect(navigateMock).not.toHaveBeenCalled();
+    expect(screen.getByText(/Inga samtal/)).toBeInTheDocument();
   });
 
   it("renders loading state", () => {
-    useAuditLogsMock.mockReturnValue({ data: undefined, isLoading: true });
+    useCallHistoryMock.mockReturnValue({ data: undefined, isLoading: true });
     render(<HistoryPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Laddar historik")).toBeInTheDocument();
+    expect(screen.getByText("Laddar samtal...")).toBeInTheDocument();
   });
 
-  it("renders empty state", () => {
-    useAuditLogsMock.mockReturnValue({ data: [], isLoading: false });
+  it("renders date picker", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Inga händelser hittades.")).toBeInTheDocument();
+    const datePicker = document.querySelector('input[type="date"]');
+    expect(datePicker).toBeInTheDocument();
   });
 
-  it("changes action filter", () => {
+  it("navigates to lead on row click", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    const select = screen.getByDisplayValue("Alla händelser");
-    fireEvent.change(select, { target: { value: "lead.created" } });
-    // After filter change, only "Lead skapad" rows should be visible
-    expect(screen.getByDisplayValue("Lead skapad")).toBeInTheDocument();
+    const rows = document.querySelectorAll("tbody tr");
+    expect(rows.length).toBeGreaterThan(0);
+    rows[0]!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(navigateMock).toHaveBeenCalledWith("/leads/l1");
   });
 
-  it("filters by changes content in search", () => {
+  it("shows Agent column for admin users", () => {
+    useMeMock.mockReturnValue({ data: { role: "admin" } });
     render(<HistoryPage />, { wrapper: Wrapper });
-    const searchInput = screen.getByPlaceholderText("Sök händelse...");
-    fireEvent.change(searchInput, { target: { value: "import" } });
-    expect(screen.getByText(/source:/)).toBeInTheDocument();
+    expect(screen.getByText("Agent")).toBeInTheDocument();
+    expect(screen.getAllByText("Anna B").length).toBe(2);
   });
 
-  it("filters by resource_id in search", () => {
+  it("hides Agent column for non-admin users", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    const searchInput = screen.getByPlaceholderText("Sök händelse...");
-    fireEvent.change(searchInput, { target: { value: "l1" } });
-    expect(screen.getAllByText("Lead skapad").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("Agent")).not.toBeInTheDocument();
   });
 
-  it("changes summary shows dash for empty changes", () => {
+  it("formats duration correctly", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    // a2, a3, a4 have empty changes → "—" in changes column
-    const dashes = screen.getAllByText("—");
-    expect(dashes.length).toBeGreaterThan(0);
-  });
-
-  it("truncates changes summary to 3 entries", () => {
-    useAuditLogsMock.mockReturnValue({
-      data: [
-        {
-          id: "a1",
-          user_id: "u1",
-          action: "lead.updated",
-          resource_type: "lead",
-          resource_id: "l1",
-          changes: { a: "1", b: "2", c: "3", d: "4" },
-          metadata: {},
-          inserted_at: "2024-03-15T10:00:00Z",
-        },
-      ],
-      isLoading: false,
-    });
-
-    render(<HistoryPage />, { wrapper: Wrapper });
-    // Only first 3 entries should be shown
-    expect(screen.getByText("a: 1, b: 2, c: 3")).toBeInTheDocument();
+    // 95 seconds = 1m 35s
+    expect(screen.getByText("1m 35s")).toBeInTheDocument();
   });
 });

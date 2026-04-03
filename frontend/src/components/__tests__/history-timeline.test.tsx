@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { HistoryTimeline } from "../history-timeline";
-import type { CallLog, AuditLog } from "@/api/types";
+import type { CallLog } from "@/api/types";
 
 const callLog: CallLog = {
   id: "c1",
@@ -13,27 +13,15 @@ const callLog: CallLog = {
   called_at: "2024-03-15T10:00:00Z",
 };
 
-const auditLog: AuditLog = {
-  id: "a1",
-  user_id: "u1",
-  user_name: null,
-  action: "lead.created",
-  resource_type: "lead",
-  resource_id: "l1",
-  changes: { source: { from: "", to: "import" } },
-  metadata: {},
-  inserted_at: "2024-03-14T09:00:00Z",
-};
-
 describe("HistoryTimeline", () => {
   it("shows empty state when no logs", () => {
     render(<HistoryTimeline />);
-    expect(screen.getByText("Ingen historik ännu.")).toBeInTheDocument();
+    expect(screen.getByText("Inga samtal ännu.")).toBeInTheDocument();
   });
 
-  it("renders title", () => {
+  it("renders heading 'Samtalshistorik'", () => {
     render(<HistoryTimeline />);
-    expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent("Historik");
+    expect(screen.getByText("Samtalshistorik")).toBeInTheDocument();
   });
 
   it("renders call logs with outcome label", () => {
@@ -44,30 +32,6 @@ describe("HistoryTimeline", () => {
   it("renders call notes", () => {
     render(<HistoryTimeline callLogs={[callLog]} />);
     expect(screen.getByText("Called and booked")).toBeInTheDocument();
-  });
-
-  it("renders audit logs with translated action label", () => {
-    render(<HistoryTimeline auditLogs={[auditLog]} />);
-    // "lead.created" is translated to "Lead skapad"
-    expect(screen.getByText("Lead skapad")).toBeInTheDocument();
-  });
-
-  it("renders audit log changes as formatted text", () => {
-    render(<HistoryTimeline auditLogs={[auditLog]} />);
-    // The component extracts company name + city for lead.created action
-    // With our auditLog the changes don't have företag/stad, so it falls through
-    // The "source" field is in HIDDEN_FIELDS or doesn't match, so no changes shown
-    // Just verify the audit entry itself renders
-    expect(screen.getByText("Lead skapad")).toBeInTheDocument();
-  });
-
-  it("sorts entries by timestamp descending", () => {
-    render(<HistoryTimeline callLogs={[callLog]} auditLogs={[auditLog]} />);
-    const items = screen.getAllByRole("listitem");
-    expect(items).toHaveLength(2);
-    // Call log (2024-03-15) should come before audit log (2024-03-14) since desc
-    expect(items[0]!.textContent).toContain("Möte bokat");
-    expect(items[1]!.textContent).toContain("Lead skapad");
   });
 
   it("renders call log with null outcome as 'Samtal'", () => {
@@ -82,9 +46,17 @@ describe("HistoryTimeline", () => {
     expect(screen.queryByText("Called and booked")).not.toBeInTheDocument();
   });
 
-  it("skips changes display when audit has empty changes", () => {
-    const emptyChangesLog: AuditLog = { ...auditLog, changes: {} as AuditLog["changes"] };
-    render(<HistoryTimeline auditLogs={[emptyChangesLog]} />);
-    expect(screen.queryByText("{}")).not.toBeInTheDocument();
+  it("sorts entries by called_at descending", () => {
+    const older: CallLog = {
+      ...callLog,
+      id: "c2",
+      outcome: "no_answer",
+      called_at: "2024-03-14T09:00:00Z",
+    };
+    render(<HistoryTimeline callLogs={[older, callLog]} />);
+    const items = screen.getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    expect(items[0]!.textContent).toContain("Möte bokat");
+    expect(items[1]!.textContent).toContain("Ej svar");
   });
 });

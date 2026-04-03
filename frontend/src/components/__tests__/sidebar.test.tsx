@@ -31,7 +31,7 @@ describe("Sidebar", () => {
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
     expect(screen.getByText("Ringare")).toBeInTheDocument();
     expect(screen.getByText("Möten")).toBeInTheDocument();
-    expect(screen.getByText("Historik")).toBeInTheDocument();
+    expect(screen.getByText("Samtalshistorik")).toBeInTheDocument();
   });
 
   it("shows admin nav items for admin users", () => {
@@ -40,6 +40,7 @@ describe("Sidebar", () => {
     expect(screen.getByText("Användare")).toBeInTheDocument();
     expect(screen.getByText("Importera")).toBeInTheDocument();
     expect(screen.getByText("Statistik")).toBeInTheDocument();
+    expect(screen.getByText("Loggar")).toBeInTheDocument();
   });
 
   it("hides admin nav items for non-admin users", () => {
@@ -48,6 +49,7 @@ describe("Sidebar", () => {
     expect(screen.queryByText("Användare")).not.toBeInTheDocument();
     expect(screen.queryByText("Importera")).not.toBeInTheDocument();
     expect(screen.queryByText("Statistik")).not.toBeInTheDocument();
+    expect(screen.queryByText("Loggar")).not.toBeInTheDocument();
   });
 
   it("hides admin nav when user is null", () => {
