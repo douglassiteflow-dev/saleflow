@@ -19,6 +19,7 @@ import Config
 # Telavox webhook secret (skip in test — configured in test.exs)
 if config_env() != :test do
   config :saleflow, telavox_webhook_secret: System.get_env("TELAVOX_WEBHOOK_SECRET") || ""
+  config :saleflow, :telavox_api_token, System.get_env("TELAVOX_API_TOKEN") || ""
 end
 
 if System.get_env("PHX_SERVER") do
@@ -71,7 +72,7 @@ if config_env() == :prod do
 
   # Resend mailer
   config :saleflow, :resend_api_key, System.get_env("RESEND_API_KEY")
-  config :saleflow, :resend_from, "SaleFlow <noreply@saleflow.se>"
+  config :saleflow, :resend_from, "Saleflow <noreply@saleflow.se>"
   config :saleflow, :mailer_sandbox, false
 
   # Token signing secret
