@@ -4,6 +4,7 @@ import { useMe } from "@/api/auth";
 import { Leaderboard } from "@/components/leaderboard";
 import { StatCard } from "@/components/stat-card";
 import { GoalProgress } from "@/components/goal-progress";
+import { LiveCalls } from "@/components/live-calls";
 import { Button } from "@/components/ui/button";
 
 function formatDate(): string {
@@ -57,6 +58,9 @@ export function DashboardPage() {
           suffix="%"
         />
       </div>
+
+      {/* Pågående samtal */}
+      <LiveCalls />
 
       {/* Mål */}
       <GoalProgress goals={goalProgress} />

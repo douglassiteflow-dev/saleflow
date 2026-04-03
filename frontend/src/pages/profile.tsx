@@ -4,6 +4,7 @@ import { useMicrosoftStatus, useMicrosoftAuthorize, useMicrosoftDisconnect } fro
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SessionList } from "@/components/session-list";
+import { TelavoxConnect } from "@/components/telavox-connect";
 import Loader from "@/components/kokonutui/loader";
 
 export function ProfilePage() {
@@ -96,6 +97,9 @@ export function ProfilePage() {
           )}
         </div>
       </Card>
+
+      {/* Telavox card */}
+      <TelavoxConnect />
 
       {/* Sessions card */}
       <Card>
