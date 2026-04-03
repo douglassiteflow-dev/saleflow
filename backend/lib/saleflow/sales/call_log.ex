@@ -66,6 +66,27 @@ defmodule Saleflow.Sales.CallLog do
         Ash.Changeset.force_change_attribute(changeset, :called_at, DateTime.utc_now())
       end
 
+      validate fn changeset, _context ->
+        lead_id = Ash.Changeset.get_attribute(changeset, :lead_id)
+        user_id = Ash.Changeset.get_attribute(changeset, :user_id)
+
+        if lead_id && user_id do
+          cutoff = DateTime.utc_now() |> DateTime.add(-20, :second)
+          uid = Ecto.UUID.dump!(user_id)
+          lid = Ecto.UUID.dump!(lead_id)
+
+          case Saleflow.Repo.query(
+                 "SELECT COUNT(*) FROM call_logs WHERE user_id = $1 AND lead_id = $2 AND called_at > $3",
+                 [uid, lid, cutoff]
+               ) do
+            {:ok, %{rows: [[0]]}} -> :ok
+            _ -> {:error, field: :lead_id, message: "Utfall redan loggat för denna kund"}
+          end
+        else
+          :ok
+        end
+      end
+
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "call.logged"}
     end
   end

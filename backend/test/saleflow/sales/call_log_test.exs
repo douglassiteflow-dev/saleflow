@@ -158,10 +158,11 @@ defmodule Saleflow.Sales.CallLogTest do
   describe "list_calls_for_lead/1" do
     test "returns calls for a given lead" do
       lead = create_lead!()
-      user = create_user!()
+      user1 = create_user!()
+      user2 = create_user!()
 
-      log_call!(lead, user, outcome: :no_answer)
-      log_call!(lead, user, outcome: :callback)
+      log_call!(lead, user1, outcome: :no_answer)
+      log_call!(lead, user2, outcome: :callback)
 
       assert {:ok, calls} = Sales.list_calls_for_lead(lead.id)
       assert length(calls) == 2
@@ -214,11 +215,12 @@ defmodule Saleflow.Sales.CallLogTest do
 
   describe "list_calls_for_user/1" do
     test "returns calls made by the given user" do
-      lead = create_lead!()
+      lead1 = create_lead!()
+      lead2 = create_lead!()
       user = create_user!()
 
-      log_call!(lead, user, outcome: :no_answer)
-      log_call!(lead, user, outcome: :callback)
+      log_call!(lead1, user, outcome: :no_answer)
+      log_call!(lead2, user, outcome: :callback)
 
       assert {:ok, calls} = Sales.list_calls_for_user(user.id)
       assert length(calls) == 2
