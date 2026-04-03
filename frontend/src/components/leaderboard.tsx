@@ -83,11 +83,6 @@ export function Leaderboard({ entries, currentUserId }: LeaderboardProps) {
                   )}
                 >
                   {entry.net_meetings_today} möten
-                  {entry.meetings_cancelled_today > 0 && (
-                    <span className="ml-1 text-[11px] font-normal text-red-400">
-                      ({entry.meetings_cancelled_today} avbokade)
-                    </span>
-                  )}
                 </div>
                 <div className="text-[11px] text-[var(--color-text-secondary)]">
                   {entry.calls_today} samtal
