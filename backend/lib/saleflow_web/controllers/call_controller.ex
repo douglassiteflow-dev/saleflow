@@ -94,10 +94,12 @@ defmodule SaleflowWeb.CallController do
       cl.id, cl.called_at, cl.outcome::text, cl.notes,
       cl.user_id, cl.lead_id,
       u.name as user_name,
-      l.företag as lead_name, l.telefon as lead_phone
+      l.företag as lead_name, l.telefon as lead_phone,
+      pc.duration, pc.recording_key
     FROM call_logs cl
     JOIN users u ON u.id = cl.user_id
     LEFT JOIN leads l ON l.id = cl.lead_id
+    LEFT JOIN phone_calls pc ON pc.call_log_id = cl.id
     WHERE cl.called_at::date = $1
     """
 
@@ -115,7 +117,7 @@ defmodule SaleflowWeb.CallController do
 
     calls =
       Enum.map(rows, fn [id, called_at, outcome, notes, user_id, lead_id,
-                          user_name, lead_name, lead_phone] ->
+                          user_name, lead_name, lead_phone, duration, recording_key] ->
         %{
           id: Saleflow.Sales.decode_uuid(id),
           called_at: called_at && NaiveDateTime.to_iso8601(called_at),
@@ -125,7 +127,9 @@ defmodule SaleflowWeb.CallController do
           user_name: user_name,
           lead_id: lead_id && Saleflow.Sales.decode_uuid(lead_id),
           lead_name: lead_name,
-          lead_phone: lead_phone
+          lead_phone: lead_phone,
+          duration: duration || 0,
+          has_recording: recording_key != nil
         }
       end)
 

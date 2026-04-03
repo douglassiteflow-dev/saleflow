@@ -27,6 +27,13 @@ const OUTCOME_COLORS: Record<string, string> = {
   other: "bg-slate-100 text-slate-600",
 };
 
+function formatDuration(seconds: number): string {
+  if (seconds === 0) return "—";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -81,6 +88,9 @@ export function HistoryPage() {
                     </th>
                   )}
                   <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
+                    Längd
+                  </th>
+                  <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
                     Utfall
                   </th>
                 </tr>
@@ -109,6 +119,9 @@ export function HistoryPage() {
                         {call.user_name ?? "—"}
                       </td>
                     )}
+                    <td className="px-5 py-3.5 text-[var(--color-text-secondary)]">
+                      {formatDuration(call.duration)}
+                    </td>
                     <td className="px-5 py-3.5">
                       {call.outcome ? (
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${OUTCOME_COLORS[call.outcome] ?? "bg-slate-100 text-slate-600"}`}>

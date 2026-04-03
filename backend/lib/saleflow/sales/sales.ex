@@ -761,6 +761,32 @@ defmodule Saleflow.Sales do
     |> Ash.create()
   end
 
+  @doc """
+  Links the most recent unlinked outgoing phone_call for this user (today)
+  to the given call_log_id. Returns :ok regardless of whether a match was found.
+  """
+  def link_phone_call_to_log(user_id, call_log_id) do
+    uid = Ecto.UUID.dump!(user_id)
+    cl_id = Ecto.UUID.dump!(call_log_id)
+
+    query = """
+    UPDATE phone_calls
+    SET call_log_id = $1
+    WHERE id = (
+      SELECT id FROM phone_calls
+      WHERE user_id = $2
+        AND received_at::date = CURRENT_DATE
+        AND direction = 'outgoing'
+        AND call_log_id IS NULL
+      ORDER BY received_at DESC
+      LIMIT 1
+    )
+    """
+
+    Saleflow.Repo.query(query, [cl_id, uid])
+    :ok
+  end
+
   # ---------------------------------------------------------------------------
   # Goal functions
   # ---------------------------------------------------------------------------

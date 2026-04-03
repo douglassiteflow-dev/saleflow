@@ -116,12 +116,13 @@ defmodule SaleflowWeb.LeadController do
       outcome_atom = String.to_existing_atom(outcome)
 
       with {:ok, lead} <- Sales.get_lead(id),
-           {:ok, _call} <- Sales.log_call(%{
+           {:ok, call_log} <- Sales.log_call(%{
              lead_id: lead.id,
              user_id: user.id,
              outcome: outcome_atom,
              notes: params["notes"]
            }),
+         :ok <- Sales.link_phone_call_to_log(user.id, call_log.id),
          :ok <- release_active(user),
          {:ok, _lead} <- apply_outcome(lead, outcome, user, params) do
       json(conn, %{ok: true})

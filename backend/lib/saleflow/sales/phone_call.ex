@@ -95,5 +95,10 @@ defmodule Saleflow.Sales.PhoneCall do
       description "Attach recording metadata to a phone call"
       accept [:recording_key, :recording_id]
     end
+
+    update :link_call_log do
+      description "Link this phone call to a call log entry"
+      accept [:call_log_id]
+    end
   end
 end
