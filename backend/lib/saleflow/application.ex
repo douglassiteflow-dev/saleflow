@@ -5,6 +5,8 @@ defmodule Saleflow.Application do
 
   use Application
 
+  require Logger
+
   @impl true
   def start(_type, _args) do
     children = [
@@ -22,6 +24,9 @@ defmodule Saleflow.Application do
 
         if Application.get_env(:saleflow, :telavox_api_token, "") != "" &&
              oban_conf[:testing] != :inline do
+          # Wait for Oban to be ready
+          Process.sleep(2_000)
+          Logger.info("TelavoxPollWorker: starting initial poll job")
           Saleflow.Workers.TelavoxPollWorker.new(%{}) |> Oban.insert()
         end
       end},
