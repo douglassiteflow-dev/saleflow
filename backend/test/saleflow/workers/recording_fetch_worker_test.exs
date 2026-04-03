@@ -30,9 +30,20 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
   # ---------------------------------------------------------------------------
 
   describe "perform/1 when phone_call not found" do
-    test "returns :ok" do
+    test "returns :ok when API has no outgoing calls" do
       fake_id = Ecto.UUID.generate()
-      job = build_job(fake_id, Ecto.UUID.generate())
+      user_id = Ecto.UUID.generate()
+
+      MockClient
+      |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
+        {:ok,
+         %{
+           "outgoing" => [],
+           "incoming" => []
+         }}
+      end)
+
+      job = build_job(fake_id, user_id, 3)
 
       assert :ok = RecordingFetchWorker.perform(job)
     end
@@ -87,7 +98,7 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
   # perform/1 — no matching recording (attempt < 3)
   # ---------------------------------------------------------------------------
 
-  describe "perform/1 with no matching recording" do
+  describe "perform/1 with no outgoing calls" do
     test "returns error for retry when attempt < 3" do
       phone_call = create_phone_call()
       user_id = Ecto.UUID.generate()
@@ -96,16 +107,14 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
       |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
         {:ok,
          %{
-           "outgoing" => [
-             %{"number" => "+46999999999", "recordingId" => "rec-999"}
-           ],
+           "outgoing" => [],
            "incoming" => []
          }}
       end)
 
       job = build_job(phone_call.id, user_id, 1)
 
-      assert {:error, "Call not ready"} = RecordingFetchWorker.perform(job)
+      assert {:error, "No calls yet"} = RecordingFetchWorker.perform(job)
     end
 
     test "returns :ok on final attempt (attempt 3)" do
@@ -222,58 +231,38 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
   end
 
   # ---------------------------------------------------------------------------
-  # find_matching_call/2
+  # perform/1 — enriches phone_call with data from most recent outgoing call
   # ---------------------------------------------------------------------------
 
-  describe "find_matching_call/2" do
-    test "matches by number field" do
-      calls = [
-        %{"number" => "+46812345678", "recordingId" => "rec-abc", "duration" => 42},
-        %{"number" => "+46800000000", "recordingId" => "rec-other"}
-      ]
+  describe "perform/1 enriches phone_call from most recent outgoing call" do
+    test "updates callee, duration, and lead_id from API response" do
+      phone_call = create_phone_call(%{callee: "+46000000000"})
+      user_id = Ecto.UUID.generate()
 
-      matched = RecordingFetchWorker.find_matching_call(calls, "+46812345678")
-      assert matched["recordingId"] == "rec-abc"
-      assert matched["duration"] == 42
-    end
+      MockClient
+      |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
+        {:ok,
+         %{
+           "outgoing" => [
+             %{"number" => "+46812345678", "duration" => 42}
+           ],
+           "incoming" => []
+         }}
+      end)
 
-    test "matches by numberE164 field" do
-      calls = [
-        %{"numberE164" => "+46812345678", "recordingId" => "rec-e164"}
-      ]
+      job = build_job(phone_call.id, user_id)
 
-      matched = RecordingFetchWorker.find_matching_call(calls, "+46812345678")
-      assert matched["recordingId"] == "rec-e164"
-    end
+      assert :ok = RecordingFetchWorker.perform(job)
 
-    test "matches when callee contains number (partial match)" do
-      calls = [
-        %{"number" => "812345678", "recordingId" => "rec-partial"}
-      ]
+      # Verify callee and duration were updated
+      {:ok, %{rows: [[callee, duration]]}} =
+        Saleflow.Repo.query(
+          "SELECT callee, duration FROM phone_calls WHERE id = $1",
+          [Ecto.UUID.dump!(phone_call.id)]
+        )
 
-      matched = RecordingFetchWorker.find_matching_call(calls, "+46812345678")
-      assert matched["recordingId"] == "rec-partial"
-    end
-
-    test "matches when number contains callee (reverse partial)" do
-      calls = [
-        %{"number" => "+46812345678", "recordingId" => "rec-reverse"}
-      ]
-
-      matched = RecordingFetchWorker.find_matching_call(calls, "812345678")
-      assert matched["recordingId"] == "rec-reverse"
-    end
-
-    test "returns nil when no match found" do
-      calls = [
-        %{"number" => "+46700000000", "recordingId" => "rec-nope"}
-      ]
-
-      assert nil == RecordingFetchWorker.find_matching_call(calls, "+46812345678")
-    end
-
-    test "returns nil for empty calls list" do
-      assert nil == RecordingFetchWorker.find_matching_call([], "+46812345678")
+      assert callee == "+46812345678"
+      assert duration == 42
     end
   end
 end
