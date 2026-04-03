@@ -32,20 +32,20 @@ describe("App", () => {
     render(<App />);
     // Default route redirects to /dashboard, which needs auth -> redirects to /login
     // Login page should render
-    expect(screen.getByText("SaleFlow")).toBeInTheDocument();
+    expect(screen.getByText("Saleflow")).toBeInTheDocument();
   });
 
   it("redirects wildcard routes to /dashboard (then to /login without auth)", () => {
     window.history.pushState({}, "", "/some/unknown/path");
     render(<App />);
     // Wildcard redirects to /dashboard, but user is not authed -> redirects to /login
-    expect(screen.getByText("SaleFlow")).toBeInTheDocument();
+    expect(screen.getByText("Saleflow")).toBeInTheDocument();
   });
 
   it("/login is accessible without authentication", () => {
     window.history.pushState({}, "", "/login");
     render(<App />);
-    expect(screen.getByText("SaleFlow")).toBeInTheDocument();
+    expect(screen.getByText("Saleflow")).toBeInTheDocument();
     expect(screen.getByText("Logga in")).toBeInTheDocument();
   });
 });

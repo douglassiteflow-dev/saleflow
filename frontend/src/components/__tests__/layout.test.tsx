@@ -28,7 +28,7 @@ describe("Layout", () => {
       </Wrapper>,
     );
 
-    expect(screen.getByText("SaleFlow")).toBeInTheDocument();
+    expect(screen.getByText("Saleflow")).toBeInTheDocument();
     expect(screen.getByText("Logga ut")).toBeInTheDocument();
     expect(screen.getByText("Outlet content")).toBeInTheDocument();
   });

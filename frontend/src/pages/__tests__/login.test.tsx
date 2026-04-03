@@ -77,7 +77,7 @@ describe("LoginPage", () => {
   it("renders login form when not authenticated", () => {
     useMeMock.mockReturnValue({ data: null, isLoading: false });
     render(<LoginPage />, { wrapper: Wrapper });
-    expect(screen.getByText("SaleFlow")).toBeInTheDocument();
+    expect(screen.getByText("Saleflow")).toBeInTheDocument();
     expect(screen.getByText("Logga in på ditt konto")).toBeInTheDocument();
     expect(screen.getByLabelText(/E-post/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Lösenord/i)).toBeInTheDocument();

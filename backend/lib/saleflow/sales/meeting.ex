@@ -1,6 +1,6 @@
 defmodule Saleflow.Sales.Meeting do
   @moduledoc """
-  Meeting resource for SaleFlow.
+  Meeting resource for Saleflow.
 
   Records a sales meeting booked against a lead. Meetings are created with
   status `:scheduled` and can be transitioned to `:completed` or `:cancelled`.

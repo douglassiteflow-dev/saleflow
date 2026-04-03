@@ -1,6 +1,6 @@
 defmodule Saleflow.Accounts do
   @moduledoc """
-  Accounts domain for SaleFlow.
+  Accounts domain for Saleflow.
 
   Manages user accounts and authentication. Provides functions for registering
   users, signing in, and listing users.

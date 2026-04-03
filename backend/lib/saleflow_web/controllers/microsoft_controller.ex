@@ -67,7 +67,7 @@ defmodule SaleflowWeb.MicrosoftController do
       |> redirect(external: frontend_url() <> "/dashboard?login=microsoft")
     else
       {:error, :user_not_found} ->
-        Logger.warning("Microsoft SSO: no SaleFlow user for email")
+        Logger.warning("Microsoft SSO: no Saleflow user for email")
         redirect(conn, external: frontend_url() <> "/login?error=no_account")
 
       {:error, reason} ->

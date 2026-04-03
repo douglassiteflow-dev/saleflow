@@ -60,7 +60,7 @@ export function ResetPasswordPage() {
             className="text-2xl font-semibold text-indigo-600"
             style={{ fontSize: "28px" }}
           >
-            SaleFlow
+            Saleflow
           </h1>
           <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
             Välj ett nytt lösenord

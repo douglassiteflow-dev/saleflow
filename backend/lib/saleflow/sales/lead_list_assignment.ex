@@ -1,6 +1,6 @@
 defmodule Saleflow.Sales.LeadListAssignment do
   @moduledoc """
-  LeadListAssignment resource for SaleFlow.
+  LeadListAssignment resource for Saleflow.
 
   Maps which agents (users) have access to which lead lists.
   When an agent has one or more list assignments, the lead queue

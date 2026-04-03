@@ -1,6 +1,6 @@
 defmodule Saleflow.Sales.Quarantine do
   @moduledoc """
-  Quarantine resource for SaleFlow.
+  Quarantine resource for Saleflow.
 
   Records an explicit quarantine of a lead. When a lead is quarantined it is
   excluded from the call queue until `released_at` passes.

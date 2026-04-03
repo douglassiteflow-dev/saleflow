@@ -1,6 +1,6 @@
 defmodule Saleflow.Sales.CallLog do
   @moduledoc """
-  CallLog resource for SaleFlow.
+  CallLog resource for Saleflow.
 
   Records every call attempt made by a sales agent against a lead. Capturing
   the outcome of each call drives the lead's workflow state.

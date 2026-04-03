@@ -1,6 +1,6 @@
 defmodule Saleflow.Sales.Lead do
   @moduledoc """
-  Lead resource for SaleFlow.
+  Lead resource for Saleflow.
 
   Represents a prospective customer (company) that sales agents work through.
   Each lead has a status that drives the sales workflow, from initial import

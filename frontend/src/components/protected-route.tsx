@@ -7,7 +7,7 @@ export function ProtectedRoute() {
   if (isLoading)
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader size="md" title="Laddar SaleFlow" subtitle="Verifierar din session" />
+        <Loader size="md" title="Laddar Saleflow" subtitle="Verifierar din session" />
       </div>
     );
   if (!user) return <Navigate to="/login" replace />;

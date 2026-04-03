@@ -1,13 +1,13 @@
 defmodule Saleflow.Notifications.Templates do
   @moduledoc """
-  Renders transactional email templates for SaleFlow.
+  Renders transactional email templates for Saleflow.
 
   Each public function returns `{subject, html_body}` where `html_body` is a
   fully rendered HTML string suitable for passing directly to
   `Saleflow.Notifications.Mailer.send_email/3`.
 
   Templates are EEx files stored under `priv/templates/email/`. Each inner
-  template is wrapped in the shared `layout.html.eex` that applies SaleFlow
+  template is wrapped in the shared `layout.html.eex` that applies Saleflow
   branding (indigo header, white card on slate-50 background).
 
   ## Example
@@ -27,34 +27,34 @@ defmodule Saleflow.Notifications.Templates do
   @doc """
   Renders the OTP login-code email.
 
-  Returns `{"Din inloggningskod - SaleFlow", html}`.
+  Returns `{"Din inloggningskod - Saleflow", html}`.
   """
   @spec render_otp_code(String.t()) :: {String.t(), String.t()}
   def render_otp_code(code) do
     html = render("otp_code.html.eex", code: code)
-    {"Din inloggningskod - SaleFlow", html}
+    {"Din inloggningskod - Saleflow", html}
   end
 
   @doc """
   Renders the welcome / account-created email.
 
-  Returns `{"Välkommen till SaleFlow!", html}`.
+  Returns `{"Välkommen till Saleflow!", html}`.
   """
   @spec render_welcome(String.t(), String.t()) :: {String.t(), String.t()}
   def render_welcome(name, login_url) do
     html = render("welcome.html.eex", name: name, login_url: login_url)
-    {"Välkommen till SaleFlow!", html}
+    {"Välkommen till Saleflow!", html}
   end
 
   @doc """
   Renders the forced-logout notification email.
 
-  Returns `{"Din session har avslutats - SaleFlow", html}`.
+  Returns `{"Din session har avslutats - Saleflow", html}`.
   """
   @spec render_force_logout(String.t()) :: {String.t(), String.t()}
   def render_force_logout(name) do
     html = render("force_logout.html.eex", name: name)
-    {"Din session har avslutats - SaleFlow", html}
+    {"Din session har avslutats - Saleflow", html}
   end
 
   @doc """
@@ -72,12 +72,12 @@ defmodule Saleflow.Notifications.Templates do
   @doc """
   Renders the password-reset email.
 
-  Returns `{"Återställ ditt lösenord - SaleFlow", html}`.
+  Returns `{"Återställ ditt lösenord - Saleflow", html}`.
   """
   @spec render_password_reset(String.t(), String.t()) :: {String.t(), String.t()}
   def render_password_reset(name, reset_url) do
     html = render("password_reset.html.eex", name: name, reset_url: reset_url)
-    {"Återställ ditt lösenord - SaleFlow", html}
+    {"Återställ ditt lösenord - Saleflow", html}
   end
 
   @doc """

@@ -1,6 +1,6 @@
 defmodule Saleflow.Accounts.TrustedDevice do
   @moduledoc """
-  TrustedDevice resource for SaleFlow.
+  TrustedDevice resource for Saleflow.
 
   Stores "remember me" tokens that allow users to skip OTP verification
   for 30 days. Each device is identified by a unique cryptographic token

@@ -1,6 +1,6 @@
 defmodule Saleflow.Accounts.PasswordResetToken do
   @moduledoc """
-  PasswordResetToken resource for SaleFlow.
+  PasswordResetToken resource for Saleflow.
 
   Stores password reset tokens sent via email. Each token is valid for
   1 hour and can only be used once. Using a token invalidates all active

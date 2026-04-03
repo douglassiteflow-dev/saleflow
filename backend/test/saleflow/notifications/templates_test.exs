@@ -17,7 +17,7 @@ defmodule Saleflow.Notifications.TemplatesTest do
     test "subject contains expected text" do
       {subject, _html} = Templates.render_otp_code("123456")
       assert subject =~ "inloggningskod"
-      assert subject =~ "SaleFlow"
+      assert subject =~ "Saleflow"
     end
 
     test "html contains the OTP code" do
@@ -25,9 +25,9 @@ defmodule Saleflow.Notifications.TemplatesTest do
       assert html =~ "987654"
     end
 
-    test "html is wrapped in layout (contains SaleFlow branding)" do
+    test "html is wrapped in layout (contains Saleflow branding)" do
       {_subject, html} = Templates.render_otp_code("111111")
-      assert html =~ "SaleFlow"
+      assert html =~ "Saleflow"
     end
 
     test "html is a full HTML document" do
@@ -51,7 +51,7 @@ defmodule Saleflow.Notifications.TemplatesTest do
     test "subject contains welcome text" do
       {subject, _html} = Templates.render_welcome("Anna Svensson", "https://saleflow.se/login")
       assert subject =~ "Välkommen"
-      assert subject =~ "SaleFlow"
+      assert subject =~ "Saleflow"
     end
 
     test "html contains user name" do
@@ -66,7 +66,7 @@ defmodule Saleflow.Notifications.TemplatesTest do
 
     test "html is wrapped in layout" do
       {_subject, html} = Templates.render_welcome("Diana", "https://saleflow.se")
-      assert html =~ "SaleFlow"
+      assert html =~ "Saleflow"
       assert html =~ "<!DOCTYPE html>"
     end
   end
@@ -85,7 +85,7 @@ defmodule Saleflow.Notifications.TemplatesTest do
     test "subject references session termination" do
       {subject, _html} = Templates.render_force_logout("Erik Lindqvist")
       assert subject =~ "session"
-      assert subject =~ "SaleFlow"
+      assert subject =~ "Saleflow"
     end
 
     test "html contains user name" do
@@ -100,7 +100,7 @@ defmodule Saleflow.Notifications.TemplatesTest do
 
     test "html is wrapped in layout" do
       {_subject, html} = Templates.render_force_logout("Hanna")
-      assert html =~ "SaleFlow"
+      assert html =~ "Saleflow"
     end
   end
 
@@ -155,7 +155,7 @@ defmodule Saleflow.Notifications.TemplatesTest do
       {_subject, html} =
         Templates.render_meeting_reminder("Test", "2026-01-01", "08:00", "Test AB")
 
-      assert html =~ "SaleFlow"
+      assert html =~ "Saleflow"
     end
   end
 
@@ -204,7 +204,7 @@ defmodule Saleflow.Notifications.TemplatesTest do
       {_subject, html} =
         Templates.render_callback_reminder("X Corp", "+46700001111", "12:00")
 
-      assert html =~ "SaleFlow"
+      assert html =~ "Saleflow"
     end
   end
 end

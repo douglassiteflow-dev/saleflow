@@ -1,6 +1,6 @@
 defmodule Saleflow.Audit do
   @moduledoc """
-  Audit domain for SaleFlow.
+  Audit domain for Saleflow.
 
   Manages audit logs for compliance and traceability. Every mutating action
   across all domains is logged here so there is a full, tamper-evident history

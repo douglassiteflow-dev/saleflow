@@ -56,7 +56,7 @@ config :saleflow, Oban,
 
 # Resend mailer
 config :saleflow, :resend_api_key, System.get_env("RESEND_API_KEY")
-config :saleflow, :resend_from, "SaleFlow <noreply@saleflow.se>"
+config :saleflow, :resend_from, "Saleflow <noreply@saleflow.se>"
 config :saleflow, :mailer_sandbox, false
 
 # Import environment specific config. This must remain at the bottom

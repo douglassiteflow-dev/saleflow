@@ -22,7 +22,7 @@ describe("Sidebar", () => {
   it("renders logo", () => {
     useMeMock.mockReturnValue({ data: null });
     render(<Sidebar />, { wrapper: Wrapper });
-    expect(screen.getByText("SaleFlow")).toBeInTheDocument();
+    expect(screen.getByText("Saleflow")).toBeInTheDocument();
   });
 
   it("renders agent navigation items", () => {

@@ -14,8 +14,9 @@ export function joinCallsChannel(onLiveCalls: (calls: unknown[]) => void): Chann
   if (!socket) return null;
   callsChannel = socket.channel("calls:live", {});
   callsChannel.join();
-  callsChannel.on("live_calls", (payload: { calls: unknown[] }) => {
-    onLiveCalls(payload.calls);
+  callsChannel.on("live_calls", (payload: unknown) => {
+    const data = payload as { calls: unknown[] };
+    onLiveCalls(data.calls);
   });
   return callsChannel;
 }

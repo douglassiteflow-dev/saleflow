@@ -5,7 +5,7 @@ import type { LiveCall } from "@/api/types";
 
 function CallTimer() {
   const [seconds, setSeconds] = useState(0);
-  const ref = useRef<ReturnType<typeof setInterval>>();
+  const ref = useRef<ReturnType<typeof setInterval>>(undefined);
   useEffect(() => {
     ref.current = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => clearInterval(ref.current);

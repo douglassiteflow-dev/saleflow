@@ -1,6 +1,6 @@
 defmodule Saleflow.Sales.LeadList do
   @moduledoc """
-  LeadList resource for SaleFlow.
+  LeadList resource for Saleflow.
 
   Represents a named list of leads, typically created during an import.
   Lists can be assigned to specific agents via LeadListAssignment so that

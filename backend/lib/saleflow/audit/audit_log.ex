@@ -1,6 +1,6 @@
 defmodule Saleflow.Audit.AuditLog do
   @moduledoc """
-  AuditLog resource for SaleFlow.
+  AuditLog resource for Saleflow.
 
   Records every mutating action across all domains for compliance and
   traceability. Each entry captures who did what to which resource and

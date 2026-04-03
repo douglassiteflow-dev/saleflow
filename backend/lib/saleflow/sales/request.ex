@@ -1,6 +1,6 @@
 defmodule Saleflow.Sales.Request do
   @moduledoc """
-  Request resource for SaleFlow.
+  Request resource for Saleflow.
 
   Allows users (agents and admins) to submit bug reports or feature requests.
   Admins can update the status and add notes.

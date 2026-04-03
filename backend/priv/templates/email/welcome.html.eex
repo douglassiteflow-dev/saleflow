@@ -1,8 +1,8 @@
 <h2 style="margin:0 0 8px;font-size:22px;font-weight:600;color:#0f172a;">
-  Välkommen till SaleFlow, <%= @name %>!
+  Välkommen till Saleflow, <%= @name %>!
 </h2>
 <p style="margin:0 0 24px;font-size:15px;color:#64748b;line-height:1.6;">
-  Ditt konto är nu skapat och redo att använda. SaleFlow hjälper dig att
+  Ditt konto är nu skapat och redo att använda. Saleflow hjälper dig att
   organisera och effektivisera din försäljning &mdash; från första kontakt
   till avslutat avtal.
 </p>
@@ -16,7 +16,7 @@
      style="display:inline-block;background-color:#4F46E5;color:#ffffff;
             font-size:15px;font-weight:600;text-decoration:none;
             padding:14px 32px;border-radius:8px;">
-    Logga in på SaleFlow
+    Logga in på Saleflow
   </a>
 </div>
 

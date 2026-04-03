@@ -1,6 +1,6 @@
 defmodule Saleflow.Accounts.LoginSession do
   @moduledoc """
-  LoginSession resource for SaleFlow.
+  LoginSession resource for Saleflow.
 
   Tracks active and historical login sessions per user. Each session records
   device type, browser, geographic location (city/country from IP), and

@@ -1,6 +1,6 @@
 defmodule Saleflow.Notifications do
   @moduledoc """
-  Notifications domain for SaleFlow.
+  Notifications domain for Saleflow.
 
   Responsible for sending transactional emails via the Resend API.
   Templates are defined in `Saleflow.Notifications.Templates` and

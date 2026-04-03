@@ -1,6 +1,6 @@
 defmodule Saleflow.Sales.Goal do
   @moduledoc """
-  Goal resource for SaleFlow.
+  Goal resource for Saleflow.
 
   Represents performance targets (e.g. meetings per week, calls per day).
   Goals can be global, team-wide, or personal. When multiple goals exist

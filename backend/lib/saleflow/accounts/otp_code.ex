@@ -1,6 +1,6 @@
 defmodule Saleflow.Accounts.OtpCode do
   @moduledoc """
-  OtpCode resource for SaleFlow.
+  OtpCode resource for Saleflow.
 
   Stores one-time password codes used for email-based authentication.
   Each code is 6 digits, valid for 5 minutes, and can only be used once.

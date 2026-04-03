@@ -1,6 +1,6 @@
 defmodule Saleflow.Sales.Assignment do
   @moduledoc """
-  Assignment resource for SaleFlow.
+  Assignment resource for Saleflow.
 
   Represents an assignment of a Lead to a User (sales agent). At any point in
   time a lead should have at most one *active* assignment — one where
