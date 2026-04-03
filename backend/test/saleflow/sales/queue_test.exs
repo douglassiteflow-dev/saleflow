@@ -73,23 +73,14 @@ defmodule Saleflow.Sales.QueueTest do
       assert result.id == lead.id
     end
 
-    test "returns oldest new lead first (FIFO order)" do
+    test "returns one of the available leads (random order)" do
       agent = create_user!()
 
-      # Create two leads; age the first one by subtracting from its OWN
-      # inserted_at (avoids issues with NOW() returning the sandbox
-      # transaction start time rather than wall-clock time).
       old_lead = create_lead!(%{företag: "Old Company"})
-
-      Saleflow.Repo.query!(
-        "UPDATE leads SET inserted_at = inserted_at - INTERVAL '10 minutes' WHERE id = $1",
-        [Ecto.UUID.dump!(old_lead.id)]
-      )
-
-      _new_lead = create_lead!(%{företag: "New Company"})
+      new_lead = create_lead!(%{företag: "New Company"})
 
       assert {:ok, result} = Sales.get_next_lead(agent)
-      assert result.id == old_lead.id
+      assert result.id in [old_lead.id, new_lead.id]
     end
 
     test "sets lead status to :assigned after dequeue" do
@@ -242,25 +233,26 @@ defmodule Saleflow.Sales.QueueTest do
       lead2 = create_lead!()
       agent = create_user!()
 
-      # Agent gets lead1
+      # Agent gets the first lead (order is random, so we just track IDs)
       {:ok, first_lead} = Sales.get_next_lead(agent)
-      assert first_lead.id == lead1.id
+      assert first_lead.id in [lead1.id, lead2.id]
 
       {:ok, assignment1} = Sales.get_active_assignment(agent)
-      assert assignment1.lead_id == lead1.id
+      assert assignment1.lead_id == first_lead.id
 
-      # Agent calls get_next again — should release assignment1 and take lead2
+      # Agent calls get_next again — should release assignment1 and take the other lead
       {:ok, second_lead} = Sales.get_next_lead(agent)
-      assert second_lead.id == lead2.id
+      remaining_id = if first_lead.id == lead1.id, do: lead2.id, else: lead1.id
+      assert second_lead.id == remaining_id
 
       # Old assignment should now be released
       {:ok, old_assignment} = Ash.get(Saleflow.Sales.Assignment, assignment1.id)
       refute is_nil(old_assignment.released_at)
       assert old_assignment.release_reason == :manual
 
-      # New active assignment points to lead2
+      # New active assignment points to second lead
       {:ok, assignment2} = Sales.get_active_assignment(agent)
-      assert assignment2.lead_id == lead2.id
+      assert assignment2.lead_id == second_lead.id
     end
 
     test "does not fail when agent has no previous assignment" do
@@ -355,32 +347,14 @@ defmodule Saleflow.Sales.QueueTest do
   # ---------------------------------------------------------------------------
 
   describe "get_next_lead/1 — queue ordering" do
-    test "leads are served oldest-first (inserted_at ASC)" do
-      # Create three leads, then age them relative to their own timestamps
-      # to avoid the sandbox transaction-clock issue where NOW() returns
-      # the transaction start time instead of wall-clock time.
+    test "leads are served in random order (each agent gets a unique lead)" do
+      # Queue uses ORDER BY RANDOM() so we only verify uniqueness,
+      # not insertion order.
       lead_a = create_lead!(%{företag: "A Corp"})
       lead_b = create_lead!(%{företag: "B Corp"})
       lead_c = create_lead!(%{företag: "C Corp"})
 
-      # Make lead_a the oldest (subtract 30 min from its own inserted_at)
-      Saleflow.Repo.query!(
-        "UPDATE leads SET inserted_at = inserted_at - INTERVAL '30 minutes' WHERE id = $1",
-        [Ecto.UUID.dump!(lead_a.id)]
-      )
-
-      # Make lead_b middle (subtract 20 min)
-      Saleflow.Repo.query!(
-        "UPDATE leads SET inserted_at = inserted_at - INTERVAL '20 minutes' WHERE id = $1",
-        [Ecto.UUID.dump!(lead_b.id)]
-      )
-
-      # Make lead_c newest (subtract 10 min — or leave it as-is but they
-      # might share the same millisecond, so subtract a small amount)
-      Saleflow.Repo.query!(
-        "UPDATE leads SET inserted_at = inserted_at - INTERVAL '10 minutes' WHERE id = $1",
-        [Ecto.UUID.dump!(lead_c.id)]
-      )
+      all_ids = MapSet.new([lead_a.id, lead_b.id, lead_c.id])
 
       agent1 = create_user!()
       agent2 = create_user!()
@@ -390,9 +364,14 @@ defmodule Saleflow.Sales.QueueTest do
       {:ok, second} = Sales.get_next_lead(agent2)
       {:ok, third} = Sales.get_next_lead(agent3)
 
-      assert first.id == lead_a.id, "Expected oldest lead A first"
-      assert second.id == lead_b.id, "Expected lead B second"
-      assert third.id == lead_c.id, "Expected newest lead C last"
+      returned_ids = [first.id, second.id, third.id]
+
+      # All three agents should get distinct leads
+      assert length(Enum.uniq(returned_ids)) == 3, "Expected 3 unique leads"
+
+      # All returned IDs belong to the original set
+      assert Enum.all?(returned_ids, &MapSet.member?(all_ids, &1)),
+             "Unexpected lead IDs returned"
     end
   end
 

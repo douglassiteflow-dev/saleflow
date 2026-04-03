@@ -31,9 +31,13 @@ defmodule SaleflowWeb.LeadControllerTest do
   # -------------------------------------------------------------------------
 
   describe "GET /api/leads" do
-    test "returns all leads", %{conn: conn} do
-      {:ok, _} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
-      {:ok, _} = Sales.create_lead(%{företag: "Beta AB", telefon: "+46700000002"})
+    test "returns all leads", %{conn: conn, user: user} do
+      {:ok, lead1} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
+      {:ok, lead2} = Sales.create_lead(%{företag: "Beta AB", telefon: "+46700000002"})
+
+      # Agent scoping: agents only see leads they have assignments for
+      {:ok, _} = Sales.assign_lead(lead1, user)
+      {:ok, _} = Sales.assign_lead(lead2, user)
 
       conn = get(conn, "/api/leads")
       assert %{"leads" => leads} = json_response(conn, 200)
@@ -45,10 +49,15 @@ defmodule SaleflowWeb.LeadControllerTest do
       assert %{"leads" => []} = json_response(conn, 200)
     end
 
-    test "searches leads with q param", %{conn: conn} do
-      {:ok, _} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
-      {:ok, _} = Sales.create_lead(%{företag: "Beta Konsult", telefon: "+46700000002"})
-      {:ok, _} = Sales.create_lead(%{företag: "Acme Nordic", telefon: "+46700000003"})
+    test "searches leads with q param", %{conn: conn, user: user} do
+      {:ok, lead1} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
+      {:ok, lead2} = Sales.create_lead(%{företag: "Beta Konsult", telefon: "+46700000002"})
+      {:ok, lead3} = Sales.create_lead(%{företag: "Acme Nordic", telefon: "+46700000003"})
+
+      # Agent scoping: agents only see leads they have assignments for
+      {:ok, _} = Sales.assign_lead(lead1, user)
+      {:ok, _} = Sales.assign_lead(lead2, user)
+      {:ok, _} = Sales.assign_lead(lead3, user)
 
       conn = get(conn, "/api/leads?q=Acme")
       assert %{"leads" => leads} = json_response(conn, 200)
@@ -140,12 +149,13 @@ defmodule SaleflowWeb.LeadControllerTest do
       %{lead: lead}
     end
 
-    test "no_answer sets lead back to :new", %{conn: conn, lead: lead} do
+    test "no_answer quarantines lead for 24 hours", %{conn: conn, lead: lead} do
       conn = post(conn, "/api/leads/#{lead.id}/outcome", %{outcome: "no_answer"})
       assert %{"ok" => true} = json_response(conn, 200)
 
       {:ok, updated_lead} = Sales.get_lead(lead.id)
-      assert updated_lead.status == :new
+      assert updated_lead.status == :quarantine
+      refute is_nil(updated_lead.quarantine_until)
     end
 
     test "meeting_booked creates a meeting", %{conn: conn, lead: lead} do
@@ -256,7 +266,7 @@ defmodule SaleflowWeb.LeadControllerTest do
       assert hd(meetings).notes == "Bring samples"
     end
 
-    test "meeting_booked without title defaults to 'Meeting'", %{conn: conn, lead: lead} do
+    test "meeting_booked without title defaults to 'Möte med <företag>'", %{conn: conn, lead: lead} do
       conn =
         post(conn, "/api/leads/#{lead.id}/outcome", %{
           outcome: "meeting_booked",
@@ -267,7 +277,7 @@ defmodule SaleflowWeb.LeadControllerTest do
       assert %{"ok" => true} = json_response(conn, 200)
 
       {:ok, meetings} = Sales.list_meetings_for_lead(lead.id)
-      assert hd(meetings).title == "Meeting"
+      assert hd(meetings).title == "Möte med Acme AB"
     end
 
     test "meeting_booked without meeting_date and time uses defaults", %{conn: conn, lead: lead} do

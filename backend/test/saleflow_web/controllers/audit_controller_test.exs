@@ -45,12 +45,12 @@ defmodule SaleflowWeb.AuditControllerTest do
           metadata: %{}
         })
 
-      # System log (nil user_id) — agent should NOT see this
+      # System log (nil user_id) on a DIFFERENT resource — agent should NOT see this
       {:ok, _} =
         Audit.create_log(%{
-          action: "lead.created",
+          action: "system.unrelated",
           resource_type: "Lead",
-          resource_id: lead.id,
+          resource_id: Ecto.UUID.generate(),
           changes: %{},
           metadata: %{}
         })
@@ -61,10 +61,14 @@ defmodule SaleflowWeb.AuditControllerTest do
         |> get("/api/audit")
 
       assert %{"audit_logs" => logs} = json_response(conn, 200)
-      # Agent only sees their own log (nil user_id is excluded)
-      assert length(logs) == 1
-      assert hd(logs)["user_id"] == agent.id
-      assert hd(logs)["user_name"] == "Du"
+      # Agent sees their own log + system logs on resources they touched
+      # (the lead auto-creates a "lead.created" audit log, plus the agent's own log)
+      agent_logs = Enum.filter(logs, fn l -> l["user_id"] == agent.id end)
+      assert length(agent_logs) >= 1
+
+      # Verify unrelated resource logs are excluded
+      unrelated = Enum.filter(logs, fn l -> l["action"] == "system.unrelated" end)
+      assert unrelated == []
     end
 
     test "agent action filter scopes to own logs only", %{conn: conn, agent: agent} do

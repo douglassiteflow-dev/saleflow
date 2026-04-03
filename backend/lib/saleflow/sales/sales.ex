@@ -1,6 +1,6 @@
 defmodule Saleflow.Sales do
   @moduledoc """
-  Sales domain for SaleFlow.
+  Sales domain for Saleflow.
 
   Manages leads and the full sales workflow. Exposes the Lead, Assignment,
   CallLog, Meeting, Quarantine, PhoneCall, LeadList, LeadListAssignment,
@@ -485,9 +485,11 @@ defmodule Saleflow.Sales do
           WHERE a.lead_id = l.id AND a.released_at IS NULL
         )
         AND (
-          -- Agent must have at least one list assignment, and lead must be in an active assigned list
-          EXISTS (SELECT 1 FROM lead_list_assignments lla WHERE lla.user_id = $1)
-          AND l.lead_list_id IN (
+          -- If the agent has no list assignments, they can access all leads
+          NOT EXISTS (SELECT 1 FROM lead_list_assignments lla WHERE lla.user_id = $1)
+          OR
+          -- Otherwise, only leads from the agent's assigned active lists
+          l.lead_list_id IN (
             SELECT lla.lead_list_id FROM lead_list_assignments lla
             JOIN lead_lists ll ON ll.id = lla.lead_list_id
             WHERE lla.user_id = $1 AND ll.status = 'active'

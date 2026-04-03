@@ -175,14 +175,17 @@ defmodule SaleflowWeb.AdminControllerTest do
       assert stats["customer"] == 1
     end
 
-    test "returns empty stats when no leads", %{conn: conn, admin: admin} do
+    test "returns zero stats when no leads", %{conn: conn, admin: admin} do
       conn =
         conn
         |> log_in_user(admin)
         |> get("/api/admin/stats")
 
       assert %{"stats" => stats} = json_response(conn, 200)
-      assert stats == %{}
+      assert stats["total_leads"] == 0
+      assert stats["new"] == 0
+      assert stats["assigned"] == 0
+      assert stats["customer"] == 0
     end
   end
 
