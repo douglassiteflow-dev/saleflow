@@ -18,26 +18,26 @@ defmodule Saleflow.Stats do
   # Per-user stats
   # ---------------------------------------------------------------------------
 
-  @doc "Antal samtal idag för en specifik agent."
+  @doc "Antal utgående samtal idag för en specifik agent."
   def calls_today(user_id) do
     uid = Ecto.UUID.dump!(user_id)
     today = Date.utc_today()
 
     {:ok, %{rows: [[count]]}} =
       Repo.query(
-        "SELECT COUNT(*) FROM phone_calls WHERE user_id = $1 AND received_at::date = $2",
+        "SELECT COUNT(*) FROM phone_calls WHERE user_id = $1 AND received_at::date = $2 AND direction = 'outgoing'",
         [uid, today]
       )
 
     count
   end
 
-  @doc "Totalt antal samtal för en specifik agent."
+  @doc "Totalt antal utgående samtal för en specifik agent."
   def total_calls(user_id) do
     uid = Ecto.UUID.dump!(user_id)
 
     {:ok, %{rows: [[count]]}} =
-      Repo.query("SELECT COUNT(*) FROM phone_calls WHERE user_id = $1", [uid])
+      Repo.query("SELECT COUNT(*) FROM phone_calls WHERE user_id = $1 AND direction = 'outgoing'", [uid])
 
     count
   end
@@ -70,19 +70,19 @@ defmodule Saleflow.Stats do
   # Global stats (admin)
   # ---------------------------------------------------------------------------
 
-  @doc "Totalt antal samtal idag (alla agenter)."
+  @doc "Totalt antal utgående samtal idag (alla agenter)."
   def all_calls_today do
     today = Date.utc_today()
 
     {:ok, %{rows: [[count]]}} =
-      Repo.query("SELECT COUNT(*) FROM phone_calls WHERE received_at::date = $1", [today])
+      Repo.query("SELECT COUNT(*) FROM phone_calls WHERE received_at::date = $1 AND direction = 'outgoing'", [today])
 
     count
   end
 
-  @doc "Totalt antal samtal (alla agenter, all tid)."
+  @doc "Totalt antal utgående samtal (alla agenter, all tid)."
   def all_total_calls do
-    {:ok, %{rows: [[count]]}} = Repo.query("SELECT COUNT(*) FROM phone_calls")
+    {:ok, %{rows: [[count]]}} = Repo.query("SELECT COUNT(*) FROM phone_calls WHERE direction = 'outgoing'")
     count
   end
 
@@ -134,7 +134,7 @@ defmodule Saleflow.Stats do
     LEFT JOIN (
       SELECT user_id, COUNT(*) as cnt
       FROM phone_calls
-      WHERE received_at::date = CURRENT_DATE
+      WHERE received_at::date = CURRENT_DATE AND direction = 'outgoing'
       GROUP BY user_id
     ) c ON c.user_id = u.id
     LEFT JOIN (

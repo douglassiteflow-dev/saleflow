@@ -169,7 +169,8 @@ defmodule SaleflowWeb.DashboardControllerTest do
           caller: "+46700000099",
           callee: "+46700000005",
           user_id: agent.id,
-          duration: 60
+          duration: 60,
+          direction: :outgoing
         })
 
       conn =
@@ -208,14 +209,15 @@ defmodule SaleflowWeb.DashboardControllerTest do
     test "conversion rate is calculated correctly", %{conn: conn, agent: agent} do
       {:ok, lead} = Sales.create_lead(%{företag: "Conv AB", telefon: "+46700000010"})
 
-      # Create 2 phone calls
+      # Create 2 outgoing phone calls
       for _ <- 1..2 do
         {:ok, _} =
           Sales.create_phone_call(%{
             caller: "+46700000010",
             callee: "+46700000099",
             user_id: agent.id,
-            duration: 30
+            duration: 30,
+            direction: :outgoing
           })
       end
 
