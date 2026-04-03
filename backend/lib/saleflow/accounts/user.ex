@@ -1,6 +1,6 @@
 defmodule Saleflow.Accounts.User do
   @moduledoc """
-  User resource for SaleFlow.
+  User resource for Saleflow.
 
   Represents a system user (admin or sales agent). Authentication is handled
   via AshAuthentication's password strategy with bcrypt password hashing and
@@ -50,6 +50,11 @@ defmodule Saleflow.Accounts.User do
     attribute :extension_number, :string do
       allow_nil? true
       public? true
+    end
+
+    attribute :telavox_token, :string do
+      allow_nil? true
+      sensitive? true
     end
 
     timestamps()
@@ -114,7 +119,7 @@ defmodule Saleflow.Accounts.User do
 
     update :update_user do
       description "Update user name, role, or phone number"
-      accept [:name, :role, :phone_number, :extension_number]
+      accept [:name, :role, :phone_number, :extension_number, :telavox_token]
     end
 
     update :update_password do

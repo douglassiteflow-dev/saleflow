@@ -1,6 +1,6 @@
 defmodule Saleflow.Sales.PhoneCall do
   @moduledoc """
-  PhoneCall resource for SaleFlow.
+  PhoneCall resource for Saleflow.
 
   Records actual phone calls received from the Telavox webhook. Unlike CallLog
   (which tracks agent-initiated call attempts and their outcomes), PhoneCall
@@ -55,6 +55,27 @@ defmodule Saleflow.Sales.PhoneCall do
       public? true
     end
 
+    attribute :recording_key, :string do
+      allow_nil? true
+      public? true
+    end
+
+    attribute :recording_id, :string do
+      allow_nil? true
+      public? true
+    end
+
+    attribute :telavox_call_id, :string do
+      allow_nil? true
+      public? true
+    end
+
+    attribute :direction, :atom do
+      constraints one_of: [:incoming, :outgoing, :missed]
+      allow_nil? true
+      public? true
+    end
+
     create_timestamp :inserted_at
   end
 
@@ -63,11 +84,16 @@ defmodule Saleflow.Sales.PhoneCall do
 
     create :create do
       description "Record a phone call from Telavox webhook"
-      accept [:lead_id, :user_id, :caller, :callee, :duration, :call_log_id]
+      accept [:lead_id, :user_id, :caller, :callee, :duration, :call_log_id, :recording_id, :telavox_call_id, :direction]
 
       change fn changeset, _context ->
         Ash.Changeset.force_change_attribute(changeset, :received_at, DateTime.utc_now())
       end
+    end
+
+    update :attach_recording do
+      description "Attach recording metadata to a phone call"
+      accept [:recording_key, :recording_id]
     end
   end
 end
