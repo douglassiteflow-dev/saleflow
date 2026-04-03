@@ -26,18 +26,28 @@ defmodule SaleflowWeb.ImportController do
       end
     end)
 
-    case Task.await(task, @import_timeout) do
-      {:ok, result, lead_list_id} ->
-      response = %{created: result.created, skipped: result.skipped}
-      response = if lead_list_id, do: Map.put(response, :list_id, lead_list_id), else: response
+    try do
+      case Task.await(task, @import_timeout) do
+        {:ok, result, lead_list_id} ->
+          response = %{created: result.created, skipped: result.skipped}
+          response = if lead_list_id, do: Map.put(response, :list_id, lead_list_id), else: response
 
-      conn
-      |> put_status(:created)
-      |> json(response)
-      {:error, reason} ->
+          conn
+          |> put_status(:created)
+          |> json(response)
+
+        {:error, reason} ->
+          conn
+          |> put_status(:unprocessable_entity)
+          |> json(%{error: "Import failed: #{inspect(reason)}"})
+      end
+    catch
+      :exit, _ ->
+        Task.shutdown(task, :brutal_kill)
+
         conn
-        |> put_status(:unprocessable_entity)
-        |> json(%{error: "Import failed: #{inspect(reason)}"})
+        |> put_status(:request_timeout)
+        |> json(%{error: "Import tog för lång tid, försök med en mindre fil"})
     end
   end
 
