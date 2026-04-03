@@ -113,11 +113,10 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
           {:dashboard_update, %{event: "call_completed", user_id: call.user_id}}
         )
 
-        if call.user_id do
-          %{phone_call_id: phone_call.id, user_id: call.user_id}
-          |> Saleflow.Workers.RecordingFetchWorker.new(schedule_in: 30)
-          |> Oban.insert()
-        end
+        # Always fetch duration + recording (user_id may be nil if extension not matched)
+        %{phone_call_id: phone_call.id, user_id: call.user_id || "unknown"}
+        |> Saleflow.Workers.RecordingFetchWorker.new(schedule_in: 30)
+        |> Oban.insert()
 
       {:error, reason} ->
         Logger.warning("TelavoxPollWorker: failed to create phone_call: #{inspect(reason)}")
