@@ -292,4 +292,65 @@ defmodule SaleflowWeb.CallControllerTest do
       assert json_response(conn, 401)
     end
   end
+
+  # -------------------------------------------------------------------------
+  # GET /api/calls/:id/recording
+  # -------------------------------------------------------------------------
+
+  describe "GET /api/calls/:id/recording" do
+    test "returns 200 with url when recording exists", %{conn: conn} do
+      {conn, _user} = authenticated_conn(conn)
+
+      # Create a phone call and set recording_key
+      {:ok, phone_call} =
+        Saleflow.Sales.create_phone_call(%{
+          caller: "+46701111111",
+          callee: "+46812345678",
+          duration: 30
+        })
+
+      Saleflow.Repo.query!(
+        "UPDATE phone_calls SET recording_key = $1 WHERE id = $2",
+        ["recordings/2026/04/#{phone_call.id}.mp3", Ecto.UUID.dump!(phone_call.id)]
+      )
+
+      conn = get(conn, "/api/calls/#{phone_call.id}/recording")
+
+      response = json_response(conn, 200)
+      assert response["url"] =~ "recordings/2026/04/#{phone_call.id}.mp3"
+    end
+
+    test "returns 404 when phone_call has no recording", %{conn: conn} do
+      {conn, _user} = authenticated_conn(conn)
+
+      {:ok, phone_call} =
+        Saleflow.Sales.create_phone_call(%{
+          caller: "+46701111111",
+          callee: "+46812345678",
+          duration: 30
+        })
+
+      conn = get(conn, "/api/calls/#{phone_call.id}/recording")
+
+      assert json_response(conn, 404) == %{"error" => "Ingen inspelning"}
+    end
+
+    test "returns 404 when phone_call does not exist", %{conn: conn} do
+      {conn, _user} = authenticated_conn(conn)
+      fake_id = Ecto.UUID.generate()
+
+      conn = get(conn, "/api/calls/#{fake_id}/recording")
+
+      assert json_response(conn, 404) == %{"error" => "Ingen inspelning"}
+    end
+
+    test "requires authentication", %{conn: conn} do
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> get("/api/calls/#{Ecto.UUID.generate()}/recording")
+
+      assert json_response(conn, 401)
+    end
+  end
 end

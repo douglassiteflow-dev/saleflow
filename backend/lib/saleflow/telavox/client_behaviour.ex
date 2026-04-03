@@ -7,4 +7,6 @@ defmodule Saleflow.Telavox.ClientBehaviour do
               {:ok, map()} | {:error, atom() | tuple()}
   @callback post_as(token :: String.t(), path :: String.t()) ::
               {:ok, map()} | {:error, atom() | tuple()}
+  @callback get_binary(path :: String.t()) ::
+              {:ok, binary()} | {:error, atom() | tuple()}
 end

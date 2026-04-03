@@ -95,6 +95,7 @@ defmodule SaleflowWeb.Router do
     # Calls
     post "/calls/dial", CallController, :dial
     post "/calls/hangup", CallController, :hangup
+    get "/calls/:id/recording", CallController, :recording
   end
 
   # Admin only

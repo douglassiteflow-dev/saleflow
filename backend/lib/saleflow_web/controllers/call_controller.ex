@@ -64,6 +64,20 @@ defmodule SaleflowWeb.CallController do
     end
   end
 
+  def recording(conn, %{"id" => phone_call_id}) do
+    case Saleflow.Repo.query(
+           "SELECT recording_key FROM phone_calls WHERE id = $1",
+           [Ecto.UUID.dump!(phone_call_id)]
+         ) do
+      {:ok, %{rows: [[key]]}} when is_binary(key) ->
+        {:ok, url} = Saleflow.Storage.presigned_url(key)
+        json(conn, %{url: url})
+
+      _ ->
+        conn |> put_status(404) |> json(%{error: "Ingen inspelning"})
+    end
+  end
+
   defp get_lead_phone(lead_id) do
     query = "SELECT telefon FROM leads WHERE id = $1 LIMIT 1"
 

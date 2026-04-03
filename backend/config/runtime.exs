@@ -20,6 +20,21 @@ import Config
 if config_env() != :test do
   config :saleflow, telavox_webhook_secret: System.get_env("TELAVOX_WEBHOOK_SECRET") || ""
   config :saleflow, :telavox_api_token, System.get_env("TELAVOX_API_TOKEN") || ""
+
+  # Cloudflare R2 (S3-compatible)
+  r2_account_id = System.get_env("R2_ACCOUNT_ID") || ""
+
+  config :ex_aws,
+    access_key_id: System.get_env("R2_ACCESS_KEY") || "",
+    secret_access_key: System.get_env("R2_SECRET_KEY") || "",
+    region: "auto"
+
+  config :ex_aws, :s3,
+    scheme: "https://",
+    host: "#{r2_account_id}.r2.cloudflarestorage.com",
+    region: "auto"
+
+  config :saleflow, :r2_bucket, System.get_env("R2_BUCKET") || "saleflow-recordings"
 end
 
 if System.get_env("PHX_SERVER") do

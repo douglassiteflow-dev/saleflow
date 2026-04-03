@@ -30,6 +30,7 @@ defmodule Saleflow.Telavox.Client do
     request(:post, path, token)
   end
 
+  @impl true
   @doc "GET request that returns raw binary body (for MP3 downloads)."
   def get_binary(path) do
     token = Application.get_env(:saleflow, :telavox_api_token, "")

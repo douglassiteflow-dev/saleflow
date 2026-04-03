@@ -30,7 +30,21 @@ defmodule SaleflowWeb.WebhookController do
     }
 
     case Sales.create_phone_call(attrs) do
-      {:ok, _phone_call} ->
+      {:ok, phone_call} ->
+        # Broadcast dashboard update
+        Phoenix.PubSub.broadcast(
+          Saleflow.PubSub,
+          "dashboard:updates",
+          {:dashboard_update, %{event: "call_completed", user_id: user_id}}
+        )
+
+        # Enqueue recording fetch (30s delay for Telavox to process MP3)
+        if user_id do
+          %{phone_call_id: phone_call.id, user_id: user_id}
+          |> Saleflow.Workers.RecordingFetchWorker.new(schedule_in: 30)
+          |> Oban.insert()
+        end
+
         json(conn, %{ok: true})
 
       {:error, _changeset} ->

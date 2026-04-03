@@ -46,3 +46,7 @@ config :saleflow, :telavox_api_token, "test-telavox-token"
 
 # Use mock Telavox client in tests
 config :saleflow, :telavox_client, Saleflow.Telavox.MockClient
+
+# R2 storage disabled in tests
+config :saleflow, :r2_bucket, "test-bucket"
+config :saleflow, :storage_enabled, false

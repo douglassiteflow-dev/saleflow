@@ -1,8 +1,13 @@
 defmodule SaleflowWeb.WebhookControllerTest do
   use SaleflowWeb.ConnCase
 
+  import Mox
+
   alias Saleflow.Accounts
   alias Saleflow.Sales
+  alias Saleflow.Telavox.MockClient
+
+  setup :verify_on_exit!
 
   @user_params %{
     email: "agent@example.com",
@@ -21,6 +26,13 @@ defmodule SaleflowWeb.WebhookControllerTest do
     conn
     |> Plug.Test.init_test_session(%{})
     |> put_req_header("x-telavox-secret", "test-secret")
+  end
+
+  defp stub_recording_worker do
+    MockClient
+    |> stub(:get, fn "/calls?withRecordings=true" ->
+      {:ok, %{"outgoing" => [], "incoming" => []}}
+    end)
   end
 
   # -------------------------------------------------------------------------
@@ -68,6 +80,8 @@ defmodule SaleflowWeb.WebhookControllerTest do
 
   describe "POST /api/webhooks/telavox/hangup" do
     test "creates phone call and matches lead + agent", %{conn: conn} do
+      stub_recording_worker()
+
       # Create a lead with matching phone
       {:ok, lead} = Sales.create_lead(%{företag: "Test AB", telefon: "+46812345678"})
 
@@ -141,6 +155,50 @@ defmodule SaleflowWeb.WebhookControllerTest do
 
       response = json_response(conn, 200)
       assert response == %{"ok" => true}
+    end
+
+    test "broadcasts dashboard update on successful call creation", %{conn: conn} do
+      stub_recording_worker()
+      Phoenix.PubSub.subscribe(Saleflow.PubSub, "dashboard:updates")
+
+      conn
+      |> with_secret()
+      |> post("/api/webhooks/telavox/hangup", @valid_hangup)
+
+      assert_receive {:dashboard_update, %{event: "call_completed", user_id: _}}
+    end
+
+    test "broadcasts dashboard update with correct user_id when agent matched", %{conn: conn} do
+      stub_recording_worker()
+      {:ok, user} = Accounts.register(@user_params)
+
+      {:ok, user} =
+        user
+        |> Ash.Changeset.for_update(:update_user, %{phone_number: "+46701111111"})
+        |> Ash.update()
+
+      Phoenix.PubSub.subscribe(Saleflow.PubSub, "dashboard:updates")
+
+      conn
+      |> with_secret()
+      |> post("/api/webhooks/telavox/hangup", @valid_hangup)
+
+      assert_receive {:dashboard_update, %{event: "call_completed", user_id: user_id}}
+      assert user_id == user.id
+    end
+
+    test "broadcasts dashboard update with nil user_id when no agent matched", %{conn: conn} do
+      Phoenix.PubSub.subscribe(Saleflow.PubSub, "dashboard:updates")
+
+      conn
+      |> with_secret()
+      |> post("/api/webhooks/telavox/hangup", %{
+        "caller" => "+46709999999",
+        "callee" => "+46809999999",
+        "duration" => 10
+      })
+
+      assert_receive {:dashboard_update, %{event: "call_completed", user_id: nil}}
     end
   end
 end

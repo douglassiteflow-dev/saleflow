@@ -66,6 +66,9 @@ defmodule Saleflow.MixProject do
       {:xlsxir, "~> 1.6"},
       # HTTP client
       {:req, "~> 0.5"},
+      # S3-compatible storage (Cloudflare R2)
+      {:ex_aws, "~> 2.5"},
+      {:ex_aws_s3, "~> 2.5"},
       # CORS
       {:cors_plug, "~> 3.0"},
       # Test coverage
