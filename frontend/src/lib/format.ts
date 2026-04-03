@@ -62,12 +62,9 @@ export function formatCurrency(value: number): string {
  * Backend sends NaiveDateTime without timezone suffix — append Z if missing.
  */
 function ensureUTC(iso: string): string {
-  if (iso.endsWith("Z") || iso.includes("+") || /\d{2}:\d{2}$/.test(iso) === false) return iso;
-  // Has time component but no timezone → assume UTC
-  if (iso.includes("T") && !iso.endsWith("Z") && !iso.includes("+") && !iso.includes("-", 10)) {
-    return iso + "Z";
-  }
-  return iso;
+  if (!iso.includes("T")) return iso;
+  if (iso.endsWith("Z") || iso.includes("+", 10)) return iso;
+  return iso + "Z";
 }
 
 /**
