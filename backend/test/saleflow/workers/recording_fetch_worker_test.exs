@@ -48,7 +48,7 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
       user_id = Ecto.UUID.generate()
 
       MockClient
-      |> expect(:get, fn "/calls?withRecordings=true" ->
+      |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
         {:ok,
          %{
            "outgoing" => [
@@ -93,7 +93,7 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
       user_id = Ecto.UUID.generate()
 
       MockClient
-      |> expect(:get, fn "/calls?withRecordings=true" ->
+      |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
         {:ok,
          %{
            "outgoing" => [
@@ -113,7 +113,7 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
       user_id = Ecto.UUID.generate()
 
       MockClient
-      |> expect(:get, fn "/calls?withRecordings=true" ->
+      |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
         {:ok,
          %{
            "outgoing" => [],
@@ -137,7 +137,7 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
       user_id = Ecto.UUID.generate()
 
       MockClient
-      |> expect(:get, fn "/calls?withRecordings=true" ->
+      |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
         {:error, :unauthorized}
       end)
 
@@ -157,7 +157,7 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
       user_id = Ecto.UUID.generate()
 
       MockClient
-      |> expect(:get, fn "/calls?withRecordings=true" ->
+      |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
         {:ok,
          %{
            "outgoing" => [
@@ -188,7 +188,7 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
       user_id = Ecto.UUID.generate()
 
       MockClient
-      |> expect(:get, fn "/calls?withRecordings=true" ->
+      |> expect(:get_as, fn _token, "/calls?withRecordings=true" ->
         {:ok,
          %{
            "outgoing" => [

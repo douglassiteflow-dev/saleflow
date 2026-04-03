@@ -7,14 +7,15 @@ defmodule Saleflow.Workers.RecordingFetchWorker do
 
   @impl Oban.Worker
   def perform(%Oban.Job{
-        args: %{"phone_call_id" => phone_call_id, "user_id" => _user_id},
+        args: %{"phone_call_id" => phone_call_id, "user_id" => user_id},
         attempt: attempt
       }) do
     case Saleflow.Repo.query("SELECT callee, received_at FROM phone_calls WHERE id = $1", [
            Ecto.UUID.dump!(phone_call_id)
          ]) do
       {:ok, %{rows: [[callee, _received_at]]}} ->
-        fetch_and_store_recording(phone_call_id, callee, attempt)
+        token = get_agent_token(user_id)
+        fetch_and_store_recording(phone_call_id, callee, token, attempt)
 
       _ ->
         Logger.warning("RecordingFetchWorker: phone_call #{phone_call_id} not found")
@@ -22,8 +23,17 @@ defmodule Saleflow.Workers.RecordingFetchWorker do
     end
   end
 
-  defp fetch_and_store_recording(phone_call_id, callee, attempt) do
-    case client().get("/calls?withRecordings=true") do
+  defp get_agent_token(user_id) when is_binary(user_id) and user_id != "unknown" do
+    case Saleflow.Repo.query("SELECT telavox_token FROM users WHERE id = $1", [Ecto.UUID.dump!(user_id)]) do
+      {:ok, %{rows: [[token]]}} when is_binary(token) and token != "" -> token
+      _ -> Application.get_env(:saleflow, :telavox_api_token, "")
+    end
+  end
+
+  defp get_agent_token(_), do: Application.get_env(:saleflow, :telavox_api_token, "")
+
+  defp fetch_and_store_recording(phone_call_id, callee, token, attempt) do
+    case client().get_as(token, "/calls?withRecordings=true") do
       {:ok, %{"outgoing" => outgoing, "incoming" => incoming}} ->
         all_calls = (outgoing || []) ++ (incoming || [])
 

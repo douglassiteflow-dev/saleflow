@@ -9,6 +9,15 @@ defmodule SaleflowWeb.WebhookControllerTest do
 
   setup :verify_on_exit!
 
+  setup do
+    # Stub RecordingFetchWorker's API calls (triggered by Oban inline)
+    Mox.stub(MockClient, :get_as, fn _token, "/calls?withRecordings=true" ->
+      {:ok, %{"outgoing" => [], "incoming" => [], "missed" => []}}
+    end)
+
+    :ok
+  end
+
   @user_params %{
     email: "agent@example.com",
     name: "Test Agent",
