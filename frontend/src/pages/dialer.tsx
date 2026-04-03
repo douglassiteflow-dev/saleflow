@@ -85,7 +85,7 @@ export function DialerPage() {
     );
   }
 
-  const { lead, calls, audit_logs: auditLogs } = leadData;
+  const { lead, calls } = leadData;
 
   return (
     <div className="space-y-6">
@@ -120,7 +120,7 @@ export function DialerPage() {
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-[2fr_1.5fr] xl:grid-cols-[2fr_1.5fr_2fr]">
         <div className="space-y-6">
           <LeadInfo lead={lead} />
-          <HistoryTimeline callLogs={calls} auditLogs={auditLogs} />
+          <HistoryTimeline callLogs={calls} />
         </div>
         <OutcomePanel leadId={lead.id} companyName={lead.företag} leadData={lead} onOutcomeSubmitted={handleOutcomeSubmitted} />
         <div className="rounded-lg border border-[var(--color-border)] bg-white overflow-hidden" style={{ height: "calc(100vh - 160px)", position: "sticky", top: "80px" }}>

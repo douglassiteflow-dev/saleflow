@@ -26,7 +26,7 @@ export function LeadDetailPage() {
     );
   }
 
-  const { lead, calls, audit_logs: auditLogs } = leadData;
+  const { lead, calls } = leadData;
 
   return (
     <div className="space-y-6">
@@ -39,10 +39,7 @@ export function LeadDetailPage() {
 
       <LeadInfo lead={lead} />
 
-      <HistoryTimeline
-        callLogs={calls}
-        auditLogs={auditLogs}
-      />
+      <HistoryTimeline callLogs={calls} />
     </div>
   );
 }

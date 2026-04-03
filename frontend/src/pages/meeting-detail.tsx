@@ -35,7 +35,7 @@ export function MeetingDetailPage() {
     );
   }
 
-  const { meeting, lead, calls, audit_logs: auditLogs } = data;
+  const { meeting, lead, calls } = data;
 
   function startEditing() {
     setEditDate(meeting.meeting_date);
@@ -308,7 +308,7 @@ export function MeetingDetailPage() {
       </div>
 
       {/* History timeline */}
-      <HistoryTimeline callLogs={calls} auditLogs={auditLogs} />
+      <HistoryTimeline callLogs={calls} />
     </div>
   );
 }
