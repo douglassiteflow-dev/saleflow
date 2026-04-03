@@ -92,7 +92,7 @@ describe("AdminStatsPage", () => {
   it("shows loading state for leads breakdown", () => {
     useLeadsMock.mockReturnValue({ data: undefined, isLoading: true });
     render(<AdminStatsPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Laddar statistik...")).toBeInTheDocument();
+    expect(screen.getByText("Laddar statistik")).toBeInTheDocument();
   });
 
   it("renders all status labels", () => {

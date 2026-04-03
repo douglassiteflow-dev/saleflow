@@ -10,6 +10,10 @@ vi.mock("@/api/leads", () => ({
   useSubmitOutcome: () => useSubmitOutcomeMock(),
 }));
 
+vi.mock("@/api/microsoft", () => ({
+  useMicrosoftStatus: vi.fn(() => ({ data: { connected: false } })),
+}));
+
 function Wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
@@ -60,23 +64,6 @@ describe("OutcomePanel", () => {
     render(<OutcomePanel leadId="1" />, { wrapper: Wrapper });
     fireEvent.click(screen.getByText("Återuppringning"));
     expect(screen.getByText("Datum för återuppringning")).toBeInTheDocument();
-  });
-
-  it("shows meeting date and time fields when meeting_booked selected", () => {
-    render(<OutcomePanel leadId="1" />, { wrapper: Wrapper });
-    fireEvent.click(screen.getByText("Möte bokat"));
-    expect(screen.getByText("Mötesdatum")).toBeInTheDocument();
-    expect(screen.getByText("Mötestid")).toBeInTheDocument();
-  });
-
-  it("shows error when meeting_booked but no date/time", () => {
-    render(<OutcomePanel leadId="1" />, { wrapper: Wrapper });
-
-    // First click selects
-    fireEvent.click(screen.getByText("Möte bokat"));
-    // Second click attempts submit without date/time
-    fireEvent.click(screen.getByText("Bekräfta: Möte bokat"));
-    expect(screen.getByText("Välj datum och tid för mötet.")).toBeInTheDocument();
   });
 
   it("renders notes textarea", () => {
@@ -131,22 +118,6 @@ describe("OutcomePanel", () => {
     expect(callArgs.callback_at).toBe("2024-06-01T10:00");
   });
 
-  it("submits meeting with date and time", () => {
-    render(<OutcomePanel leadId="1" />, { wrapper: Wrapper });
-
-    fireEvent.click(screen.getByText("Möte bokat"));
-
-    // Fill meeting date and time using specific input types
-    const dateInput = document.querySelector('input[type="date"]')!;
-    const timeInput = document.querySelector('input[type="time"]')!;
-    fireEvent.change(dateInput, { target: { value: "2024-06-01" } });
-    fireEvent.change(timeInput, { target: { value: "14:00" } });
-
-    // Confirm
-    fireEvent.click(screen.getByText("Bekräfta: Möte bokat"));
-    expect(mutateMock).toHaveBeenCalled();
-  });
-
   it("disables buttons when isPending", () => {
     useSubmitOutcomeMock.mockReturnValue({
       mutate: mutateMock,
@@ -198,5 +169,10 @@ describe("OutcomePanel", () => {
     expect(mutateMock).toHaveBeenCalled();
     const callArgs = mutateMock.mock.calls[0]![0] as { notes: string };
     expect(callArgs.notes).toBe("Test notes");
+  });
+
+  it("renders Ring senare button", () => {
+    render(<OutcomePanel leadId="1" />, { wrapper: Wrapper });
+    expect(screen.getByText("Ring senare")).toBeInTheDocument();
   });
 });

@@ -119,7 +119,7 @@ describe("HistoryPage", () => {
 
   it("filters by search text", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    const searchInput = screen.getByPlaceholderText("Sök händelse, resurs-ID...");
+    const searchInput = screen.getByPlaceholderText("Sök händelse...");
     fireEvent.change(searchInput, { target: { value: "l1" } });
     // a1 has resource_id "l1", should be shown (also in dropdown option)
     expect(screen.getAllByText("Lead skapad").length).toBeGreaterThanOrEqual(1);
@@ -159,7 +159,7 @@ describe("HistoryPage", () => {
   it("renders loading state", () => {
     useAuditLogsMock.mockReturnValue({ data: undefined, isLoading: true });
     render(<HistoryPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Laddar historik...")).toBeInTheDocument();
+    expect(screen.getByText("Laddar historik")).toBeInTheDocument();
   });
 
   it("renders empty state", () => {
@@ -178,14 +178,14 @@ describe("HistoryPage", () => {
 
   it("filters by changes content in search", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    const searchInput = screen.getByPlaceholderText("Sök händelse, resurs-ID...");
+    const searchInput = screen.getByPlaceholderText("Sök händelse...");
     fireEvent.change(searchInput, { target: { value: "import" } });
     expect(screen.getByText(/source:/)).toBeInTheDocument();
   });
 
   it("filters by resource_id in search", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    const searchInput = screen.getByPlaceholderText("Sök händelse, resurs-ID...");
+    const searchInput = screen.getByPlaceholderText("Sök händelse...");
     fireEvent.change(searchInput, { target: { value: "l1" } });
     expect(screen.getAllByText("Lead skapad").length).toBeGreaterThanOrEqual(1);
   });

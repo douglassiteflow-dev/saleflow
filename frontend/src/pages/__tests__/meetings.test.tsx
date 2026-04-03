@@ -134,7 +134,7 @@ describe("MeetingsPage", () => {
   it("renders loading state", () => {
     useMeetingsMock.mockReturnValue({ data: undefined, isLoading: true });
     render(<MeetingsPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Laddar möten...")).toBeInTheDocument();
+    expect(screen.getByText("Laddar möten")).toBeInTheDocument();
   });
 
   it("renders empty state", () => {

@@ -29,7 +29,7 @@ describe("ProtectedRoute", () => {
         </MemoryRouter>
       </Wrapper>,
     );
-    expect(screen.getByText("Laddar...")).toBeInTheDocument();
+    expect(screen.getByText("Laddar Saleflow")).toBeInTheDocument();
   });
 
   it("redirects to login when not authenticated", () => {

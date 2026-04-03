@@ -23,6 +23,18 @@ vi.mock("@/api/sessions", () => ({
   }),
 }));
 
+vi.mock("@/api/microsoft", () => ({
+  useMicrosoftStatus: vi.fn(() => ({ data: undefined, isLoading: false })),
+  useMicrosoftAuthorize: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  useMicrosoftDisconnect: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+}));
+
+vi.mock("@/api/telavox", () => ({
+  useTelavoxStatus: vi.fn(() => ({ data: undefined, isLoading: false })),
+  useTelavoxConnect: vi.fn(() => ({ mutate: vi.fn(), isPending: false, isError: false, error: null })),
+  useTelavoxDisconnect: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+}));
+
 function Wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return (
@@ -125,7 +137,7 @@ describe("ProfilePage", () => {
       isLoading: true,
     });
     render(<ProfilePage />, { wrapper: Wrapper });
-    expect(screen.getByText("Laddar sessioner...")).toBeInTheDocument();
+    expect(screen.getByText("Laddar profil")).toBeInTheDocument();
   });
 
   it("renders 'Nuvarande' badge for current session", () => {

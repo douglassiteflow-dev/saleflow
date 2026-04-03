@@ -1,7 +1,19 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LeadInfo } from "../lead-info";
 import type { Lead } from "@/api/types";
+
+vi.mock("@/api/telavox", () => ({
+  useTelavoxStatus: vi.fn(() => ({ data: undefined })),
+  useDial: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  useHangup: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+}));
+
+function Wrapper({ children }: { children: React.ReactNode }) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+}
 
 const baseLead: Lead = {
   id: "1",
@@ -30,29 +42,29 @@ const baseLead: Lead = {
 
 describe("LeadInfo", () => {
   it("renders company name as title when present", () => {
-    render(<LeadInfo lead={baseLead} />);
+    render(<LeadInfo lead={baseLead} />, { wrapper: Wrapper });
     expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent("Test AB");
   });
 
   it("renders phone link", () => {
-    render(<LeadInfo lead={baseLead} />);
+    render(<LeadInfo lead={baseLead} />, { wrapper: Wrapper });
     const link = screen.getByRole("link", { name: /070-123 45 67/ });
     expect(link).toHaveAttribute("href", "tel:+46701234567");
   });
 
   it("renders email link when present", () => {
-    render(<LeadInfo lead={baseLead} />);
+    render(<LeadInfo lead={baseLead} />, { wrapper: Wrapper });
     const link = screen.getByRole("link", { name: "anna@test.se" });
     expect(link).toHaveAttribute("href", "mailto:anna@test.se");
   });
 
   it("does not render email row when email is null", () => {
-    render(<LeadInfo lead={{ ...baseLead, epost: null }} />);
+    render(<LeadInfo lead={{ ...baseLead, epost: null }} />, { wrapper: Wrapper });
     expect(screen.queryByText("anna@test.se")).not.toBeInTheDocument();
   });
 
   it("renders status badge", () => {
-    render(<LeadInfo lead={baseLead} />);
+    render(<LeadInfo lead={baseLead} />, { wrapper: Wrapper });
     expect(screen.getByText("Ny")).toBeInTheDocument();
   });
 
@@ -70,7 +82,7 @@ describe("LeadInfo", () => {
       vd_namn: "Erik CEO",
       bolagsform: "AB",
     };
-    render(<LeadInfo lead={extLead} />);
+    render(<LeadInfo lead={extLead} />, { wrapper: Wrapper });
     expect(screen.getByText("556000-1234")).toBeInTheDocument();
     expect(screen.getByText("Testgatan 1")).toBeInTheDocument();
     expect(screen.getByText("12345")).toBeInTheDocument();
@@ -83,7 +95,7 @@ describe("LeadInfo", () => {
 
   it("skips InfoRow when value is empty string", () => {
     const lead: Lead = { ...baseLead, orgnr: "" };
-    render(<LeadInfo lead={lead} />);
+    render(<LeadInfo lead={lead} />, { wrapper: Wrapper });
     // "Org.nr" label should not render
     expect(screen.queryByText("Org.nr")).not.toBeInTheDocument();
   });

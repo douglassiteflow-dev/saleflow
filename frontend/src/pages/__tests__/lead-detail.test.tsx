@@ -9,6 +9,12 @@ vi.mock("@/api/leads", () => ({
   useLeadDetail: () => useLeadDetailMock(),
 }));
 
+vi.mock("@/api/telavox", () => ({
+  useTelavoxStatus: vi.fn(() => ({ data: undefined })),
+  useDial: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  useHangup: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+}));
+
 const mockLeadDetail = {
   lead: {
     id: "1",
@@ -55,7 +61,7 @@ describe("LeadDetailPage", () => {
   it("shows loading state", () => {
     useLeadDetailMock.mockReturnValue({ data: undefined, isLoading: true, isError: false, error: null });
     renderPage();
-    expect(screen.getByText("Laddar kund...")).toBeInTheDocument();
+    expect(screen.getByText("Laddar kundkort")).toBeInTheDocument();
   });
 
   it("shows error state", () => {

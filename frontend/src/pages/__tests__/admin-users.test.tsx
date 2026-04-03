@@ -14,6 +14,7 @@ const forceLogoutSessionMutateMock = vi.fn();
 vi.mock("@/api/admin", () => ({
   useAdminUsers: () => useAdminUsersMock(),
   useCreateUser: () => useCreateUserMock(),
+  useUpdateUser: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
 }));
 
 const useForceLogoutUserMock = vi.fn();
@@ -48,8 +49,8 @@ describe("AdminUsersPage", () => {
     });
     useAdminUsersMock.mockReturnValue({
       data: [
-        { id: "1", email: "admin@test.se", name: "AdminUser", role: "admin", created_at: "", updated_at: "" },
-        { id: "2", email: "agent@test.se", name: "AgentUser", role: "agent", created_at: "", updated_at: "" },
+        { id: "1", email: "admin@test.se", name: "AdminUser", role: "admin", phone_number: null, extension_number: null, created_at: "", updated_at: "" },
+        { id: "2", email: "agent@test.se", name: "AgentUser", role: "agent", phone_number: null, extension_number: null, created_at: "", updated_at: "" },
       ],
       isLoading: false,
     });
@@ -103,7 +104,7 @@ describe("AdminUsersPage", () => {
     fireEvent.click(screen.getByText("Ny användare"));
 
     fireEvent.change(screen.getByPlaceholderText("Förnamn Efternamn"), { target: { value: "Test User" } });
-    fireEvent.change(screen.getByPlaceholderText("namn@foretag.se"), { target: { value: "test@test.se" } });
+    fireEvent.change(screen.getByPlaceholderText("namn@företag.se"), { target: { value: "test@test.se" } });
     fireEvent.change(screen.getByPlaceholderText("Minst 8 tecken"), { target: { value: "password1" } });
     fireEvent.change(screen.getByPlaceholderText("Upprepa lösenord"), { target: { value: "password2" } });
 
@@ -119,7 +120,7 @@ describe("AdminUsersPage", () => {
     fireEvent.click(screen.getByText("Ny användare"));
 
     fireEvent.change(screen.getByPlaceholderText("Förnamn Efternamn"), { target: { value: "Test User" } });
-    fireEvent.change(screen.getByPlaceholderText("namn@foretag.se"), { target: { value: "test@test.se" } });
+    fireEvent.change(screen.getByPlaceholderText("namn@företag.se"), { target: { value: "test@test.se" } });
     fireEvent.change(screen.getByPlaceholderText("Minst 8 tecken"), { target: { value: "password" } });
     fireEvent.change(screen.getByPlaceholderText("Upprepa lösenord"), { target: { value: "password" } });
 
@@ -142,7 +143,7 @@ describe("AdminUsersPage", () => {
     fireEvent.click(screen.getByText("Ny användare"));
 
     fireEvent.change(screen.getByPlaceholderText("Förnamn Efternamn"), { target: { value: "Test" } });
-    fireEvent.change(screen.getByPlaceholderText("namn@foretag.se"), { target: { value: "test@test.se" } });
+    fireEvent.change(screen.getByPlaceholderText("namn@företag.se"), { target: { value: "test@test.se" } });
     fireEvent.change(screen.getByPlaceholderText("Minst 8 tecken"), { target: { value: "password" } });
     fireEvent.change(screen.getByPlaceholderText("Upprepa lösenord"), { target: { value: "password" } });
 
@@ -163,7 +164,7 @@ describe("AdminUsersPage", () => {
   it("renders loading state", () => {
     useAdminUsersMock.mockReturnValue({ data: undefined, isLoading: true });
     render(<AdminUsersPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Laddar användare...")).toBeInTheDocument();
+    expect(screen.getByText("Laddar...")).toBeInTheDocument();
   });
 
   it("renders empty state", () => {
@@ -184,7 +185,7 @@ describe("AdminUsersPage", () => {
     fireEvent.click(screen.getByText("Ny användare"));
 
     fireEvent.change(screen.getByPlaceholderText("Förnamn Efternamn"), { target: { value: "Admin" } });
-    fireEvent.change(screen.getByPlaceholderText("namn@foretag.se"), { target: { value: "admin@test.se" } });
+    fireEvent.change(screen.getByPlaceholderText("namn@företag.se"), { target: { value: "admin@test.se" } });
     fireEvent.change(screen.getByPlaceholderText("Minst 8 tecken"), { target: { value: "password" } });
     fireEvent.change(screen.getByPlaceholderText("Upprepa lösenord"), { target: { value: "password" } });
 
@@ -216,7 +217,7 @@ describe("AdminUsersPage", () => {
     fireEvent.click(screen.getByText("Ny användare"));
 
     fireEvent.change(screen.getByPlaceholderText("Förnamn Efternamn"), { target: { value: "Test" } });
-    fireEvent.change(screen.getByPlaceholderText("namn@foretag.se"), { target: { value: "test@test.se" } });
+    fireEvent.change(screen.getByPlaceholderText("namn@företag.se"), { target: { value: "test@test.se" } });
     fireEvent.change(screen.getByPlaceholderText("Minst 8 tecken"), { target: { value: "password" } });
     fireEvent.change(screen.getByPlaceholderText("Upprepa lösenord"), { target: { value: "password" } });
 
@@ -280,7 +281,7 @@ describe("AdminUsersPage", () => {
     const sessionButtons = screen.getAllByText("Sessioner");
     fireEvent.click(sessionButtons[0]!);
 
-    expect(screen.getByText("Laddar sessioner...")).toBeInTheDocument();
+    expect(screen.getByText("Laddar...", { exact: false })).toBeInTheDocument();
   });
 
   it("calls forceLogoutSession when individual session logout is clicked", () => {

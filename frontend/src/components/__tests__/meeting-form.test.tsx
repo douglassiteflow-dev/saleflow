@@ -10,6 +10,24 @@ vi.mock("@/api/meetings", () => ({
   useCreateMeeting: () => useCreateMeetingMock(),
 }));
 
+// Mock TimeSelect so we can set time easily in tests
+let timeOnChange: ((value: string) => void) | undefined;
+vi.mock("@/components/ui/time-select", () => ({
+  TimeSelect: ({ onChange, value, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) => {
+    timeOnChange = onChange;
+    return (
+      <input
+        data-testid="time-select"
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        placeholder="HH:MM"
+      />
+    );
+  },
+}));
+
 function Wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return (
@@ -17,6 +35,16 @@ function Wrapper({ children }: { children: React.ReactNode }) {
       <BrowserRouter>{children}</BrowserRouter>
     </QueryClientProvider>
   );
+}
+
+function fillFormAndSubmit() {
+  fireEvent.change(screen.getByPlaceholderText("lead-uuid"), { target: { value: "lead-1" } });
+  fireEvent.change(screen.getByPlaceholderText("Mötesbeskrivning"), { target: { value: "Test meeting" } });
+  const dateInput = document.querySelector('input[type="date"]')!;
+  fireEvent.change(dateInput, { target: { value: "2024-06-01" } });
+  fireEvent.change(screen.getByTestId("time-select"), { target: { value: "14:00" } });
+  const form = document.querySelector("form")!;
+  fireEvent.submit(form);
 }
 
 describe("MeetingForm", () => {
@@ -49,17 +77,7 @@ describe("MeetingForm", () => {
 
   it("submits form when all fields are filled", async () => {
     render(<MeetingForm onCancel={onCancel} />, { wrapper: Wrapper });
-
-    fireEvent.change(screen.getByPlaceholderText("lead-uuid"), { target: { value: "lead-1" } });
-    fireEvent.change(screen.getByPlaceholderText("Mötesbeskrivning"), { target: { value: "Test meeting" } });
-
-    // Find date and time inputs by type
-    const dateInput = document.querySelector('input[type="date"]')!;
-    const timeInput = document.querySelector('input[type="time"]')!;
-    fireEvent.change(dateInput, { target: { value: "2024-06-01" } });
-    fireEvent.change(timeInput, { target: { value: "14:00" } });
-
-    fireEvent.click(screen.getByText("Spara möte"));
+    fillFormAndSubmit();
 
     await waitFor(() => {
       expect(mutateAsyncMock).toHaveBeenCalledWith(
@@ -73,15 +91,7 @@ describe("MeetingForm", () => {
 
   it("calls onCancel after successful submit", async () => {
     render(<MeetingForm onCancel={onCancel} />, { wrapper: Wrapper });
-
-    fireEvent.change(screen.getByPlaceholderText("lead-uuid"), { target: { value: "lead-1" } });
-    fireEvent.change(screen.getByPlaceholderText("Mötesbeskrivning"), { target: { value: "Test meeting" } });
-    const dateInput = document.querySelector('input[type="date"]')!;
-    const timeInput = document.querySelector('input[type="time"]')!;
-    fireEvent.change(dateInput, { target: { value: "2024-06-01" } });
-    fireEvent.change(timeInput, { target: { value: "14:00" } });
-
-    fireEvent.click(screen.getByText("Spara möte"));
+    fillFormAndSubmit();
 
     await waitFor(() => {
       expect(onCancel).toHaveBeenCalled();
@@ -92,15 +102,7 @@ describe("MeetingForm", () => {
     mutateAsyncMock.mockRejectedValue(new Error("Network error"));
 
     render(<MeetingForm onCancel={onCancel} />, { wrapper: Wrapper });
-
-    fireEvent.change(screen.getByPlaceholderText("lead-uuid"), { target: { value: "lead-1" } });
-    fireEvent.change(screen.getByPlaceholderText("Mötesbeskrivning"), { target: { value: "Meeting" } });
-    const dateInput = document.querySelector('input[type="date"]')!;
-    const timeInput = document.querySelector('input[type="time"]')!;
-    fireEvent.change(dateInput, { target: { value: "2024-06-01" } });
-    fireEvent.change(timeInput, { target: { value: "14:00" } });
-
-    fireEvent.click(screen.getByText("Spara möte"));
+    fillFormAndSubmit();
 
     await waitFor(() => {
       expect(screen.getByText("Network error")).toBeInTheDocument();
@@ -117,15 +119,7 @@ describe("MeetingForm", () => {
     mutateAsyncMock.mockRejectedValue({});
 
     render(<MeetingForm onCancel={onCancel} />, { wrapper: Wrapper });
-
-    fireEvent.change(screen.getByPlaceholderText("lead-uuid"), { target: { value: "lead-1" } });
-    fireEvent.change(screen.getByPlaceholderText("Mötesbeskrivning"), { target: { value: "Meeting" } });
-    const dateInput = document.querySelector('input[type="date"]')!;
-    const timeInput = document.querySelector('input[type="time"]')!;
-    fireEvent.change(dateInput, { target: { value: "2024-06-01" } });
-    fireEvent.change(timeInput, { target: { value: "14:00" } });
-
-    fireEvent.click(screen.getByText("Spara möte"));
+    fillFormAndSubmit();
 
     await waitFor(() => {
       expect(screen.getByText("Något gick fel.")).toBeInTheDocument();
@@ -143,21 +137,24 @@ describe("MeetingForm", () => {
 
   it("includes notes in submission when provided", async () => {
     render(<MeetingForm onCancel={onCancel} />, { wrapper: Wrapper });
-
     fireEvent.change(screen.getByPlaceholderText("lead-uuid"), { target: { value: "lead-1" } });
     fireEvent.change(screen.getByPlaceholderText("Mötesbeskrivning"), { target: { value: "Meeting" } });
     const dateInput = document.querySelector('input[type="date"]')!;
-    const timeInput = document.querySelector('input[type="time"]')!;
     fireEvent.change(dateInput, { target: { value: "2024-06-01" } });
-    fireEvent.change(timeInput, { target: { value: "14:00" } });
+    fireEvent.change(screen.getByTestId("time-select"), { target: { value: "14:00" } });
     fireEvent.change(screen.getByPlaceholderText("Valfria anteckningar..."), { target: { value: "My notes" } });
-
-    fireEvent.click(screen.getByText("Spara möte"));
+    const form = document.querySelector("form")!;
+    fireEvent.submit(form);
 
     await waitFor(() => {
       expect(mutateAsyncMock).toHaveBeenCalledWith(
         expect.objectContaining({ notes: "My notes" }),
       );
     });
+  });
+
+  it("renders time select", () => {
+    render(<MeetingForm onCancel={onCancel} />, { wrapper: Wrapper });
+    expect(screen.getByTestId("time-select")).toBeInTheDocument();
   });
 });

@@ -24,6 +24,16 @@ vi.mock("@/api/leads", () => ({
   })),
 }));
 
+vi.mock("@/api/telavox", () => ({
+  useTelavoxStatus: vi.fn(() => ({ data: undefined })),
+  useDial: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  useHangup: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+}));
+
+vi.mock("@/api/microsoft", () => ({
+  useMicrosoftStatus: vi.fn(() => ({ data: { connected: false } })),
+}));
+
 function Wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return (
@@ -118,7 +128,7 @@ describe("DialerPage", () => {
 
     render(<DialerPage />, { wrapper: Wrapper });
     fireEvent.click(screen.getByText("Nästa kund"));
-    expect(screen.getByText("Laddar kund...")).toBeInTheDocument();
+    expect(screen.getByText("Laddar kundkort")).toBeInTheDocument();
   });
 
   it("shows loading when lead detail data is not yet available", () => {
@@ -129,7 +139,7 @@ describe("DialerPage", () => {
 
     render(<DialerPage />, { wrapper: Wrapper });
     fireEvent.click(screen.getByText("Nästa kund"));
-    expect(screen.getByText("Laddar kund...")).toBeInTheDocument();
+    expect(screen.getByText("Laddar kundkort")).toBeInTheDocument();
   });
 
   it("renders lead detail when lead is loaded", () => {
