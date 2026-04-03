@@ -195,8 +195,10 @@ defmodule SaleflowWeb.AdminControllerTest do
 
   describe "GET /api/my-stats" do
     test "agent gets their own stats", %{conn: conn, agent: agent} do
-      {:ok, lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
-      {:ok, _call} = Sales.log_call(%{lead_id: lead.id, user_id: agent.id, outcome: :no_answer})
+      {:ok, _} = Sales.create_phone_call(%{
+        caller: "+46701111111", callee: "+46801111111",
+        user_id: agent.id, duration: 30, direction: :outgoing
+      })
 
       conn =
         conn
@@ -212,8 +214,10 @@ defmodule SaleflowWeb.AdminControllerTest do
     end
 
     test "admin gets global stats", %{conn: conn, admin: admin, agent: agent} do
-      {:ok, lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
-      {:ok, _call} = Sales.log_call(%{lead_id: lead.id, user_id: agent.id, outcome: :no_answer})
+      {:ok, _} = Sales.create_phone_call(%{
+        caller: "+46701111111", callee: "+46801111111",
+        user_id: agent.id, duration: 30, direction: :outgoing
+      })
 
       conn =
         conn
@@ -223,6 +227,21 @@ defmodule SaleflowWeb.AdminControllerTest do
       assert %{"stats" => stats} = json_response(conn, 200)
       assert Map.has_key?(stats, "calls_today")
       assert stats["total_calls"] >= 1
+    end
+
+    test "counts phone_calls not call_logs for agent stats", %{conn: conn} do
+      {conn, agent} = register_and_log_in_user(conn)
+
+      {:ok, _} = Saleflow.Sales.create_phone_call(%{
+        caller: "+46701111111", callee: "+46801111111",
+        user_id: agent.id, duration: 30, direction: :outgoing
+      })
+
+      conn = get(conn, "/api/my-stats")
+      stats = json_response(conn, 200)["stats"]
+
+      assert stats["calls_today"] == 1
+      assert stats["total_calls"] == 1
     end
 
     test "requires authentication", %{conn: conn} do

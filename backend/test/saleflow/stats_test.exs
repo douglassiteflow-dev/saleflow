@@ -1,0 +1,172 @@
+defmodule Saleflow.StatsTest do
+  use Saleflow.DataCase, async: true
+
+  alias Saleflow.Stats
+  alias Saleflow.Sales
+
+  # ---------------------------------------------------------------------------
+  # Helpers
+  # ---------------------------------------------------------------------------
+
+  defp create_lead! do
+    unique = System.unique_integer([:positive])
+    {:ok, lead} = Sales.create_lead(%{företag: "Test AB #{unique}", telefon: "+46701234567"})
+    lead
+  end
+
+  defp create_user!(opts \\ []) do
+    unique = System.unique_integer([:positive])
+    role = Keyword.get(opts, :role, :agent)
+
+    {:ok, user} =
+      Saleflow.Accounts.User
+      |> Ash.Changeset.for_create(:register_with_password, %{
+        email: "agent#{unique}@test.se",
+        name: "Agent #{unique}",
+        password: "Password123!",
+        password_confirmation: "Password123!",
+        role: role
+      })
+      |> Ash.create()
+
+    user
+  end
+
+  defp create_meeting!(lead, user) do
+    {:ok, meeting} =
+      Sales.create_meeting(%{
+        lead_id: lead.id,
+        user_id: user.id,
+        title: "Demo",
+        meeting_date: Date.utc_today() |> Date.add(7),
+        meeting_time: ~T[10:00:00]
+      })
+
+    meeting
+  end
+
+  defp create_outgoing_call!(user) do
+    {:ok, call} =
+      Sales.create_phone_call(%{
+        user_id: user.id,
+        caller: "+46701111111",
+        callee: "+46702222222",
+        direction: :outgoing
+      })
+
+    call
+  end
+
+  defp create_incoming_call!(user) do
+    {:ok, call} =
+      Sales.create_phone_call(%{
+        user_id: user.id,
+        caller: "+46702222222",
+        callee: "+46701111111",
+        direction: :incoming
+      })
+
+    call
+  end
+
+  # ---------------------------------------------------------------------------
+  # leaderboard/0
+  # ---------------------------------------------------------------------------
+
+  describe "leaderboard/0" do
+    test "net_meetings_today subtracts cancelled from booked" do
+      user = create_user!()
+      lead1 = create_lead!()
+      lead2 = create_lead!()
+
+      # Book 2 meetings
+      _m1 = create_meeting!(lead1, user)
+      m2 = create_meeting!(lead2, user)
+
+      # Cancel 1
+      {:ok, _} = Sales.cancel_meeting(m2)
+
+      rows = Stats.leaderboard()
+      row = Enum.find(rows, fn r -> r.user_id == user.id end)
+
+      assert row != nil
+      assert row.meetings_booked_today == 1
+      assert row.meetings_cancelled_today == 1
+      assert row.net_meetings_today == 0
+    end
+
+    test "net_meetings_today is correct with no cancellations" do
+      user = create_user!()
+      lead = create_lead!()
+
+      _m = create_meeting!(lead, user)
+
+      rows = Stats.leaderboard()
+      row = Enum.find(rows, fn r -> r.user_id == user.id end)
+
+      assert row.meetings_booked_today == 1
+      assert row.meetings_cancelled_today == 0
+      assert row.net_meetings_today == 1
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # calls_today/1
+  # ---------------------------------------------------------------------------
+
+  describe "calls_today/1" do
+    test "counts only outgoing calls" do
+      user = create_user!()
+
+      create_outgoing_call!(user)
+      create_outgoing_call!(user)
+      create_incoming_call!(user)
+
+      assert Stats.calls_today(user.id) == 2
+    end
+
+    test "returns 0 when no calls" do
+      user = create_user!()
+      assert Stats.calls_today(user.id) == 0
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # all_calls_today/0
+  # ---------------------------------------------------------------------------
+
+  describe "all_calls_today/0" do
+    test "counts outgoing calls across all users" do
+      user1 = create_user!()
+      user2 = create_user!()
+
+      create_outgoing_call!(user1)
+      create_outgoing_call!(user1)
+      create_outgoing_call!(user2)
+      create_incoming_call!(user2)
+
+      assert Stats.all_calls_today() == 3
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # conversion_rate/2
+  # ---------------------------------------------------------------------------
+
+  describe "conversion_rate/2" do
+    test "returns 0.0 when calls is 0" do
+      assert Stats.conversion_rate(0, 0) == 0.0
+      assert Stats.conversion_rate(0, 5) == 0.0
+    end
+
+    test "calculates correct percentage" do
+      assert Stats.conversion_rate(10, 2) == 20.0
+      assert Stats.conversion_rate(3, 1) == 33.3
+    end
+
+    test "rounds to one decimal" do
+      # 1/7 * 100 = 14.2857...
+      assert Stats.conversion_rate(7, 1) == 14.3
+    end
+  end
+end
