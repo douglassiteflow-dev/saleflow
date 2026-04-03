@@ -25,7 +25,7 @@ defmodule SaleflowWeb.DashboardController do
     ) c ON c.user_id = u.id
     LEFT JOIN (
       SELECT user_id,
-        COUNT(*) FILTER (WHERE status = 'scheduled' OR status = 'completed') as booked_today,
+        COUNT(*) as booked_today,
         COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled_today
       FROM meetings
       WHERE inserted_at::date = CURRENT_DATE
@@ -112,12 +112,12 @@ defmodule SaleflowWeb.DashboardController do
 
           {:ok, %{rows: [[mt]]}} =
             Repo.query(
-              "SELECT COUNT(*) FROM meetings WHERE inserted_at::date = $1 AND status != 'cancelled'",
+              "SELECT COUNT(*) FROM meetings WHERE inserted_at::date = $1",
               [today]
             )
 
           {:ok, %{rows: [[tm]]}} =
-            Repo.query("SELECT COUNT(*) FROM meetings WHERE status != 'cancelled'", [])
+            Repo.query("SELECT COUNT(*) FROM meetings", [])
 
           {ct, tc, mt, tm}
 
@@ -135,13 +135,13 @@ defmodule SaleflowWeb.DashboardController do
 
           {:ok, %{rows: [[mt]]}} =
             Repo.query(
-              "SELECT COUNT(*) FROM meetings WHERE user_id = $1 AND inserted_at::date = $2 AND status != 'cancelled'",
+              "SELECT COUNT(*) FROM meetings WHERE user_id = $1 AND inserted_at::date = $2",
               [uid, today]
             )
 
           {:ok, %{rows: [[tm]]}} =
             Repo.query(
-              "SELECT COUNT(*) FROM meetings WHERE user_id = $1 AND status != 'cancelled'",
+              "SELECT COUNT(*) FROM meetings WHERE user_id = $1",
               [uid]
             )
 
