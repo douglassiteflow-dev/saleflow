@@ -18,7 +18,7 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
           {:ok, extensions} when is_list(extensions) ->
             calls = extract_live_calls(extensions)
             broadcast_calls(calls)
-            Logger.debug("TelavoxPollWorker: #{length(calls)} active call(s)")
+            Logger.info("TelavoxPollWorker: #{length(calls)} active call(s)")
 
           {:error, :unauthorized} ->
             Logger.warning("TelavoxPollWorker: shared token expired (401)")
@@ -31,7 +31,7 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
           Logger.error("TelavoxPollWorker: crashed: #{inspect(e)}")
       end
     else
-      Logger.debug("TelavoxPollWorker: no TELAVOX_API_TOKEN configured")
+      Logger.info("TelavoxPollWorker: no TELAVOX_API_TOKEN configured")
     end
 
     reschedule()
