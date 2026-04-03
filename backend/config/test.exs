@@ -43,3 +43,6 @@ config :saleflow, :mailer_sandbox, true
 # Telavox webhook secret for tests
 config :saleflow, telavox_webhook_secret: "test-secret"
 config :saleflow, :telavox_api_token, "test-telavox-token"
+
+# Use mock Telavox client in tests
+config :saleflow, :telavox_client, Saleflow.Telavox.MockClient

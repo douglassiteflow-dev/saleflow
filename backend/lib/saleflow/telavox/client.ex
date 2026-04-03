@@ -7,6 +7,8 @@ defmodule Saleflow.Telavox.Client do
   - Per-agent token for write operations: dial, hangup
   """
 
+  @behaviour Saleflow.Telavox.ClientBehaviour
+
   @base_url "https://api.telavox.se"
 
   @doc "GET request using shared org token."

@@ -86,6 +86,11 @@ defmodule SaleflowWeb.Router do
     post "/goals", GoalController, :create
     patch "/goals/:id", GoalController, :update
     delete "/goals/:id", GoalController, :delete
+
+    # Telavox integration
+    post "/telavox/connect", TelavoxController, :connect
+    post "/telavox/disconnect", TelavoxController, :disconnect
+    get "/telavox/status", TelavoxController, :status
   end
 
   # Admin only
