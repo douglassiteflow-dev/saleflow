@@ -8,7 +8,7 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
   - Replaces the need for Telavox webhooks entirely.
   """
 
-  use Oban.Worker, queue: :default, max_attempts: 1, unique: [period: 4]
+  use Oban.Worker, queue: :default, max_attempts: 1, unique: [period: 4, states: [:available, :scheduled, :executing]]
 
   require Logger
 
