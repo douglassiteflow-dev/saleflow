@@ -5,25 +5,26 @@ defmodule SaleflowWeb.CallHistoryTest do
   alias Saleflow.Accounts
 
   describe "GET /api/calls/history" do
-    test "returns agent's outgoing calls for today", %{conn: conn} do
+    test "returns agent's call logs for today with lead data", %{conn: conn} do
       {conn, agent} = register_and_log_in_user(conn)
 
       {:ok, lead} = Sales.create_lead(%{företag: "Test AB", telefon: "+46700000001"})
 
       {:ok, _} =
-        Sales.create_phone_call(%{
-          caller: "+46701111111",
-          callee: "+46700000001",
+        Sales.log_call(%{
+          lead_id: lead.id,
           user_id: agent.id,
-          duration: 42,
-          direction: :outgoing
+          outcome: :meeting_booked,
+          notes: "Bokat demo"
         })
 
       conn = get(conn, "/api/calls/history")
 
       assert %{"calls" => [call]} = json_response(conn, 200)
-      assert call["callee"] == "+46700000001"
-      assert call["duration"] == 42
+      assert call["lead_name"] == "Test AB"
+      assert call["lead_phone"] == "+46700000001"
+      assert call["outcome"] == "meeting_booked"
+      assert call["notes"] == "Bokat demo"
       assert call["user_name"] == agent.name
     end
 
@@ -38,35 +39,21 @@ defmodule SaleflowWeb.CallHistoryTest do
     test "agent sees only own calls", %{conn: conn} do
       {conn, _agent} = register_and_log_in_user(conn)
 
-      {:ok, other} = Accounts.register(%{
-        email: "other-hist@example.com", name: "Other",
-        password: "password123", password_confirmation: "password123"
-      })
-
-      {:ok, _} =
-        Sales.create_phone_call(%{
-          caller: "+46709999999",
-          callee: "+46700000002",
-          user_id: other.id,
-          duration: 10,
-          direction: :outgoing
+      {:ok, other} =
+        Accounts.register(%{
+          email: "other-hist@example.com",
+          name: "Other",
+          password: "password123",
+          password_confirmation: "password123"
         })
 
-      conn = get(conn, "/api/calls/history")
-
-      assert %{"calls" => []} = json_response(conn, 200)
-    end
-
-    test "does not include incoming calls", %{conn: conn} do
-      {conn, agent} = register_and_log_in_user(conn)
+      {:ok, lead} = Sales.create_lead(%{företag: "Other AB", telefon: "+46700000002"})
 
       {:ok, _} =
-        Sales.create_phone_call(%{
-          caller: "+46700000003",
-          callee: "+46701111111",
-          user_id: agent.id,
-          duration: 10,
-          direction: :incoming
+        Sales.log_call(%{
+          lead_id: lead.id,
+          user_id: other.id,
+          outcome: :no_answer
         })
 
       conn = get(conn, "/api/calls/history")

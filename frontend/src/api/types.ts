@@ -99,18 +99,16 @@ export interface CallLog {
 
 export interface CallHistoryEntry {
   id: string;
-  caller: string;
-  callee: string;
-  duration: number;
-  direction: string;
-  received_at: string;
+  called_at: string;
+  outcome: string | null;
+  notes: string | null;
   user_id: string | null;
   user_name: string | null;
   lead_id: string | null;
   lead_name: string | null;
+  lead_phone: string | null;
+  duration: number;
   has_recording: boolean;
-  outcome: string | null;
-  notes: string | null;
 }
 
 export interface AuditLog {

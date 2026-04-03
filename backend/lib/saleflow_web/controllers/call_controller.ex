@@ -84,62 +84,59 @@ defmodule SaleflowWeb.CallController do
     end
   end
 
-  @doc "List outgoing calls with lead/outcome data for the agent's call history."
+  @doc "List calls with lead/outcome data for the agent's call history."
   def history(conn, params) do
     user = conn.assigns.current_user
     date = parse_date(params["date"]) || Date.utc_today()
 
     query = """
     SELECT
-      pc.id, pc.caller, pc.callee, pc.duration, pc.direction::text,
-      pc.received_at, pc.user_id, pc.lead_id, pc.recording_key,
+      cl.id, cl.called_at, cl.outcome::text, cl.notes,
+      cl.user_id, cl.lead_id,
       u.name as user_name,
-      l.företag as lead_name,
-      cl.outcome::text, cl.notes
-    FROM phone_calls pc
-    LEFT JOIN users u ON u.id = pc.user_id
-    LEFT JOIN leads l ON l.id = pc.lead_id
+      l.företag as lead_name, l.telefon as lead_phone,
+      pc.duration, pc.recording_key
+    FROM call_logs cl
+    JOIN users u ON u.id = cl.user_id
+    LEFT JOIN leads l ON l.id = cl.lead_id
     LEFT JOIN LATERAL (
-      SELECT outcome, notes FROM call_logs
-      WHERE call_logs.lead_id = pc.lead_id
-        AND call_logs.user_id = pc.user_id
-        AND call_logs.called_at::date = pc.received_at::date
-      ORDER BY call_logs.called_at DESC
+      SELECT duration, recording_key FROM phone_calls
+      WHERE phone_calls.user_id = cl.user_id
+        AND phone_calls.received_at::date = cl.called_at::date
+        AND phone_calls.direction = 'outgoing'
+      ORDER BY ABS(EXTRACT(EPOCH FROM (phone_calls.received_at - cl.called_at)))
       LIMIT 1
-    ) cl ON true
-    WHERE pc.direction = 'outgoing'
-      AND pc.received_at::date = $1
+    ) pc ON true
+    WHERE cl.called_at::date = $1
     """
 
     {query, query_params} =
       case user.role do
         :admin ->
-          {query <> " ORDER BY pc.received_at DESC", [date]}
+          {query <> " ORDER BY cl.called_at DESC", [date]}
 
         _ ->
           uid = Ecto.UUID.dump!(user.id)
-          {query <> " AND pc.user_id = $2 ORDER BY pc.received_at DESC", [date, uid]}
+          {query <> " AND cl.user_id = $2 ORDER BY cl.called_at DESC", [date, uid]}
       end
 
     {:ok, %{rows: rows}} = Saleflow.Repo.query(query, query_params)
 
     calls =
-      Enum.map(rows, fn [id, caller, callee, duration, direction, received_at, user_id,
-                          lead_id, recording_key, user_name, lead_name, outcome, notes] ->
+      Enum.map(rows, fn [id, called_at, outcome, notes, user_id, lead_id,
+                          user_name, lead_name, lead_phone, duration, recording_key] ->
         %{
           id: Saleflow.Sales.decode_uuid(id),
-          caller: caller,
-          callee: callee,
-          duration: duration || 0,
-          direction: direction,
-          received_at: received_at && NaiveDateTime.to_iso8601(received_at),
+          called_at: called_at && NaiveDateTime.to_iso8601(called_at),
+          outcome: outcome,
+          notes: notes,
           user_id: user_id && Saleflow.Sales.decode_uuid(user_id),
           user_name: user_name,
           lead_id: lead_id && Saleflow.Sales.decode_uuid(lead_id),
           lead_name: lead_name,
-          has_recording: recording_key != nil,
-          outcome: outcome,
-          notes: notes
+          lead_phone: lead_phone,
+          duration: duration || 0,
+          has_recording: recording_key != nil
         }
       end)
 

@@ -106,13 +106,13 @@ export function HistoryPage() {
                     ].filter(Boolean).join(" ")}
                   >
                     <td className="whitespace-nowrap px-5 py-3.5 font-mono text-xs text-[var(--color-text-secondary)]">
-                      {formatDateTime(call.received_at)}
+                      {formatDateTime(call.called_at)}
                     </td>
                     <td className="px-5 py-3.5 font-medium text-[var(--color-text-primary)]">
                       {call.lead_name ?? "Okänt företag"}
                     </td>
                     <td className="px-5 py-3.5 text-[var(--color-text-secondary)]">
-                      {call.callee}
+                      {call.lead_phone ?? "—"}
                     </td>
                     {isAdmin && (
                       <td className="px-5 py-3.5 font-medium text-[var(--color-accent)]">
