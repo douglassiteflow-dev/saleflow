@@ -112,12 +112,12 @@ defmodule SaleflowWeb.DashboardController do
 
           {:ok, %{rows: [[mt]]}} =
             Repo.query(
-              "SELECT COUNT(*) FROM meetings WHERE meeting_date = $1 AND status = 'scheduled'",
+              "SELECT COUNT(*) FROM meetings WHERE inserted_at::date = $1 AND status != 'cancelled'",
               [today]
             )
 
           {:ok, %{rows: [[tm]]}} =
-            Repo.query("SELECT COUNT(*) FROM meetings WHERE status = 'scheduled'", [])
+            Repo.query("SELECT COUNT(*) FROM meetings WHERE status != 'cancelled'", [])
 
           {ct, tc, mt, tm}
 
@@ -135,13 +135,13 @@ defmodule SaleflowWeb.DashboardController do
 
           {:ok, %{rows: [[mt]]}} =
             Repo.query(
-              "SELECT COUNT(*) FROM meetings WHERE user_id = $1 AND meeting_date = $2 AND status = 'scheduled'",
+              "SELECT COUNT(*) FROM meetings WHERE user_id = $1 AND inserted_at::date = $2 AND status != 'cancelled'",
               [uid, today]
             )
 
           {:ok, %{rows: [[tm]]}} =
             Repo.query(
-              "SELECT COUNT(*) FROM meetings WHERE user_id = $1 AND status = 'scheduled'",
+              "SELECT COUNT(*) FROM meetings WHERE user_id = $1 AND status != 'cancelled'",
               [uid]
             )
 
