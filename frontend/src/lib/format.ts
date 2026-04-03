@@ -58,11 +58,24 @@ export function formatCurrency(value: number): string {
 }
 
 /**
+ * Ensure an ISO datetime string is treated as UTC.
+ * Backend sends NaiveDateTime without timezone suffix — append Z if missing.
+ */
+function ensureUTC(iso: string): string {
+  if (iso.endsWith("Z") || iso.includes("+") || /\d{2}:\d{2}$/.test(iso) === false) return iso;
+  // Has time component but no timezone → assume UTC
+  if (iso.includes("T") && !iso.endsWith("Z") && !iso.includes("+") && !iso.includes("-", 10)) {
+    return iso + "Z";
+  }
+  return iso;
+}
+
+/**
  * Format an ISO datetime string to Swedish locale date + time.
- * E.g. "2024-03-15T14:30:00Z" → "15 mars 2024, 14:30"
+ * E.g. "2024-03-15T14:30:00" → "15 mars 2024, 16:30" (in CEST)
  */
 export function formatDateTime(isoDatetime: string): string {
-  const d = new Date(isoDatetime);
+  const d = new Date(ensureUTC(isoDatetime));
   if (isNaN(d.getTime())) return isoDatetime;
   return d.toLocaleString("sv-SE", {
     year: "numeric",
@@ -78,7 +91,7 @@ export function formatDateTime(isoDatetime: string): string {
  * E.g. "Just nu", "5 min sedan", "2 tim sedan", "3 dagar sedan"
  */
 export function formatRelativeTime(isoDatetime: string): string {
-  const d = new Date(isoDatetime);
+  const d = new Date(ensureUTC(isoDatetime));
   if (isNaN(d.getTime())) return isoDatetime;
 
   const now = Date.now();
