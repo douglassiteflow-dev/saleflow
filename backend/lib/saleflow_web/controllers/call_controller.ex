@@ -84,6 +84,76 @@ defmodule SaleflowWeb.CallController do
     end
   end
 
+  @doc "List outgoing calls with lead/outcome data for the agent's call history."
+  def history(conn, params) do
+    user = conn.assigns.current_user
+    date = parse_date(params["date"]) || Date.utc_today()
+
+    query = """
+    SELECT
+      pc.id, pc.caller, pc.callee, pc.duration, pc.direction::text,
+      pc.received_at, pc.user_id, pc.lead_id, pc.recording_key,
+      u.name as user_name,
+      l.företag as lead_name,
+      cl.outcome::text, cl.notes
+    FROM phone_calls pc
+    LEFT JOIN users u ON u.id = pc.user_id
+    LEFT JOIN leads l ON l.id = pc.lead_id
+    LEFT JOIN LATERAL (
+      SELECT outcome, notes FROM call_logs
+      WHERE call_logs.lead_id = pc.lead_id
+        AND call_logs.user_id = pc.user_id
+        AND call_logs.called_at::date = pc.received_at::date
+      ORDER BY call_logs.called_at DESC
+      LIMIT 1
+    ) cl ON true
+    WHERE pc.direction = 'outgoing'
+      AND pc.received_at::date = $1
+    """
+
+    {query, query_params} =
+      case user.role do
+        :admin ->
+          {query <> " ORDER BY pc.received_at DESC", [date]}
+
+        _ ->
+          uid = Ecto.UUID.dump!(user.id)
+          {query <> " AND pc.user_id = $2 ORDER BY pc.received_at DESC", [date, uid]}
+      end
+
+    {:ok, %{rows: rows}} = Saleflow.Repo.query(query, query_params)
+
+    calls =
+      Enum.map(rows, fn [id, caller, callee, duration, direction, received_at, user_id,
+                          lead_id, recording_key, user_name, lead_name, outcome, notes] ->
+        %{
+          id: Saleflow.Sales.decode_uuid(id),
+          caller: caller,
+          callee: callee,
+          duration: duration || 0,
+          direction: direction,
+          received_at: received_at && NaiveDateTime.to_iso8601(received_at),
+          user_id: user_id && Saleflow.Sales.decode_uuid(user_id),
+          user_name: user_name,
+          lead_id: lead_id && Saleflow.Sales.decode_uuid(lead_id),
+          lead_name: lead_name,
+          has_recording: recording_key != nil,
+          outcome: outcome,
+          notes: notes
+        }
+      end)
+
+    json(conn, %{calls: calls})
+  end
+
+  defp parse_date(nil), do: nil
+  defp parse_date(str) when is_binary(str) do
+    case Date.from_iso8601(str) do
+      {:ok, date} -> date
+      _ -> nil
+    end
+  end
+
   defp get_lead_phone(lead_id) do
     query = "SELECT telefon FROM leads WHERE id = $1 LIMIT 1"
 
