@@ -187,7 +187,10 @@ export function OutcomePanel({ leadId, companyName: _companyName, leadData, onOu
               type="button"
               onClick={() => {
                 const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
-                setCallbackDate(d.toISOString().slice(0, 16));
+                const pad = (n: number) => String(n).padStart(2, "0");
+                setCallbackDate(
+                  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+                );
               }}
               className="w-full rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors mb-2"
             >

@@ -32,9 +32,10 @@ export function DialerPage() {
 
   function handleSkip() {
     if (!currentLeadId) return;
-    // Fire outcome mutation without awaiting, immediately fetch next
-    skipOutcome.mutate({ outcome: "no_answer", notes: "Hoppade över" });
-    handleNextLead();
+    skipOutcome.mutate(
+      { outcome: "no_answer", notes: "Hoppade över" },
+      { onSuccess: () => handleNextLead() }
+    );
   }
 
   function handleOutcomeSubmitted() {
