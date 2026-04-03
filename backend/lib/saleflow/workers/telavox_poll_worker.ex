@@ -85,9 +85,7 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
   end
 
   defp handle_call_ended(call) do
-    Logger.info("TelavoxPollWorker: call ended — #{call.agent_name} → #{call.callerid}")
-
-    lead_id = find_lead_id(call.callerid)
+    Logger.info("TelavoxPollWorker: call ended — #{call.agent_name} (#{call.extension})")
 
     direction =
       case call.direction do
@@ -96,11 +94,12 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
         _ -> :outgoing
       end
 
+    # callerid during ringing may be agent's own number, not the customer's
+    # RecordingFetchWorker will enrich with real number + duration from /calls API
     attrs = %{
       caller: call.extension,
       callee: call.callerid,
       duration: 0,
-      lead_id: lead_id,
       user_id: call.user_id,
       direction: direction
     }

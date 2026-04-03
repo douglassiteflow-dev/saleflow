@@ -10,17 +10,8 @@ defmodule Saleflow.Workers.RecordingFetchWorker do
         args: %{"phone_call_id" => phone_call_id, "user_id" => user_id},
         attempt: attempt
       }) do
-    case Saleflow.Repo.query("SELECT callee, received_at FROM phone_calls WHERE id = $1", [
-           Ecto.UUID.dump!(phone_call_id)
-         ]) do
-      {:ok, %{rows: [[callee, _received_at]]}} ->
-        token = get_agent_token(user_id)
-        fetch_and_store_recording(phone_call_id, callee, token, attempt)
-
-      _ ->
-        Logger.warning("RecordingFetchWorker: phone_call #{phone_call_id} not found")
-        :ok
-    end
+    token = get_agent_token(user_id)
+    enrich_phone_call(phone_call_id, token, attempt)
   end
 
   defp get_agent_token(user_id) when is_binary(user_id) and user_id != "unknown" do
@@ -32,45 +23,74 @@ defmodule Saleflow.Workers.RecordingFetchWorker do
 
   defp get_agent_token(_), do: Application.get_env(:saleflow, :telavox_api_token, "")
 
-  defp fetch_and_store_recording(phone_call_id, callee, token, attempt) do
-    Logger.info("RecordingFetchWorker: fetching /calls for #{phone_call_id}, callee=#{callee}, token=#{String.slice(token || "", 0..19)}...")
-
+  defp enrich_phone_call(phone_call_id, token, attempt) do
     case client().get_as(token, "/calls?withRecordings=true") do
+      {:ok, %{"outgoing" => outgoing, "incoming" => incoming, "missed" => missed}} ->
+        all_calls = (outgoing || []) ++ (incoming || []) ++ (missed || [])
+        # Get the most recent call (first in list = most recent)
+        most_recent = List.first(outgoing || [])
+
+        if most_recent do
+          number = most_recent["number"] || ""
+          duration = most_recent["duration"] || 0
+          recording_id = most_recent["recordingId"]
+
+          Logger.info("RecordingFetchWorker: #{phone_call_id} → number=#{number}, duration=#{duration}s, recording=#{recording_id || "none"}")
+
+          # Find lead by the real customer number
+          lead_id = find_lead_id(number)
+
+          # Update phone_call with real data
+          Saleflow.Repo.query(
+            "UPDATE phone_calls SET callee = $1, duration = $2, lead_id = $3 WHERE id = $4",
+            [number, duration, lead_id && Ecto.UUID.dump!(lead_id), Ecto.UUID.dump!(phone_call_id)]
+          )
+
+          # Broadcast dashboard update with correct data
+          Phoenix.PubSub.broadcast(
+            Saleflow.PubSub,
+            "dashboard:updates",
+            {:dashboard_update, %{event: "call_enriched", phone_call_id: phone_call_id}}
+          )
+
+          case recording_id do
+            nil -> :ok
+            id -> download_and_store(phone_call_id, id)
+          end
+        else
+          if attempt < 3 do
+            Logger.info("RecordingFetchWorker: no calls yet for #{phone_call_id}, will retry")
+            {:error, "No calls yet"}
+          else
+            Logger.info("RecordingFetchWorker: no calls for #{phone_call_id} after #{attempt} attempts")
+            :ok
+          end
+        end
+
       {:ok, %{"outgoing" => outgoing, "incoming" => incoming}} ->
-        all_calls = (outgoing || []) ++ (incoming || [])
-        Logger.info("RecordingFetchWorker: got #{length(outgoing || [])} outgoing, #{length(incoming || [])} incoming. Looking for callee=#{callee}")
+        # Same as above but without "missed" key
+        most_recent = List.first(outgoing || [])
 
-        case find_matching_call(all_calls, callee) do
-          nil ->
-            if attempt < 3 do
-              Logger.info(
-                "RecordingFetchWorker: no match yet for #{phone_call_id}, will retry"
-              )
+        if most_recent do
+          number = most_recent["number"] || ""
+          duration = most_recent["duration"] || 0
+          recording_id = most_recent["recordingId"]
 
-              {:error, "Call not ready"}
-            else
-              Logger.info(
-                "RecordingFetchWorker: no match for #{phone_call_id} after #{attempt} attempts"
-              )
+          Logger.info("RecordingFetchWorker: #{phone_call_id} → number=#{number}, duration=#{duration}s")
 
-              :ok
-            end
+          lead_id = find_lead_id(number)
 
-          matched_call ->
-            # Update duration from Telavox call data
-            duration = matched_call["duration"] || 0
+          Saleflow.Repo.query(
+            "UPDATE phone_calls SET callee = $1, duration = $2, lead_id = $3 WHERE id = $4",
+            [number, duration, lead_id && Ecto.UUID.dump!(lead_id), Ecto.UUID.dump!(phone_call_id)]
+          )
 
-            Saleflow.Repo.query(
-              "UPDATE phone_calls SET duration = $1 WHERE id = $2 AND duration = 0",
-              [duration, Ecto.UUID.dump!(phone_call_id)]
-            )
-
-            Logger.info("RecordingFetchWorker: #{phone_call_id} duration=#{duration}s")
-
-            case matched_call["recordingId"] do
-              nil -> :ok
-              recording_id -> download_and_store(phone_call_id, recording_id)
-            end
+          case recording_id do
+            nil -> :ok
+            id -> download_and_store(phone_call_id, id)
+          end
+        else
+          if attempt < 3, do: {:error, "No calls yet"}, else: :ok
         end
 
       {:error, reason} ->
@@ -79,13 +99,17 @@ defmodule Saleflow.Workers.RecordingFetchWorker do
     end
   end
 
-  @doc false
-  def find_matching_call(calls, callee) do
-    Enum.find(calls, fn call ->
-      number = call["number"] || call["numberE164"] || ""
-      String.contains?(number, callee) || String.contains?(callee, number)
-    end)
+  defp find_lead_id(number) when is_binary(number) and number != "" do
+    query = "SELECT id FROM leads WHERE telefon = $1 OR telefon LIKE $2 LIMIT 1"
+    like = "%" <> number
+
+    case Saleflow.Repo.query(query, [number, like]) do
+      {:ok, %{rows: [[id]]}} -> Saleflow.Sales.decode_uuid(id)
+      _ -> nil
+    end
   end
+
+  defp find_lead_id(_), do: nil
 
   defp download_and_store(phone_call_id, recording_id) do
     case client().get_binary("/recordings/#{recording_id}") do
