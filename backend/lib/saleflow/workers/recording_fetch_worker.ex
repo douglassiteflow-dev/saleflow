@@ -25,38 +25,12 @@ defmodule Saleflow.Workers.RecordingFetchWorker do
 
   defp enrich_phone_call(phone_call_id, token, attempt) do
     case client().get_as(token, "/calls?withRecordings=true") do
-      {:ok, %{"outgoing" => outgoing, "incoming" => incoming, "missed" => missed}} ->
-        all_calls = (outgoing || []) ++ (incoming || []) ++ (missed || [])
-        # Get the most recent call (first in list = most recent)
-        most_recent = List.first(outgoing || [])
+      {:ok, response} when is_map(response) ->
+        outgoing = response["outgoing"] || []
+        most_recent = List.first(outgoing)
 
         if most_recent do
-          number = most_recent["number"] || ""
-          duration = most_recent["duration"] || 0
-          recording_id = most_recent["recordingId"]
-
-          Logger.info("RecordingFetchWorker: #{phone_call_id} → number=#{number}, duration=#{duration}s, recording=#{recording_id || "none"}")
-
-          # Find lead by the real customer number
-          lead_id = find_lead_id(number)
-
-          # Update phone_call with real data
-          Saleflow.Repo.query(
-            "UPDATE phone_calls SET callee = $1, duration = $2, lead_id = $3 WHERE id = $4",
-            [number, duration, lead_id && Ecto.UUID.dump!(lead_id), Ecto.UUID.dump!(phone_call_id)]
-          )
-
-          # Broadcast dashboard update with correct data
-          Phoenix.PubSub.broadcast(
-            Saleflow.PubSub,
-            "dashboard:updates",
-            {:dashboard_update, %{event: "call_enriched", phone_call_id: phone_call_id}}
-          )
-
-          case recording_id do
-            nil -> :ok
-            id -> download_and_store(phone_call_id, id)
-          end
+          enrich_from_call(phone_call_id, most_recent)
         else
           if attempt < 3 do
             Logger.info("RecordingFetchWorker: no calls yet for #{phone_call_id}, will retry")
@@ -67,35 +41,35 @@ defmodule Saleflow.Workers.RecordingFetchWorker do
           end
         end
 
-      {:ok, %{"outgoing" => outgoing, "incoming" => incoming}} ->
-        # Same as above but without "missed" key
-        most_recent = List.first(outgoing || [])
-
-        if most_recent do
-          number = most_recent["number"] || ""
-          duration = most_recent["duration"] || 0
-          recording_id = most_recent["recordingId"]
-
-          Logger.info("RecordingFetchWorker: #{phone_call_id} → number=#{number}, duration=#{duration}s")
-
-          lead_id = find_lead_id(number)
-
-          Saleflow.Repo.query(
-            "UPDATE phone_calls SET callee = $1, duration = $2, lead_id = $3 WHERE id = $4",
-            [number, duration, lead_id && Ecto.UUID.dump!(lead_id), Ecto.UUID.dump!(phone_call_id)]
-          )
-
-          case recording_id do
-            nil -> :ok
-            id -> download_and_store(phone_call_id, id)
-          end
-        else
-          if attempt < 3, do: {:error, "No calls yet"}, else: :ok
-        end
-
       {:error, reason} ->
         Logger.warning("RecordingFetchWorker: API error: #{inspect(reason)}")
         {:error, "API error"}
+    end
+  end
+
+  defp enrich_from_call(phone_call_id, call_data) do
+    number = call_data["number"] || ""
+    duration = call_data["duration"] || 0
+    recording_id = call_data["recordingId"]
+
+    Logger.info("RecordingFetchWorker: #{phone_call_id} → number=#{number}, duration=#{duration}s, recording=#{recording_id || "none"}")
+
+    lead_id = find_lead_id(number)
+
+    Saleflow.Repo.query(
+      "UPDATE phone_calls SET callee = $1, duration = $2, lead_id = $3 WHERE id = $4",
+      [number, duration, lead_id && Ecto.UUID.dump!(lead_id), Ecto.UUID.dump!(phone_call_id)]
+    )
+
+    Phoenix.PubSub.broadcast(
+      Saleflow.PubSub,
+      "dashboard:updates",
+      {:dashboard_update, %{event: "call_enriched", phone_call_id: phone_call_id}}
+    )
+
+    case recording_id do
+      nil -> :ok
+      id -> download_and_store(phone_call_id, id)
     end
   end
 
