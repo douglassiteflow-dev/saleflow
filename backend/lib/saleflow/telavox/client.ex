@@ -11,17 +11,20 @@ defmodule Saleflow.Telavox.Client do
 
   @base_url "https://api.telavox.se"
 
+  @impl true
   @doc "GET request using shared org token."
   def get(path) do
     token = Application.get_env(:saleflow, :telavox_api_token, "")
     request(:get, path, token)
   end
 
+  @impl true
   @doc "GET request using a specific agent token."
   def get_as(token, path) do
     request(:get, path, token)
   end
 
+  @impl true
   @doc "POST request using a specific agent token."
   def post_as(token, path) do
     request(:post, path, token)

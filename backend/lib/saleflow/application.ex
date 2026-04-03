@@ -15,6 +15,16 @@ defmodule Saleflow.Application do
       {AshAuthentication.Supervisor, otp_app: :saleflow},
       Saleflow.Auth.GeoIP,
       {Oban, Application.fetch_env!(:saleflow, Oban)},
+      # Start Telavox polling (will self-reschedule every 5s)
+      # Skip in test mode — Oban inline would cause immediate execution
+      {Task, fn ->
+        oban_conf = Application.get_env(:saleflow, Oban, [])
+
+        if Application.get_env(:saleflow, :telavox_api_token, "") != "" &&
+             oban_conf[:testing] != :inline do
+          Saleflow.Workers.TelavoxPollWorker.new(%{}) |> Oban.insert()
+        end
+      end},
       # Start to serve requests, typically the last entry
       SaleflowWeb.Endpoint
     ]
