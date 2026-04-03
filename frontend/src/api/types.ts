@@ -97,6 +97,22 @@ export interface CallLog {
   called_at: string;
 }
 
+export interface CallHistoryEntry {
+  id: string;
+  caller: string;
+  callee: string;
+  duration: number;
+  direction: string;
+  received_at: string;
+  user_id: string | null;
+  user_name: string | null;
+  lead_id: string | null;
+  lead_name: string | null;
+  has_recording: boolean;
+  outcome: string | null;
+  notes: string | null;
+}
+
 export interface AuditLog {
   id: string;
   user_id: string | null;
