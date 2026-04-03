@@ -150,7 +150,7 @@ defmodule Saleflow.Stats do
       COALESCE(c.cnt, 0) as calls_today,
       COALESCE(m.booked, 0) as meetings_booked_today,
       COALESCE(m.cancelled, 0) as meetings_cancelled_today,
-      (COALESCE(m.booked, 0) - COALESCE(m.cancelled, 0)) as net_meetings_today
+      COALESCE(m.booked, 0) as net_meetings_today
     FROM users u
     LEFT JOIN (
       SELECT user_id, COUNT(*) as cnt

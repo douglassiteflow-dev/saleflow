@@ -74,7 +74,7 @@ defmodule Saleflow.StatsTest do
   # ---------------------------------------------------------------------------
 
   describe "leaderboard/0" do
-    test "net_meetings_today subtracts cancelled from booked" do
+    test "net_meetings_today equals booked (non-cancelled) meetings" do
       user = create_user!()
       lead1 = create_lead!()
       lead2 = create_lead!()
@@ -92,7 +92,7 @@ defmodule Saleflow.StatsTest do
       assert row != nil
       assert row.meetings_booked_today == 1
       assert row.meetings_cancelled_today == 1
-      assert row.net_meetings_today == 0
+      assert row.net_meetings_today == 1
     end
 
     test "net_meetings_today is correct with no cancellations" do
