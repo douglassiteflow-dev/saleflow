@@ -108,6 +108,7 @@ export function OutcomePanel({ leadId, companyName: _companyName, leadData, onOu
   }
 
   function handleSubmit(outcome: Outcome) {
+    if (submitOutcome.isPending) return;
     setError(null);
 
     submitOutcome.mutate(
