@@ -2,7 +2,6 @@ import { useState } from "react";
 import type { Lead } from "@/api/types";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DialButton } from "@/components/dial-button";
 import { formatPhone } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { api } from "@/api/client";
@@ -63,10 +62,7 @@ export function LeadInfo({ lead }: LeadInfoProps) {
     <Card>
       <div className="flex items-start justify-between mb-4">
         <CardTitle>{lead.företag}</CardTitle>
-        <div className="flex items-center gap-2">
-          <DialButton leadId={lead.id} phone={lead.telefon} />
-          <Badge status={lead.status} />
-        </div>
+        <Badge status={lead.status} />
       </div>
 
       <div>

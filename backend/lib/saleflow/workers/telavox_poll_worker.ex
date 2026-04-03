@@ -152,8 +152,10 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
     extensions
     |> Enum.flat_map(fn ext ->
       extension = ext["extension"] || ""
+      mobile = ext["mobile"] || ""
       agent_name = ext["name"] || "Okänd"
-      user_id = Map.get(user_map, extension)
+      # Match on extension OR mobile number
+      user_id = Map.get(user_map, extension) || Map.get(user_map, mobile)
 
       (ext["calls"] || [])
       |> Enum.map(fn call ->
@@ -172,10 +174,15 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
   @doc false
   def build_user_map do
     case Saleflow.Repo.query(
-           "SELECT id, extension_number FROM users WHERE extension_number IS NOT NULL"
+           "SELECT id, extension_number, phone_number FROM users WHERE extension_number IS NOT NULL OR phone_number IS NOT NULL"
          ) do
       {:ok, %{rows: rows}} ->
-        Map.new(rows, fn [id, ext] -> {ext, Sales.decode_uuid(id)} end)
+        Enum.reduce(rows, %{}, fn [id, ext, phone], acc ->
+          user_id = Sales.decode_uuid(id)
+          acc
+          |> then(fn a -> if ext, do: Map.put(a, ext, user_id), else: a end)
+          |> then(fn a -> if phone, do: Map.put(a, phone, user_id), else: a end)
+        end)
 
       _ ->
         %{}
