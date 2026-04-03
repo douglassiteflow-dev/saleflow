@@ -123,35 +123,7 @@ defmodule SaleflowWeb.DashboardController do
 
   defp compute_goal_current_value(_goal, _user), do: 0
 
-  defp compute_lead_stats do
-    query = """
-    SELECT status, COUNT(*) as count
-    FROM leads
-    GROUP BY status
-    ORDER BY status
-    """
-
-    {:ok, %{rows: rows}} = Repo.query(query)
-
-    by_status =
-      Enum.into(rows, %{}, fn [status, count] ->
-        {status, count}
-      end)
-
-    total = Enum.reduce(rows, 0, fn [_status, count], acc -> acc + count end)
-
-    %{
-      "total_leads" => total,
-      "new" => 0,
-      "assigned" => 0,
-      "callback" => 0,
-      "meeting_booked" => 0,
-      "quarantine" => 0,
-      "bad_number" => 0,
-      "customer" => 0
-    }
-    |> Map.merge(by_status)
-  end
+  defp compute_lead_stats, do: Stats.lead_stats()
 
   defp compute_callbacks(user) do
     require Ash.Query

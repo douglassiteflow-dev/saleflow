@@ -2,7 +2,6 @@ defmodule SaleflowWeb.AdminController do
   use SaleflowWeb, :controller
 
   alias Saleflow.Accounts
-  alias Saleflow.Repo
 
   @doc """
   List all users (admin only).
@@ -104,36 +103,7 @@ defmodule SaleflowWeb.AdminController do
   Return lead counts grouped by status (admin-only global stats).
   """
   def stats(conn, _params) do
-    query = """
-    SELECT status, COUNT(*) as count
-    FROM leads
-    GROUP BY status
-    ORDER BY status
-    """
-
-    {:ok, %{rows: rows}} = Repo.query(query)
-
-    by_status =
-      Enum.into(rows, %{}, fn [status, count] ->
-        {status, count}
-      end)
-
-    total = Enum.reduce(rows, 0, fn [_status, count], acc -> acc + count end)
-
-    stats =
-      %{
-        "total_leads" => total,
-        "new" => 0,
-        "assigned" => 0,
-        "callback" => 0,
-        "meeting_booked" => 0,
-        "quarantine" => 0,
-        "bad_number" => 0,
-        "customer" => 0
-      }
-      |> Map.merge(by_status)
-
-    json(conn, %{stats: stats})
+    json(conn, %{stats: Saleflow.Stats.lead_stats()})
   end
 
   @doc """
@@ -153,65 +123,20 @@ defmodule SaleflowWeb.AdminController do
   Computes my_stats for a user. Shared between my_stats endpoint and dashboard.
   """
   def compute_my_stats(user) do
-    today = Date.utc_today()
+    alias Saleflow.Stats
 
-    {calls_today, total_calls, meetings_today, total_meetings} =
+    {ct, tc, mt, tm} =
       case user.role do
         :admin ->
-          calls_today_query = """
-          SELECT COUNT(*) FROM call_logs WHERE called_at::date = $1
-          """
-
-          total_calls_query = """
-          SELECT COUNT(*) FROM call_logs
-          """
-
-          meetings_today_query = """
-          SELECT COUNT(*) FROM meetings WHERE meeting_date = $1 AND status = 'scheduled'
-          """
-
-          total_meetings_query = """
-          SELECT COUNT(*) FROM meetings WHERE status = 'scheduled'
-          """
-
-          {:ok, %{rows: [[ct]]}} = Repo.query(calls_today_query, [today])
-          {:ok, %{rows: [[tc]]}} = Repo.query(total_calls_query, [])
-          {:ok, %{rows: [[mt]]}} = Repo.query(meetings_today_query, [today])
-          {:ok, %{rows: [[tm]]}} = Repo.query(total_meetings_query, [])
-          {ct, tc, mt, tm}
+          {Stats.all_calls_today(), Stats.all_total_calls(),
+           Stats.all_meetings_booked_today(), Stats.all_total_meetings()}
 
         _ ->
-          user_id_binary = Ecto.UUID.dump!(user.id)
-
-          calls_today_query = """
-          SELECT COUNT(*) FROM call_logs WHERE user_id = $1 AND called_at::date = $2
-          """
-
-          total_calls_query = """
-          SELECT COUNT(*) FROM call_logs WHERE user_id = $1
-          """
-
-          meetings_today_query = """
-          SELECT COUNT(*) FROM meetings WHERE user_id = $1 AND meeting_date = $2 AND status = 'scheduled'
-          """
-
-          total_meetings_query = """
-          SELECT COUNT(*) FROM meetings WHERE user_id = $1 AND status = 'scheduled'
-          """
-
-          {:ok, %{rows: [[ct]]}} = Repo.query(calls_today_query, [user_id_binary, today])
-          {:ok, %{rows: [[tc]]}} = Repo.query(total_calls_query, [user_id_binary])
-          {:ok, %{rows: [[mt]]}} = Repo.query(meetings_today_query, [user_id_binary, today])
-          {:ok, %{rows: [[tm]]}} = Repo.query(total_meetings_query, [user_id_binary])
-          {ct, tc, mt, tm}
+          {Stats.calls_today(user.id), Stats.total_calls(user.id),
+           Stats.meetings_booked_today(user.id), Stats.total_meetings(user.id)}
       end
 
-    %{
-      calls_today: calls_today,
-      total_calls: total_calls,
-      meetings_today: meetings_today,
-      total_meetings: total_meetings
-    }
+    %{calls_today: ct, total_calls: tc, meetings_today: mt, total_meetings: tm}
   end
 
   # ---------------------------------------------------------------------------

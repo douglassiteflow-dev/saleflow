@@ -108,6 +108,27 @@ defmodule Saleflow.Stats do
   end
 
   # ---------------------------------------------------------------------------
+  # Lead stats
+  # ---------------------------------------------------------------------------
+
+  @doc "Lead counts grouped by status."
+  def lead_stats do
+    {:ok, %{rows: rows}} =
+      Repo.query("SELECT status, COUNT(*) as count FROM leads GROUP BY status ORDER BY status")
+
+    by_status = Enum.into(rows, %{}, fn [status, count] -> {status, count} end)
+    total = Enum.reduce(rows, 0, fn [_status, count], acc -> acc + count end)
+
+    %{
+      "total_leads" => total,
+      "new" => 0, "assigned" => 0, "callback" => 0,
+      "meeting_booked" => 0, "quarantine" => 0,
+      "bad_number" => 0, "customer" => 0
+    }
+    |> Map.merge(by_status)
+  end
+
+  # ---------------------------------------------------------------------------
   # Computed metrics
   # ---------------------------------------------------------------------------
 
@@ -129,7 +150,7 @@ defmodule Saleflow.Stats do
       COALESCE(c.cnt, 0) as calls_today,
       COALESCE(m.booked, 0) as meetings_booked_today,
       COALESCE(m.cancelled, 0) as meetings_cancelled_today,
-      COALESCE(m.booked, 0) as net_meetings_today
+      (COALESCE(m.booked, 0) - COALESCE(m.cancelled, 0)) as net_meetings_today
     FROM users u
     LEFT JOIN (
       SELECT user_id, COUNT(*) as cnt
