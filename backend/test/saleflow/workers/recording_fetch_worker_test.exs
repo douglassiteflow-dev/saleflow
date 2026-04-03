@@ -105,7 +105,7 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
 
       job = build_job(phone_call.id, user_id, 1)
 
-      assert {:error, "Recording not ready"} = RecordingFetchWorker.perform(job)
+      assert {:error, "Call not ready"} = RecordingFetchWorker.perform(job)
     end
 
     test "returns :ok on final attempt (attempt 3)" do
@@ -222,17 +222,19 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
   end
 
   # ---------------------------------------------------------------------------
-  # find_recording_id/2
+  # find_matching_call/2
   # ---------------------------------------------------------------------------
 
-  describe "find_recording_id/2" do
+  describe "find_matching_call/2" do
     test "matches by number field" do
       calls = [
-        %{"number" => "+46812345678", "recordingId" => "rec-abc"},
+        %{"number" => "+46812345678", "recordingId" => "rec-abc", "duration" => 42},
         %{"number" => "+46800000000", "recordingId" => "rec-other"}
       ]
 
-      assert "rec-abc" == RecordingFetchWorker.find_recording_id(calls, "+46812345678")
+      matched = RecordingFetchWorker.find_matching_call(calls, "+46812345678")
+      assert matched["recordingId"] == "rec-abc"
+      assert matched["duration"] == 42
     end
 
     test "matches by numberE164 field" do
@@ -240,7 +242,8 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
         %{"numberE164" => "+46812345678", "recordingId" => "rec-e164"}
       ]
 
-      assert "rec-e164" == RecordingFetchWorker.find_recording_id(calls, "+46812345678")
+      matched = RecordingFetchWorker.find_matching_call(calls, "+46812345678")
+      assert matched["recordingId"] == "rec-e164"
     end
 
     test "matches when callee contains number (partial match)" do
@@ -248,7 +251,8 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
         %{"number" => "812345678", "recordingId" => "rec-partial"}
       ]
 
-      assert "rec-partial" == RecordingFetchWorker.find_recording_id(calls, "+46812345678")
+      matched = RecordingFetchWorker.find_matching_call(calls, "+46812345678")
+      assert matched["recordingId"] == "rec-partial"
     end
 
     test "matches when number contains callee (reverse partial)" do
@@ -256,7 +260,8 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
         %{"number" => "+46812345678", "recordingId" => "rec-reverse"}
       ]
 
-      assert "rec-reverse" == RecordingFetchWorker.find_recording_id(calls, "812345678")
+      matched = RecordingFetchWorker.find_matching_call(calls, "812345678")
+      assert matched["recordingId"] == "rec-reverse"
     end
 
     test "returns nil when no match found" do
@@ -264,19 +269,11 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
         %{"number" => "+46700000000", "recordingId" => "rec-nope"}
       ]
 
-      assert nil == RecordingFetchWorker.find_recording_id(calls, "+46812345678")
+      assert nil == RecordingFetchWorker.find_matching_call(calls, "+46812345678")
     end
 
     test "returns nil for empty calls list" do
-      assert nil == RecordingFetchWorker.find_recording_id([], "+46812345678")
-    end
-
-    test "returns nil when call has no recordingId" do
-      calls = [
-        %{"number" => "+46812345678"}
-      ]
-
-      assert nil == RecordingFetchWorker.find_recording_id(calls, "+46812345678")
+      assert nil == RecordingFetchWorker.find_matching_call([], "+46812345678")
     end
   end
 end

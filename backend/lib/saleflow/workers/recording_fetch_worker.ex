@@ -27,24 +27,37 @@ defmodule Saleflow.Workers.RecordingFetchWorker do
       {:ok, %{"outgoing" => outgoing, "incoming" => incoming}} ->
         all_calls = (outgoing || []) ++ (incoming || [])
 
-        case find_recording_id(all_calls, callee) do
+        case find_matching_call(all_calls, callee) do
           nil ->
             if attempt < 3 do
               Logger.info(
-                "RecordingFetchWorker: no recordingId yet for #{phone_call_id}, will retry"
+                "RecordingFetchWorker: no match yet for #{phone_call_id}, will retry"
               )
 
-              {:error, "Recording not ready"}
+              {:error, "Call not ready"}
             else
               Logger.info(
-                "RecordingFetchWorker: no recording found for #{phone_call_id} after #{attempt} attempts"
+                "RecordingFetchWorker: no match for #{phone_call_id} after #{attempt} attempts"
               )
 
               :ok
             end
 
-          recording_id ->
-            download_and_store(phone_call_id, recording_id)
+          matched_call ->
+            # Update duration from Telavox call data
+            duration = matched_call["duration"] || 0
+
+            Saleflow.Repo.query(
+              "UPDATE phone_calls SET duration = $1 WHERE id = $2 AND duration = 0",
+              [duration, Ecto.UUID.dump!(phone_call_id)]
+            )
+
+            Logger.info("RecordingFetchWorker: #{phone_call_id} duration=#{duration}s")
+
+            case matched_call["recordingId"] do
+              nil -> :ok
+              recording_id -> download_and_store(phone_call_id, recording_id)
+            end
         end
 
       {:error, reason} ->
@@ -54,13 +67,10 @@ defmodule Saleflow.Workers.RecordingFetchWorker do
   end
 
   @doc false
-  def find_recording_id(calls, callee) do
-    Enum.find_value(calls, fn call ->
+  def find_matching_call(calls, callee) do
+    Enum.find(calls, fn call ->
       number = call["number"] || call["numberE164"] || ""
-
-      if String.contains?(number, callee) || String.contains?(callee, number) do
-        call["recordingId"]
-      end
+      String.contains?(number, callee) || String.contains?(callee, number)
     end)
   end
 
