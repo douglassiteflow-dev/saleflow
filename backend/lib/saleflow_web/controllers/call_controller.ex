@@ -1,6 +1,8 @@
 defmodule SaleflowWeb.CallController do
   use SaleflowWeb, :controller
 
+  require Logger
+
   defp client do
     Application.get_env(:saleflow, :telavox_client, Saleflow.Telavox.Client)
   end
@@ -20,7 +22,11 @@ defmodule SaleflowWeb.CallController do
             conn |> put_status(404) |> json(%{error: "Lead saknar telefonnummer"})
 
           phone ->
-            case client().get_as(token, "/dial/#{phone}?autoanswer=false") do
+            Logger.info("CallController.dial: calling #{phone} with token=#{String.slice(token || "", 0..19)}...")
+            result = client().get_as(token, "/dial/#{phone}?autoanswer=false")
+            Logger.info("CallController.dial: result=#{inspect(result)}")
+
+            case result do
               {:ok, _body} ->
                 json(conn, %{ok: true, number: phone})
 
