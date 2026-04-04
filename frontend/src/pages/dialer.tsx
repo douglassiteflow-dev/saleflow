@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { DialerTabs } from "@/components/dialer/dialer-tabs";
 import { DialerHeader } from "@/components/dialer/dialer-header";
 import { DialerFooter } from "@/components/dialer/dialer-footer";
@@ -15,7 +14,7 @@ import {
   useCallbacks,
 } from "@/api/leads";
 import { useCallHistory } from "@/api/calls";
-import { useMeetings, useCancelMeeting } from "@/api/meetings";
+import { useMeetings, useMeetingDetail, useCancelMeeting } from "@/api/meetings";
 import { useMe } from "@/api/auth";
 import { useDial, useTelavoxStatus, useHangup, useTelavoxConnect, useTelavoxDisconnect } from "@/api/telavox";
 import { useMicrosoftStatus, useMicrosoftAuthorize, useMicrosoftDisconnect } from "@/api/microsoft";
@@ -61,15 +60,14 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-type Tab = "dialer" | "callbacks" | "history" | "meetings" | "profile";
+type Tab = "dialer" | "callbacks" | "history" | "meetings" | "profile" | "meeting-detail";
 
 /* ==================== Main component ==================== */
 
 export function DialerPage() {
-  const navigate = useNavigate();
-
   /* --- tab state --- */
   const [activeTab, setActiveTab] = useState<Tab>("dialer");
+  const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
   const [currentLeadId, setCurrentLeadIdRaw] = useState<string | null>(
     () => sessionStorage.getItem("dialer_lead_id"),
   );
@@ -215,7 +213,13 @@ export function DialerPage() {
 
       {activeTab === "history" && <HistoryTabContent />}
 
-      {activeTab === "meetings" && <MeetingsTabContent />}
+      {activeTab === "meetings" && (
+        <MeetingsTabContent onMeetingClick={(id) => { setSelectedMeetingId(id); setActiveTab("meeting-detail"); }} />
+      )}
+
+      {activeTab === "meeting-detail" && selectedMeetingId && (
+        <MeetingDetailTabContent meetingId={selectedMeetingId} onBack={() => setActiveTab("meetings")} />
+      )}
 
       {activeTab === "profile" && <ProfileTabContent onBack={() => setActiveTab("dialer")} />}
 
@@ -678,8 +682,7 @@ function HistoryTabContent() {
 
 /* ==================== Meetings tab ==================== */
 
-function MeetingsTabContent() {
-  const navigate = useNavigate();
+function MeetingsTabContent({ onMeetingClick }: { onMeetingClick: (id: string) => void }) {
   const { data: meetings, isLoading } = useMeetings();
   const cancelMeeting = useCancelMeeting();
   const [search, setSearch] = useState("");
@@ -730,7 +733,7 @@ function MeetingsTabContent() {
             </thead>
             <tbody>
               {visible.map((meeting) => (
-                <tr key={meeting.id} className="border-t border-[var(--color-border)] cursor-pointer transition-colors hover:bg-[var(--color-bg-panel)]" onClick={() => void navigate(`/meetings/${meeting.id}`)}>
+                <tr key={meeting.id} className="border-t border-[var(--color-border)] cursor-pointer transition-colors hover:bg-[var(--color-bg-panel)]" onClick={() => onMeetingClick(meeting.id)}>
                   <td className="px-5 py-2.5 font-mono text-xs text-[var(--color-text-secondary)]">{formatDate(meeting.meeting_date)} {formatTime(meeting.meeting_time)}</td>
                   <td className="px-5 py-2.5 text-[var(--color-text-primary)]">
                     <div className="flex items-center gap-2">
@@ -861,6 +864,116 @@ function ProfileTabContent({ onBack }: { onBack: () => void }) {
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ==================== Meeting detail tab ==================== */
+
+function MeetingDetailTabContent({ meetingId, onBack }: { meetingId: string; onBack: () => void }) {
+  const { data, isLoading } = useMeetingDetail(meetingId);
+  const cancelMeeting = useCancelMeeting();
+
+  if (isLoading || !data) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader size="sm" title="Laddar möte..." />
+      </div>
+    );
+  }
+
+  const { meeting, lead } = data;
+
+  return (
+    <div className="flex-1 overflow-auto p-5">
+      <div className="flex items-center gap-3 mb-5">
+        <button type="button" onClick={onBack} className="text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-colors cursor-pointer">
+          ← Tillbaka till möten
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Meeting info */}
+        <div className="rounded-lg border border-[var(--color-border)] p-4">
+          <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">Möte</p>
+          <p className="text-[15px] font-medium text-[var(--color-text-primary)]">{meeting.title}</p>
+          <div className="grid grid-cols-[80px_1fr] gap-y-1 gap-x-2.5 text-[13px] mt-3">
+            <span className="text-[var(--color-text-secondary)]">Datum</span>
+            <span className="text-[var(--color-text-primary)]">{formatDate(meeting.meeting_date)}</span>
+            <span className="text-[var(--color-text-secondary)]">Tid</span>
+            <span className="text-[var(--color-text-primary)]">{formatTime(meeting.meeting_time)}</span>
+            <span className="text-[var(--color-text-secondary)]">Status</span>
+            <span><Badge status={meeting.status} /></span>
+            {meeting.attendee_name && (
+              <>
+                <span className="text-[var(--color-text-secondary)]">Kontakt</span>
+                <span className="text-[var(--color-text-primary)]">{meeting.attendee_name}</span>
+              </>
+            )}
+            {meeting.attendee_email && (
+              <>
+                <span className="text-[var(--color-text-secondary)]">E-post</span>
+                <span className="text-[var(--color-text-primary)]">{meeting.attendee_email}</span>
+              </>
+            )}
+            {meeting.notes && (
+              <>
+                <span className="text-[var(--color-text-secondary)]">Notering</span>
+                <span className="text-[var(--color-text-primary)]">{meeting.notes}</span>
+              </>
+            )}
+          </div>
+
+          <div className="flex gap-2 mt-4">
+            {meeting.teams_join_url && (
+              <a href={meeting.teams_join_url} target="_blank" rel="noopener noreferrer" className="rounded-md bg-purple-600 px-3 py-1.5 text-[11px] font-medium text-white hover:brightness-110 transition-all no-underline">
+                Öppna Teams ↗
+              </a>
+            )}
+            {meeting.status === "scheduled" && (
+              <button
+                type="button"
+                onClick={() => { if (confirm("Vill du avboka detta möte?")) cancelMeeting.mutate(meetingId); }}
+                disabled={cancelMeeting.isPending}
+                className="rounded-md bg-[var(--color-danger)] px-3 py-1.5 text-[11px] font-medium text-white hover:brightness-110 transition-all"
+              >
+                Avboka
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Lead info */}
+        {lead && (
+          <div className="rounded-lg border border-[var(--color-border)] p-4">
+            <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">Kund</p>
+            <div className="grid grid-cols-[80px_1fr] gap-y-1 gap-x-2.5 text-[13px]">
+              <span className="text-[var(--color-text-secondary)]">Företag</span>
+              <span className="font-medium text-[var(--color-text-primary)]">{lead.företag}</span>
+              <span className="text-[var(--color-text-secondary)]">Telefon</span>
+              <span className="text-[var(--color-text-primary)]">{formatPhone(lead.telefon)}</span>
+              {lead.stad && (
+                <>
+                  <span className="text-[var(--color-text-secondary)]">Stad</span>
+                  <span className="text-[var(--color-text-primary)]">{lead.stad}</span>
+                </>
+              )}
+              {lead.bransch && (
+                <>
+                  <span className="text-[var(--color-text-secondary)]">Bransch</span>
+                  <span className="text-[var(--color-text-primary)]">{lead.bransch}</span>
+                </>
+              )}
+              {lead.vd_namn && (
+                <>
+                  <span className="text-[var(--color-text-secondary)]">VD</span>
+                  <span className="text-[var(--color-text-primary)]">{lead.vd_namn}</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
