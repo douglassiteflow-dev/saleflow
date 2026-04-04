@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/api/auth";
+import { useMyApps } from "@/api/apps";
 import { api } from "@/api/client";
 import { cn } from "@/lib/cn";
 import { ReportModal } from "@/components/report-modal";
@@ -73,6 +74,7 @@ export function Sidebar() {
   const { data: user } = useMe();
   const isAdmin = user?.role === "admin";
   const [showReport, setShowReport] = useState(false);
+  const { data: myApps } = useMyApps();
 
   return (
     <>
@@ -96,6 +98,17 @@ export function Sidebar() {
           <NavItem to="/history" label="Samtalshistorik" />
           <NavItem to="/profile" label="Profil" />
 
+          {myApps && myApps.length > 0 && (
+            <>
+              <p className="px-3 mt-5 mb-2 text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
+                Appar
+              </p>
+              {myApps.map((app) => (
+                <NavItem key={app.slug} to={`/apps/${app.slug}`} label={app.name} />
+              ))}
+            </>
+          )}
+
           {isAdmin && (
             <>
               <p className="px-3 mt-5 mb-2 text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
@@ -107,6 +120,7 @@ export function Sidebar() {
               <NavItem to="/admin/stats" label="Statistik" />
               <NavItem to="/admin/requests" label="Förfrågningar" />
               <NavItem to="/admin/logs" label="Loggar" />
+              <NavItem to="/admin/apps" label="Appar" />
             </>
           )}
         </nav>

@@ -18,6 +18,8 @@ import { MeetingDetailPage } from "@/pages/meeting-detail";
 // Eager import: history (now a simpler page)
 import { HistoryPage } from "@/pages/history";
 
+import { AppPlaceholderPage } from "@/pages/app-placeholder";
+
 // Lazy imports: admin pages, profile
 const AdminLogsPage = lazy(() => import("@/pages/admin-logs").then((m) => ({ default: m.AdminLogsPage })));
 const AdminUsersPage = lazy(() => import("@/pages/admin-users").then((m) => ({ default: m.AdminUsersPage })));
@@ -26,6 +28,8 @@ const AdminStatsPage = lazy(() => import("@/pages/admin-stats").then((m) => ({ d
 const AdminListsPage = lazy(() => import("@/pages/admin-lists").then((m) => ({ default: m.AdminListsPage })));
 const AdminRequestsPage = lazy(() => import("@/pages/admin-requests").then((m) => ({ default: m.AdminRequestsPage })));
 const ProfilePage = lazy(() => import("@/pages/profile").then((m) => ({ default: m.ProfilePage })));
+const AdminAppsPage = lazy(() => import("@/pages/admin-apps").then((m) => ({ default: m.AdminAppsPage })));
+const AdminAppDetailPage = lazy(() => import("@/pages/admin-app-detail").then((m) => ({ default: m.AdminAppDetailPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -55,6 +59,7 @@ export function App() {
               <Route path="/meetings" element={<MeetingsPage />} />
               <Route path="/meetings/:id" element={<MeetingDetailPage />} />
               <Route path="/history" element={<HistoryPage />} />
+              <Route path="/apps/:slug/*" element={<AppPlaceholderPage />} />
               <Route path="/profile" element={<Suspense fallback={<LazyFallback />}><ProfilePage /></Suspense>} />
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<Suspense fallback={<LazyFallback />}><AdminUsersPage /></Suspense>} />
@@ -63,6 +68,8 @@ export function App() {
                 <Route path="/admin/stats" element={<Suspense fallback={<LazyFallback />}><AdminStatsPage /></Suspense>} />
                 <Route path="/admin/requests" element={<Suspense fallback={<LazyFallback />}><AdminRequestsPage /></Suspense>} />
                 <Route path="/admin/logs" element={<Suspense fallback={<LazyFallback />}><AdminLogsPage /></Suspense>} />
+                <Route path="/admin/apps" element={<Suspense fallback={<LazyFallback />}><AdminAppsPage /></Suspense>} />
+                <Route path="/admin/apps/:slug" element={<Suspense fallback={<LazyFallback />}><AdminAppDetailPage /></Suspense>} />
               </Route>
             </Route>
           </Route>
