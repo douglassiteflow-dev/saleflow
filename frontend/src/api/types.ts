@@ -296,3 +296,20 @@ export interface DialResponse {
 export interface RecordingResponse {
   url: string;
 }
+
+export interface AppInfo {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  long_description: string | null;
+  icon: string | null;
+  active: boolean;
+  agent_count?: number;
+}
+
+export interface AgentPermission {
+  user_id: string;
+  name: string;
+  has_access: boolean;
+}
