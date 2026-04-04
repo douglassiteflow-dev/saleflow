@@ -220,8 +220,7 @@ export function AdminListsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1
-          className="font-semibold text-[var(--color-text-primary)]"
-          style={{ fontSize: "24px" }}
+          className="text-[22px] font-light tracking-[-0.5px] text-[var(--color-text-primary)]"
         >
           Listor
         </h1>

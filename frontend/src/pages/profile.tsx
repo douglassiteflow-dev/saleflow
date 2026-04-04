@@ -27,8 +27,7 @@ export function ProfilePage() {
   return (
     <div className="space-y-6">
       <h1
-        className="font-semibold text-[var(--color-text-primary)]"
-        style={{ fontSize: "24px" }}
+        className="text-[22px] font-light tracking-[-0.5px] text-[var(--color-text-primary)]"
       >
         Profil
       </h1>
