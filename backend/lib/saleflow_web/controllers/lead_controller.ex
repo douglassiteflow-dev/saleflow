@@ -41,6 +41,31 @@ defmodule SaleflowWeb.LeadController do
   end
 
   @doc """
+  List leads with callback status, sorted by callback_at ascending.
+  Admins see all; agents see only their assigned callbacks.
+  """
+  def callbacks(conn, _params) do
+    user = conn.assigns.current_user
+    require Ash.Query
+
+    {:ok, leads} =
+      Saleflow.Sales.Lead
+      |> Ash.Query.filter(status == :callback)
+      |> Ash.Query.sort(callback_at: :asc)
+      |> Ash.read()
+
+    filtered =
+      case user.role do
+        :admin -> leads
+        _ ->
+          my_lead_ids = get_agent_lead_ids(user.id)
+          Enum.filter(leads, fn l -> l.id in my_lead_ids end)
+      end
+
+    json(conn, %{callbacks: Enum.map(filtered, &serialize_lead/1)})
+  end
+
+  @doc """
   Show a single lead with its call logs and audit trail.
   Agents see only their own calls and audit entries; admins see all.
   """
@@ -530,6 +555,48 @@ defmodule SaleflowWeb.LeadController do
     case DateTime.from_iso8601(dt_string) do
       {:ok, dt, _} -> dt
       _ -> DateTime.utc_now() |> DateTime.add(1, :hour)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Lead comments
+  # ---------------------------------------------------------------------------
+
+  def comments(conn, %{"id" => lead_id}) do
+    {:ok, comments} =
+      Saleflow.Sales.LeadComment
+      |> Ash.Query.for_read(:for_lead, %{lead_id: lead_id})
+      |> Ash.read()
+
+    {:ok, users} = Accounts.list_users()
+    user_names = Map.new(users, fn u -> {u.id, u.name} end)
+
+    json(conn, %{
+      comments:
+        Enum.map(comments, fn c ->
+          %{
+            id: c.id,
+            lead_id: c.lead_id,
+            user_id: c.user_id,
+            user_name: Map.get(user_names, c.user_id, "Okänd"),
+            text: c.text,
+            inserted_at: c.inserted_at
+          }
+        end)
+    })
+  end
+
+  def create_comment(conn, %{"id" => lead_id, "text" => text}) do
+    user = conn.assigns.current_user
+
+    case Saleflow.Sales.LeadComment
+         |> Ash.Changeset.for_create(:create, %{lead_id: lead_id, user_id: user.id, text: text})
+         |> Ash.create() do
+      {:ok, comment} ->
+        conn |> put_status(201) |> json(%{ok: true, id: comment.id})
+
+      {:error, _} ->
+        conn |> put_status(422) |> json(%{error: "Kunde inte spara kommentar"})
     end
   end
 end

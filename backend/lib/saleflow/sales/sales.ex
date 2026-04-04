@@ -68,6 +68,7 @@ defmodule Saleflow.Sales do
     resource Saleflow.Sales.Request
     resource Saleflow.Sales.PhoneCall
     resource Saleflow.Sales.Goal
+    resource Saleflow.Sales.LeadComment
   end
 
   # ---------------------------------------------------------------------------
