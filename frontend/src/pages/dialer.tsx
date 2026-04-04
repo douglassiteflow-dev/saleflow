@@ -358,8 +358,9 @@ function DialerTabContent({
         isNexting={isNexting}
       />
 
-      {/* 2-column main content */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 min-h-0 overflow-auto">
+      {/* 2-column main content + history — all scrollable together */}
+      <div className="flex-1 min-h-0 overflow-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2">
         {/* ---- Left column ---- */}
         <div className="p-5 border-r border-[var(--color-border)] bg-[var(--color-bg-primary)]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -440,7 +441,6 @@ function DialerTabContent({
       </div>
 
       {/* ---- Bottom: lead call history ---- */}
-      {/* ---- Bottom: lead call history (always visible) ---- */}
       <div className="border-t border-[var(--color-border)] overflow-x-auto shrink-0">
         <table className="w-full text-xs">
           <thead>
@@ -498,6 +498,7 @@ function DialerTabContent({
             )}
           </tbody>
         </table>
+      </div>
       </div>
     </div>
   );
