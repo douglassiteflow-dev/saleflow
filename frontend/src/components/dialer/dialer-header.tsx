@@ -1,14 +1,12 @@
-import { useNavigate } from "react-router-dom";
-
 interface DialerHeaderProps {
   userName?: string;
   callsToday: number;
   meetingsToday: number;
   conversionRate: number;
+  onProfileClick?: () => void;
 }
 
-export function DialerHeader({ userName, callsToday, meetingsToday, conversionRate }: DialerHeaderProps) {
-  const navigate = useNavigate();
+export function DialerHeader({ userName, callsToday, meetingsToday, conversionRate, onProfileClick }: DialerHeaderProps) {
 
   return (
     <div className="flex items-center px-5 py-3 rounded-t-[14px]" style={{ background: "linear-gradient(135deg, #312E81, #4F46E5, #6366F1)" }}>
@@ -36,7 +34,7 @@ export function DialerHeader({ userName, callsToday, meetingsToday, conversionRa
 
         <button
           type="button"
-          onClick={() => void navigate("/profile")}
+          onClick={onProfileClick}
           className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
         >
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-[11px] font-medium text-white">
