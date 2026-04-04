@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DialerTabs } from "@/components/dialer/dialer-tabs";
 import { MiniLeaderboard } from "@/components/dialer/mini-leaderboard";
@@ -87,17 +87,15 @@ export function DialerPage() {
   const skipOutcome = useSubmitOutcome(currentLeadId ?? "");
 
   /* --- auto-load first lead on mount --- */
-  const didAutoLoad = useRef(false);
   useEffect(() => {
-    if (!didAutoLoad.current && !currentLeadId && !nextLeadMutation.isPending) {
-      didAutoLoad.current = true;
+    if (!currentLeadId && !nextLeadMutation.isPending && !nextLeadMutation.data) {
       nextLeadMutation.mutate(undefined, {
         onSuccess: (newLead) => {
-          setCurrentLeadId(newLead ? newLead.id : null);
+          if (newLead) setCurrentLeadId(newLead.id);
         },
       });
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentLeadId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* --- handlers --- */
   function handleNextLead() {
