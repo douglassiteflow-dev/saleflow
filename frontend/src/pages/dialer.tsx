@@ -159,6 +159,7 @@ export function DialerPage() {
       <div className="flex-1 flex flex-col rounded-[14px] bg-[var(--color-bg-primary)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
       {/* ---- Header ---- */}
       <DialerHeader
+        userName={user?.name}
         callsToday={dashboard?.my_stats?.calls_today ?? 0}
         meetingsToday={dashboard?.my_stats?.meetings_today ?? 0}
         conversionRate={dashboard?.conversion?.rate ?? 0}
