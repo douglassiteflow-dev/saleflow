@@ -21,6 +21,7 @@ import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Loader from "@/components/kokonutui/loader";
+import { TabToolbar, usePagination } from "@/components/dialer/tab-toolbar";
 import type { Lead, CallLog } from "@/api/types";
 
 /* ---------- shared outcome maps (DRY: used in history table + call log) ---------- */
@@ -532,54 +533,48 @@ function CallbacksTabContent({
   callbacks: Lead[];
   onCallbackClick: (lead: Lead) => void;
 }) {
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+
+  const { totalPages, totalCount, paginate } = usePagination(callbacks, search, (cb, q) =>
+    cb.företag.toLowerCase().includes(q) || cb.telefon.includes(q),
+  );
+  const visible = paginate(page);
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
+      <TabToolbar
+        title="Callbacks"
+        search={search}
+        onSearchChange={(v) => { setSearch(v); setPage(1); }}
+        searchPlaceholder="Sök företag..."
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        totalCount={totalCount}
+      />
       <div className="flex-1 overflow-auto">
-        {callbacks.length === 0 ? (
+        {visible.length === 0 ? (
           <p className="p-5 text-sm text-[var(--color-text-secondary)]">
-            Inga återuppringningar just nu.
+            Inga återuppringningar.
           </p>
         ) : (
           <table className="w-full text-[13px]">
             <thead>
               <tr className="bg-[var(--color-bg-panel)]">
                 {["Företag", "Telefon", "Återuppringning", ""].map((h) => (
-                  <th
-                    key={h}
-                    className="px-5 py-2.5 text-left text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]"
-                  >
-                    {h}
-                  </th>
+                  <th key={h} className="px-5 py-2.5 text-left text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {callbacks.map((cb) => (
-                <tr
-                  key={cb.id}
-                  className="border-t border-[var(--color-border)] cursor-pointer transition-colors hover:bg-[var(--color-bg-panel)]"
-                  onClick={() => onCallbackClick(cb)}
-                >
-                  <td className="px-5 py-2.5 font-medium text-[var(--color-text-primary)]">
-                    {cb.företag}
-                  </td>
-                  <td className="px-5 py-2.5 font-mono text-xs text-[var(--color-text-secondary)]">
-                    {formatPhone(cb.telefon)}
-                  </td>
-                  <td className="px-5 py-2.5 font-mono text-xs text-[var(--color-text-secondary)]">
-                    {cb.callback_at ? formatDateTime(cb.callback_at) : "—"}
-                  </td>
+              {visible.map((cb) => (
+                <tr key={cb.id} className="border-t border-[var(--color-border)] cursor-pointer transition-colors hover:bg-[var(--color-bg-panel)]" onClick={() => onCallbackClick(cb)}>
+                  <td className="px-5 py-2.5 font-medium text-[var(--color-text-primary)]">{cb.företag}</td>
+                  <td className="px-5 py-2.5 font-mono text-xs text-[var(--color-text-secondary)]">{formatPhone(cb.telefon)}</td>
+                  <td className="px-5 py-2.5 font-mono text-xs text-[var(--color-text-secondary)]">{cb.callback_at ? formatDateTime(cb.callback_at) : "—"}</td>
                   <td className="px-5 py-2.5 text-right">
-                    <button
-                      type="button"
-                      className="rounded-md bg-[var(--color-accent)] px-3 py-1 text-[11px] font-medium text-white hover:brightness-110 transition-all"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onCallbackClick(cb);
-                      }}
-                    >
-                      Öppna
-                    </button>
+                    <button type="button" className="rounded-md bg-[var(--color-accent)] px-3 py-1 text-[11px] font-medium text-white hover:brightness-110 transition-all" onClick={(e) => { e.stopPropagation(); onCallbackClick(cb); }}>Öppna</button>
                   </td>
                 </tr>
               ))}
@@ -595,32 +590,36 @@ function CallbacksTabContent({
 
 function HistoryTabContent() {
   const [date, setDate] = useState(todayISO);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const { data: user } = useMe();
   const { data: calls, isLoading } = useCallHistory(date);
   const isAdmin = user?.role === "admin";
 
+  const { totalPages, totalCount, paginate } = usePagination(calls ?? [], search, (call, q) =>
+    (call.lead_name ?? "").toLowerCase().includes(q) || (call.lead_phone ?? "").includes(q),
+  );
+  const visible = paginate(page);
   const headers = ["Tid", "Företag", "Telefon", ...(isAdmin ? ["Agent"] : []), "Längd", "Utfall"];
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-2.5 bg-[var(--color-bg-panel)]">
-        <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">
-          Samtalshistorik
-        </p>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="h-7 rounded-md border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-2 text-xs text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20"
-        />
-      </div>
-
+      <TabToolbar
+        title="Samtalshistorik"
+        search={search}
+        onSearchChange={(v) => { setSearch(v); setPage(1); }}
+        searchPlaceholder="Sök företag..."
+        date={date}
+        onDateChange={(v) => { setDate(v); setPage(1); }}
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        totalCount={totalCount}
+      />
       <div className="flex-1 overflow-auto">
         {isLoading ? (
-          <div className="p-5">
-            <Loader size="sm" title="Laddar samtal..." />
-          </div>
-        ) : !calls || calls.length === 0 ? (
+          <div className="p-5"><Loader size="sm" title="Laddar samtal..." /></div>
+        ) : visible.length === 0 ? (
           <p className="p-5 text-sm text-[var(--color-text-secondary)]">
             Inga samtal {date === todayISO() ? "idag" : `den ${date}`}.
           </p>
@@ -629,40 +628,22 @@ function HistoryTabContent() {
             <thead>
               <tr className="bg-[var(--color-bg-panel)]">
                 {headers.map((h) => (
-                  <th key={h} className="px-5 py-2.5 text-left text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">
-                    {h}
-                  </th>
+                  <th key={h} className="px-5 py-2.5 text-left text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {calls.map((call) => (
+              {visible.map((call) => (
                 <tr key={call.id} className="border-t border-[var(--color-border)] transition-colors hover:bg-[var(--color-bg-panel)]">
-                  <td className="whitespace-nowrap px-5 py-2.5 font-mono text-xs text-[var(--color-text-secondary)]">
-                    {formatDateTime(call.called_at)}
-                  </td>
-                  <td className="px-5 py-2.5 font-medium text-[var(--color-text-primary)]">
-                    {call.lead_name ?? "Okänt företag"}
-                  </td>
-                  <td className="px-5 py-2.5 font-mono text-xs text-[var(--color-text-secondary)]">
-                    {call.lead_phone ?? "—"}
-                  </td>
-                  {isAdmin && (
-                    <td className="px-5 py-2.5 font-medium text-[var(--color-accent)]">
-                      {call.user_name ?? "—"}
-                    </td>
-                  )}
-                  <td className="px-5 py-2.5 text-[var(--color-text-secondary)]">
-                    {formatDuration(call.duration)}
-                  </td>
+                  <td className="whitespace-nowrap px-5 py-2.5 font-mono text-xs text-[var(--color-text-secondary)]">{formatDateTime(call.called_at)}</td>
+                  <td className="px-5 py-2.5 font-medium text-[var(--color-text-primary)]">{call.lead_name ?? "Okänt företag"}</td>
+                  <td className="px-5 py-2.5 font-mono text-xs text-[var(--color-text-secondary)]">{call.lead_phone ?? "—"}</td>
+                  {isAdmin && <td className="px-5 py-2.5 font-medium text-[var(--color-accent)]">{call.user_name ?? "—"}</td>}
+                  <td className="px-5 py-2.5 text-[var(--color-text-secondary)]">{formatDuration(call.duration)}</td>
                   <td className="px-5 py-2.5">
                     {call.outcome ? (
-                      <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px]", OUTCOME_COLORS[call.outcome] ?? "bg-[var(--color-bg-panel)] text-[var(--color-text-secondary)] border-[var(--color-border)]")}>
-                        {OUTCOME_LABELS[call.outcome] ?? call.outcome}
-                      </span>
-                    ) : (
-                      <span className="text-[var(--color-text-secondary)]">—</span>
-                    )}
+                      <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px]", OUTCOME_COLORS[call.outcome] ?? "bg-[var(--color-bg-panel)] text-[var(--color-text-secondary)] border-[var(--color-border)]")}>{OUTCOME_LABELS[call.outcome] ?? call.outcome}</span>
+                    ) : <span className="text-[var(--color-text-secondary)]">—</span>}
                   </td>
                 </tr>
               ))}
@@ -680,11 +661,18 @@ function MeetingsTabContent() {
   const navigate = useNavigate();
   const { data: meetings, isLoading } = useMeetings();
   const cancelMeeting = useCancelMeeting();
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const today = todayISO();
   const upcoming = (meetings ?? []).filter(
     (m) => m.status === "scheduled" && m.meeting_date >= today,
   );
+
+  const { totalPages, totalCount, paginate } = usePagination(upcoming, search, (m, q) =>
+    m.title.toLowerCase().includes(q) || (m.lead?.företag ?? "").toLowerCase().includes(q),
+  );
+  const visible = paginate(page);
 
   function handleCancel(id: string, e: React.MouseEvent) {
     e.stopPropagation();
@@ -695,62 +683,45 @@ function MeetingsTabContent() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
+      <TabToolbar
+        title="Möten"
+        search={search}
+        onSearchChange={(v) => { setSearch(v); setPage(1); }}
+        searchPlaceholder="Sök möte..."
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        totalCount={totalCount}
+      />
       <div className="flex-1 overflow-auto">
         {isLoading ? (
-          <div className="p-5">
-            <Loader size="sm" title="Laddar möten..." />
-          </div>
-        ) : upcoming.length === 0 ? (
-          <p className="p-5 text-sm text-[var(--color-text-secondary)]">
-            Inga kommande möten.
-          </p>
+          <div className="p-5"><Loader size="sm" title="Laddar möten..." /></div>
+        ) : visible.length === 0 ? (
+          <p className="p-5 text-sm text-[var(--color-text-secondary)]">Inga kommande möten.</p>
         ) : (
           <table className="w-full text-[13px]">
             <thead>
               <tr className="bg-[var(--color-bg-panel)]">
                 {["Datum & tid", "Titel", "Företag", "Status", ""].map((h) => (
-                  <th key={h} className="px-5 py-2.5 text-left text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">
-                    {h}
-                  </th>
+                  <th key={h} className="px-5 py-2.5 text-left text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {upcoming.map((meeting) => (
-                <tr
-                  key={meeting.id}
-                  className="border-t border-[var(--color-border)] cursor-pointer transition-colors hover:bg-[var(--color-bg-panel)]"
-                  onClick={() => void navigate(`/meetings/${meeting.id}`)}
-                >
-                  <td className="px-5 py-2.5 font-mono text-xs text-[var(--color-text-secondary)]">
-                    {formatDate(meeting.meeting_date)} {formatTime(meeting.meeting_time)}
-                  </td>
+              {visible.map((meeting) => (
+                <tr key={meeting.id} className="border-t border-[var(--color-border)] cursor-pointer transition-colors hover:bg-[var(--color-bg-panel)]" onClick={() => void navigate(`/meetings/${meeting.id}`)}>
+                  <td className="px-5 py-2.5 font-mono text-xs text-[var(--color-text-secondary)]">{formatDate(meeting.meeting_date)} {formatTime(meeting.meeting_time)}</td>
                   <td className="px-5 py-2.5 text-[var(--color-text-primary)]">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{meeting.title}</span>
-                      {meeting.teams_join_url && (
-                        <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
-                          Teams
-                        </span>
-                      )}
+                      {meeting.teams_join_url && <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-200">Teams</span>}
                     </div>
                   </td>
-                  <td className="px-5 py-2.5 text-[var(--color-text-primary)]">
-                    {meeting.lead?.företag ?? "—"}
-                  </td>
-                  <td className="px-5 py-2.5">
-                    <Badge status={meeting.status} />
-                  </td>
+                  <td className="px-5 py-2.5 text-[var(--color-text-primary)]">{meeting.lead?.företag ?? "—"}</td>
+                  <td className="px-5 py-2.5"><Badge status={meeting.status} /></td>
                   <td className="px-5 py-2.5 text-right">
                     {meeting.status === "scheduled" && (
-                      <button
-                        type="button"
-                        className="rounded-md bg-[var(--color-danger)] px-3 py-1 text-[11px] font-medium text-white hover:brightness-110 transition-all"
-                        onClick={(e) => handleCancel(meeting.id, e)}
-                        disabled={cancelMeeting.isPending}
-                      >
-                        Avboka
-                      </button>
+                      <button type="button" className="rounded-md bg-[var(--color-danger)] px-3 py-1 text-[11px] font-medium text-white hover:brightness-110 transition-all" onClick={(e) => handleCancel(meeting.id, e)} disabled={cancelMeeting.isPending}>Avboka</button>
                     )}
                   </td>
                 </tr>
