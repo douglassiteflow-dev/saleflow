@@ -354,6 +354,8 @@ defmodule SaleflowWeb.LeadController do
   end
 
   defp serialize_call(call, user_names, _current_user) do
+    {duration, has_recording} = get_call_phone_data(call.id)
+
     %{
       id: call.id,
       lead_id: call.lead_id,
@@ -361,8 +363,20 @@ defmodule SaleflowWeb.LeadController do
       user_name: Map.get(user_names, call.user_id),
       outcome: call.outcome,
       notes: call.notes,
-      called_at: call.called_at
+      called_at: call.called_at,
+      duration: duration,
+      has_recording: has_recording
     }
+  end
+
+  defp get_call_phone_data(call_log_id) do
+    case Saleflow.Repo.query(
+           "SELECT COALESCE(SUM(duration), 0), bool_or(recording_key IS NOT NULL) FROM phone_calls WHERE call_log_id = $1",
+           [Ecto.UUID.dump!(call_log_id)]
+         ) do
+      {:ok, %{rows: [[dur, has_rec]]}} -> {dur || 0, has_rec || false}
+      _ -> {0, false}
+    end
   end
 
   defp serialize_audit_log(log, user_names, _current_user) do

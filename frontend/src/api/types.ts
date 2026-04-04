@@ -95,6 +95,8 @@ export interface CallLog {
   outcome: Outcome;
   notes: string | null;
   called_at: string;
+  duration: number;
+  has_recording: boolean;
 }
 
 export interface CallHistoryEntry {

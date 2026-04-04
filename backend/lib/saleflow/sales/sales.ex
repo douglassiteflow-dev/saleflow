@@ -765,25 +765,26 @@ defmodule Saleflow.Sales do
   Links the most recent unlinked outgoing phone_call for this user (today)
   to the given call_log_id. Returns :ok regardless of whether a match was found.
   """
+  @doc """
+  Links ALL recent unlinked outgoing phone_calls for this user (last 5 min)
+  to the given call_log_id. One call_log can have multiple phone_calls
+  (e.g. agent called two different numbers for the same lead).
+  """
   def link_phone_call_to_log(user_id, call_log_id) do
     uid = Ecto.UUID.dump!(user_id)
     cl_id = Ecto.UUID.dump!(call_log_id)
+    cutoff = DateTime.utc_now() |> DateTime.add(-300, :second)
 
     query = """
     UPDATE phone_calls
     SET call_log_id = $1
-    WHERE id = (
-      SELECT id FROM phone_calls
-      WHERE user_id = $2
-        AND received_at::date = CURRENT_DATE
-        AND direction = 'outgoing'
-        AND call_log_id IS NULL
-      ORDER BY received_at DESC
-      LIMIT 1
-    )
+    WHERE user_id = $2
+      AND received_at > $3
+      AND direction = 'outgoing'
+      AND call_log_id IS NULL
     """
 
-    Saleflow.Repo.query(query, [cl_id, uid])
+    Saleflow.Repo.query(query, [cl_id, uid, cutoff])
     :ok
   end
 

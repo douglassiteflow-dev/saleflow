@@ -14,6 +14,13 @@ const OUTCOME_LABELS: Record<string, string> = {
   other: "Övrigt",
 };
 
+function formatDuration(seconds: number): string {
+  if (!seconds || seconds === 0) return "";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
 function dotColor(outcome: string): string {
   if (outcome === "meeting_booked") return "bg-emerald-500";
   if (outcome === "not_interested") return "bg-rose-500";
@@ -67,6 +74,11 @@ export function HistoryTimeline({ callLogs = [] }: HistoryTimelineProps) {
                   {call.user_name && (
                     <span className="text-[11px] font-semibold text-[var(--color-text-primary)]">
                       — {call.user_name}
+                    </span>
+                  )}
+                  {call.duration > 0 && (
+                    <span className="text-[11px] text-[var(--color-text-secondary)]">
+                      {formatDuration(call.duration)}
                     </span>
                   )}
                   <span className="text-[11px] font-mono text-[var(--color-text-secondary)]">

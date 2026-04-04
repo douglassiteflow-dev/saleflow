@@ -95,11 +95,18 @@ defmodule SaleflowWeb.CallController do
       cl.user_id, cl.lead_id,
       u.name as user_name,
       l.företag as lead_name, l.telefon as lead_phone,
-      pc.duration, pc.recording_key
+      COALESCE(pc_agg.total_duration, 0) as duration,
+      pc_agg.has_recording
     FROM call_logs cl
     JOIN users u ON u.id = cl.user_id
     LEFT JOIN leads l ON l.id = cl.lead_id
-    LEFT JOIN phone_calls pc ON pc.call_log_id = cl.id
+    LEFT JOIN LATERAL (
+      SELECT
+        SUM(duration) as total_duration,
+        bool_or(recording_key IS NOT NULL) as has_recording
+      FROM phone_calls
+      WHERE phone_calls.call_log_id = cl.id
+    ) pc_agg ON true
     WHERE cl.called_at::date = $1
     """
 
@@ -117,7 +124,7 @@ defmodule SaleflowWeb.CallController do
 
     calls =
       Enum.map(rows, fn [id, called_at, outcome, notes, user_id, lead_id,
-                          user_name, lead_name, lead_phone, duration, recording_key] ->
+                          user_name, lead_name, lead_phone, duration, has_recording] ->
         %{
           id: Saleflow.Sales.decode_uuid(id),
           called_at: called_at && NaiveDateTime.to_iso8601(called_at),
@@ -129,7 +136,7 @@ defmodule SaleflowWeb.CallController do
           lead_name: lead_name,
           lead_phone: lead_phone,
           duration: duration || 0,
-          has_recording: recording_key != nil
+          has_recording: has_recording || false
         }
       end)
 
