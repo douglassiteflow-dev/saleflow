@@ -793,7 +793,10 @@ function ProfileTabContent({ onBack }: { onBack: () => void }) {
 
         {/* Telavox */}
         <div className="rounded-lg border border-[var(--color-border)] p-4">
-          <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">Telavox</p>
+          <div className="flex items-center gap-2 mb-3">
+            <img src="/app-icons/telavox.jpeg" alt="Telavox" className="h-6 w-6 rounded" />
+            <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">Telavox</p>
+          </div>
           {telavoxStatus?.connected ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
@@ -817,7 +820,10 @@ function ProfileTabContent({ onBack }: { onBack: () => void }) {
 
         {/* Microsoft Teams */}
         <div className="rounded-lg border border-[var(--color-border)] p-4">
-          <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">Microsoft Teams</p>
+          <div className="flex items-center gap-2 mb-3">
+            <img src="/app-icons/microsoft-teams.png" alt="Microsoft Teams" className="h-6 w-6 rounded" />
+            <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">Microsoft Teams</p>
+          </div>
           {msStatus?.connected ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
