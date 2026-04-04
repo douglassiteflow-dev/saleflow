@@ -53,9 +53,18 @@ export function AdminAppDetailPage() {
           &larr; Tillbaka till appar
         </button>
         <div className="flex items-center justify-between">
-          <h1 className="text-[22px] font-light tracking-[-0.5px] text-[var(--color-text-primary)]">
-            {app.name}
-          </h1>
+          <div className="flex items-center gap-3">
+            {app.icon && /\.(png|jpe?g|svg)$/i.test(app.icon) ? (
+              <img src={`/app-icons/${app.icon}`} alt={app.name} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+            ) : (
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-white font-medium text-sm">
+                {app.name.charAt(0).toUpperCase()}
+              </span>
+            )}
+            <h1 className="text-[22px] font-light tracking-[-0.5px] text-[var(--color-text-primary)]">
+              {app.name}
+            </h1>
+          </div>
           <Button
             variant={app.active ? "secondary" : "primary"}
             onClick={handleToggle}

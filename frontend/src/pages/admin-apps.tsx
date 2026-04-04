@@ -31,9 +31,13 @@ export function AdminAppsPage() {
             >
               {/* Icon + name */}
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-white font-medium text-sm">
-                  {app.name.charAt(0).toUpperCase()}
-                </span>
+                {app.icon && /\.(png|jpe?g|svg)$/i.test(app.icon) ? (
+                  <img src={`/app-icons/${app.icon}`} alt={app.name} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                ) : (
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-white font-medium text-sm">
+                    {app.name.charAt(0).toUpperCase()}
+                  </span>
+                )}
                 <span className="font-medium text-[var(--color-text-primary)]">
                   {app.name}
                 </span>
