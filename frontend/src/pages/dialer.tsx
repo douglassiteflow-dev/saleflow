@@ -339,11 +339,10 @@ function DialerTabContent({
 
       {/* Action bar */}
       <ActionBar
-        phone={calling && telavoxConnected ? `${displayPhone} (pågår)` : displayPhone}
-        onDial={calling ? onHangup : onDial}
+        phone={displayPhone}
+        rawPhone={lead?.telefon ?? ""}
         onSkip={onSkip}
         onNext={onNext}
-        isDialing={isDialing || calling}
         isSkipping={isSkipping}
         isNexting={isNexting}
       />
