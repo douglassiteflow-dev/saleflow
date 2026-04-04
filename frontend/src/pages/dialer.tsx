@@ -501,7 +501,6 @@ function DialerTabContent({
           </tbody>
         </table>
       </div>
-      </div>
     </div>
   );
 }
