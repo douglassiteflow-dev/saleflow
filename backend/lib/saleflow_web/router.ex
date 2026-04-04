@@ -94,6 +94,11 @@ defmodule SaleflowWeb.Router do
 
     # Apps
     get "/apps", AppController, :my_apps
+
+    # Notifications
+    get "/notifications", NotificationController, :index
+    post "/notifications/read-all", NotificationController, :mark_all_read
+    post "/notifications/:id/read", NotificationController, :mark_read
   end
 
   # Admin only
