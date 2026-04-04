@@ -98,3 +98,14 @@ export function useSubmitOutcome(leadId: string) {
     },
   });
 }
+
+export function useCallbacks() {
+  return useQuery<Lead[]>({
+    queryKey: ["callbacks"],
+    queryFn: async () => {
+      const data = await api<{ callbacks: Lead[] }>("/api/callbacks");
+      return data.callbacks;
+    },
+    refetchInterval: 30_000,
+  });
+}

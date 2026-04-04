@@ -313,3 +313,12 @@ export interface AgentPermission {
   name: string;
   has_access: boolean;
 }
+
+export interface LeadComment {
+  id: string;
+  lead_id: string;
+  user_id: string;
+  user_name: string;
+  text: string;
+  inserted_at: string;
+}
