@@ -19,6 +19,8 @@ import { MeetingDetailPage } from "@/pages/meeting-detail";
 import { HistoryPage } from "@/pages/history";
 
 import { AppPlaceholderPage } from "@/pages/app-placeholder";
+import { AppTelavoxPage } from "@/pages/app-telavox";
+import { AppTeamsPage } from "@/pages/app-teams";
 
 // Lazy imports: admin pages, profile
 const AdminLogsPage = lazy(() => import("@/pages/admin-logs").then((m) => ({ default: m.AdminLogsPage })));
@@ -59,6 +61,8 @@ export function App() {
               <Route path="/meetings" element={<MeetingsPage />} />
               <Route path="/meetings/:id" element={<MeetingDetailPage />} />
               <Route path="/history" element={<HistoryPage />} />
+              <Route path="/apps/telavox" element={<AppTelavoxPage />} />
+              <Route path="/apps/microsoft-teams" element={<AppTeamsPage />} />
               <Route path="/apps/:slug/*" element={<AppPlaceholderPage />} />
               <Route path="/profile" element={<Suspense fallback={<LazyFallback />}><ProfilePage /></Suspense>} />
               <Route element={<AdminRoute />}>
