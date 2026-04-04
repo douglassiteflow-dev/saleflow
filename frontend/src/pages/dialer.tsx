@@ -65,7 +65,18 @@ export function DialerPage() {
 
   /* --- tab state --- */
   const [activeTab, setActiveTab] = useState<Tab>("dialer");
-  const [currentLeadId, setCurrentLeadId] = useState<string | null>(null);
+  const [currentLeadId, setCurrentLeadIdRaw] = useState<string | null>(
+    () => sessionStorage.getItem("dialer_lead_id"),
+  );
+
+  function setCurrentLeadId(id: string | null) {
+    if (id) {
+      sessionStorage.setItem("dialer_lead_id", id);
+    } else {
+      sessionStorage.removeItem("dialer_lead_id");
+    }
+    setCurrentLeadIdRaw(id);
+  }
 
   /* --- shared hooks --- */
   const { data: user } = useMe();
