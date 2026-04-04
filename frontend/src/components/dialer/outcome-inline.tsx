@@ -14,12 +14,12 @@ interface OutcomeConfig {
 const OUTCOMES: OutcomeConfig[] = [
   {
     outcome: "meeting_booked",
-    label: "Mote bokat",
+    label: "Möte bokat",
     className: "border-emerald-200 bg-emerald-50 text-emerald-700",
   },
   {
     outcome: "callback",
-    label: "Ateruppringning",
+    label: "Återuppringning",
     className: "border-amber-200 bg-amber-50 text-amber-700",
   },
   {
@@ -202,7 +202,7 @@ export function OutcomeInline({
         {/* Hint when nothing selected */}
         {!selected && (
           <p className="mt-3 text-xs text-[var(--color-text-secondary)] text-center">
-            Valj ett utfall ovan -- klicka igen for att bekrafta.
+            Välj ett utfall ovan — klicka igen för att bekräfta.
           </p>
         )}
       </div>

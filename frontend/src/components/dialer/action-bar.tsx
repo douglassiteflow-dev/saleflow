@@ -62,7 +62,7 @@ export function ActionBar({
           "disabled:opacity-50 disabled:pointer-events-none",
         )}
       >
-        {isSkipping ? "Hoppar..." : "Hoppa over"}
+        {isSkipping ? "Hoppar..." : "Hoppa över"}
       </button>
 
       {/* Next customer button */}
@@ -76,7 +76,7 @@ export function ActionBar({
           "disabled:opacity-50 disabled:pointer-events-none",
         )}
       >
-        {isNexting ? "Laddar..." : "Nasta kund \u2192"}
+        {isNexting ? "Laddar..." : "Nästa kund →"}
       </button>
     </div>
   );

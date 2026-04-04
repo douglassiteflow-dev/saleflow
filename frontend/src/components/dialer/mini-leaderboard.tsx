@@ -51,7 +51,7 @@ export function MiniLeaderboard({ entries, currentUserId }: MiniLeaderboardProps
               {entry.calls_today} samtal
             </span>
             <span className="text-[11px] font-medium text-[var(--color-success)]">
-              {entry.net_meetings_today} {entry.net_meetings_today === 1 ? "mote" : "moten"}
+              {entry.net_meetings_today} {entry.net_meetings_today === 1 ? "möte" : "möten"}
             </span>
           </div>
         );
