@@ -77,6 +77,15 @@ defmodule Saleflow.Workers.CallbackReminderWorker do
 
       {:ok, _} = Sales.mark_lead_callback_reminded(lead)
 
+      Saleflow.Notifications.Notify.send(%{
+        user_id: user.id,
+        type: "callback_due",
+        title: "Callback förfallen",
+        body: "#{lead.företag} — #{callback_time}",
+        resource_type: "Lead",
+        resource_id: lead_id
+      })
+
       Saleflow.Audit.create_log(%{
         action: "lead.callback_reminder_sent",
         resource_type: "Lead",

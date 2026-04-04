@@ -51,7 +51,9 @@ config :saleflow, Oban,
       {"*/5 * * * *", Saleflow.Workers.AutoReleaseWorker},
       {"0 * * * *", Saleflow.Workers.QuarantineReleaseWorker},
       {"*/5 * * * *", Saleflow.Workers.MeetingReminderWorker},
-      {"*/5 * * * *", Saleflow.Workers.CallbackReminderWorker}
+      {"*/5 * * * *", Saleflow.Workers.CallbackReminderWorker},
+      {"*/15 * * * *", Saleflow.Workers.MeetingStatusWorker},
+      {"*/10 * * * *", Saleflow.Workers.GoalCheckWorker}
     ]}
   ]
 

@@ -82,6 +82,15 @@ defmodule Saleflow.Workers.MeetingReminderWorker do
 
       {:ok, _} = Sales.mark_meeting_reminded(meeting)
 
+      Saleflow.Notifications.Notify.send(%{
+        user_id: user.id,
+        type: "meeting_soon",
+        title: "Möte om 15 min",
+        body: "#{company} — #{time_str}",
+        resource_type: "Meeting",
+        resource_id: meeting_id
+      })
+
       Saleflow.Audit.create_log(%{
         action: "meeting.reminder_sent",
         resource_type: "Meeting",
