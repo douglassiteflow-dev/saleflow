@@ -13,9 +13,12 @@ export function DialerHeader({ userName, callsToday, meetingsToday, conversionRa
 
   return (
     <div className="flex items-center px-5 py-3 rounded-t-[14px]" style={{ background: "linear-gradient(135deg, #312E81, #4F46E5, #6366F1)" }}>
-      <span className="text-[15px] font-semibold tracking-[-0.3px] text-white">
-        Saleflow
-      </span>
+      <div className="flex items-center gap-2">
+        <img src="/app-icons/saleflow.png" alt="Saleflow" className="h-7 w-7 rounded" />
+        <span className="text-[15px] font-semibold tracking-[-0.3px] text-white">
+          Saleflow
+        </span>
+      </div>
 
       <div className="flex-1" />
 
