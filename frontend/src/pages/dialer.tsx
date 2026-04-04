@@ -359,7 +359,8 @@ function DialerTabContent({
       />
 
       {/* 2-column main content + history — all scrollable together */}
-      <div className="flex-1 min-h-0 overflow-auto">
+      <div className="flex-1 min-h-0 overflow-auto p-5">
+      <div className="rounded-[14px] bg-[var(--color-bg-primary)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
       <div className="grid grid-cols-1 lg:grid-cols-2">
         {/* ---- Left column ---- */}
         <div className="p-5 border-r border-[var(--color-border)] bg-[var(--color-bg-primary)]">
@@ -498,6 +499,7 @@ function DialerTabContent({
             )}
           </tbody>
         </table>
+      </div>
       </div>
       </div>
     </div>
