@@ -67,12 +67,11 @@ function ExpandedRow({ request, onClose }: { request: UserRequest; onClose: () =
 
   return (
     <tr>
-      <td colSpan={5} className="px-4 py-4 bg-slate-50 border-b border-slate-200">
+      <td colSpan={5} className="px-4 py-4 bg-[var(--color-bg-panel)] border-b border-[var(--color-border)]">
         <div className="space-y-4 max-w-2xl">
           <div className="space-y-1">
             <p
-              className="text-[var(--color-text-secondary)] uppercase tracking-wider font-medium"
-              style={{ fontSize: "12px" }}
+              className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wider font-medium"
             >
               Fullständig beskrivning
             </p>
@@ -81,18 +80,17 @@ function ExpandedRow({ request, onClose }: { request: UserRequest; onClose: () =
             </p>
           </div>
 
-          <div className="grid gap-4" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label
-                className="block text-[var(--color-text-secondary)] uppercase tracking-wider font-medium"
-                style={{ fontSize: "12px" }}
+                className="block text-xs text-[var(--color-text-secondary)] uppercase tracking-wider font-medium"
               >
                 Status
               </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as UserRequest["status"])}
-                className="w-full h-9 rounded-[6px] border border-[var(--color-border-input)] bg-white px-3 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+                className="w-full h-9 rounded-[6px] border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
               >
                 <option value="new">Ny</option>
                 <option value="in_progress">Pågående</option>
@@ -104,8 +102,7 @@ function ExpandedRow({ request, onClose }: { request: UserRequest; onClose: () =
 
           <div className="space-y-1.5">
             <label
-              className="block text-[var(--color-text-secondary)] uppercase tracking-wider font-medium"
-              style={{ fontSize: "12px" }}
+              className="block text-xs text-[var(--color-text-secondary)] uppercase tracking-wider font-medium"
             >
               Admin-anteckningar
             </label>
@@ -114,7 +111,7 @@ function ExpandedRow({ request, onClose }: { request: UserRequest; onClose: () =
               onChange={(e) => setAdminNotes(e.target.value)}
               placeholder="Skriv ett svar eller interna anteckningar..."
               rows={3}
-              className="w-full rounded-[6px] border border-[var(--color-border-input)] bg-white px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] resize-none"
+              className="w-full rounded-[6px] border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] resize-none"
             />
           </div>
 
@@ -171,15 +168,14 @@ export function AdminRequestsPage() {
       <div className="flex gap-3 flex-wrap">
         <div className="space-y-1">
           <label
-            className="block text-[var(--color-text-secondary)] uppercase tracking-wider font-medium"
-            style={{ fontSize: "11px" }}
+            className="block text-[11px] text-[var(--color-text-secondary)] uppercase tracking-wider font-medium"
           >
             Typ
           </label>
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value as typeof filterType)}
-            className="h-9 rounded-[6px] border border-[var(--color-border-input)] bg-white px-3 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            className="h-9 rounded-[6px] border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
           >
             <option value="all">Alla typer</option>
             <option value="bug">Bugg</option>
@@ -189,15 +185,14 @@ export function AdminRequestsPage() {
 
         <div className="space-y-1">
           <label
-            className="block text-[var(--color-text-secondary)] uppercase tracking-wider font-medium"
-            style={{ fontSize: "11px" }}
+            className="block text-[11px] text-[var(--color-text-secondary)] uppercase tracking-wider font-medium"
           >
             Status
           </label>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
-            className="h-9 rounded-[6px] border border-[var(--color-border-input)] bg-white px-3 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            className="h-9 rounded-[6px] border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
           >
             <option value="all">Alla statusar</option>
             <option value="new">Ny</option>
@@ -221,34 +216,29 @@ export function AdminRequestsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 text-left">
+                <tr className="bg-[var(--color-bg-panel)] text-left">
                   <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
+                    className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
                   >
                     Datum
                   </th>
                   <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
+                    className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
                   >
                     Användare
                   </th>
                   <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
+                    className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
                   >
                     Typ
                   </th>
                   <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
+                    className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
                   >
                     Beskrivning
                   </th>
                   <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
+                    className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
                   >
                     Status
                   </th>
@@ -260,22 +250,21 @@ export function AdminRequestsPage() {
                     <tr
                       key={request.id}
                       onClick={() => toggleRow(request.id)}
-                      className="cursor-pointer hover:bg-slate-50 transition-colors"
+                      className="cursor-pointer hover:bg-[var(--color-bg-panel)] transition-colors"
                     >
                       <td
-                        className={`px-4 py-3 text-[var(--color-text-secondary)]${
+                        className={`px-4 py-3 whitespace-nowrap text-[var(--color-text-secondary)]${
                           expandedId !== request.id && i !== filtered.length - 1
-                            ? " border-b border-slate-200"
+                            ? " border-b border-[var(--color-border)]"
                             : ""
                         }`}
-                        style={{ whiteSpace: "nowrap" }}
                       >
                         {new Date(request.inserted_at).toLocaleDateString("sv-SE")}
                       </td>
                       <td
                         className={`px-4 py-3 text-[var(--color-text-primary)]${
                           expandedId !== request.id && i !== filtered.length - 1
-                            ? " border-b border-slate-200"
+                            ? " border-b border-[var(--color-border)]"
                             : ""
                         }`}
                       >
@@ -284,7 +273,7 @@ export function AdminRequestsPage() {
                       <td
                         className={`px-4 py-3${
                           expandedId !== request.id && i !== filtered.length - 1
-                            ? " border-b border-slate-200"
+                            ? " border-b border-[var(--color-border)]"
                             : ""
                         }`}
                       >
@@ -293,7 +282,7 @@ export function AdminRequestsPage() {
                       <td
                         className={`px-4 py-3 text-[var(--color-text-primary)] max-w-xs${
                           expandedId !== request.id && i !== filtered.length - 1
-                            ? " border-b border-slate-200"
+                            ? " border-b border-[var(--color-border)]"
                             : ""
                         }`}
                       >
@@ -302,7 +291,7 @@ export function AdminRequestsPage() {
                       <td
                         className={`px-4 py-3${
                           expandedId !== request.id && i !== filtered.length - 1
-                            ? " border-b border-slate-200"
+                            ? " border-b border-[var(--color-border)]"
                             : ""
                         }`}
                       >

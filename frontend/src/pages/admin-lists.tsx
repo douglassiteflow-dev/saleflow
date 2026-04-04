@@ -18,7 +18,7 @@ import Loader from "@/components/kokonutui/loader";
 const statusBadgeStyles: Record<string, string> = {
   active: "bg-emerald-50 text-emerald-700 border-emerald-200",
   paused: "bg-amber-50 text-amber-700 border-amber-200",
-  completed: "bg-slate-100 text-slate-700 border-slate-300",
+  completed: "bg-[var(--color-bg-panel)] text-slate-700 border-slate-300",
 };
 
 const statusLabels: Record<string, string> = {
@@ -52,7 +52,7 @@ function StatsBar({ stats }: { stats: LeadListStats }) {
 
   return (
     <div className="space-y-1">
-      <div className="flex h-2 w-full rounded-full overflow-hidden bg-slate-100">
+      <div className="flex h-2 w-full rounded-full overflow-hidden bg-[var(--color-bg-panel)]">
         {segments.map((seg) =>
           seg.count > 0 ? (
             <div

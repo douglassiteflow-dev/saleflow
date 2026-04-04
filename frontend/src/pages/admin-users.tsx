@@ -54,17 +54,16 @@ function UserForm({ onCancel }: { onCancel: () => void }) {
       onSubmit={(e) => void handleSubmit(e)}
       className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-panel)] p-5 space-y-4"
     >
-      <p className="font-medium text-[var(--color-text-primary)]" style={{ fontSize: "15px" }}>
+      <p className="font-medium text-[var(--color-text-primary)] text-[15px]">
         Ny användare
       </p>
 
       {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
 
-      <div className="grid gap-4" style={{ gridTemplateColumns: "1fr 1fr" }}>
+      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
           <label
-            className="block text-[var(--color-text-secondary)] uppercase tracking-wider"
-            style={{ fontSize: "12px" }}
+            className="block text-xs text-[var(--color-text-secondary)] uppercase tracking-wider"
           >
             Namn
           </label>
@@ -73,8 +72,7 @@ function UserForm({ onCancel }: { onCancel: () => void }) {
 
         <div className="space-y-1">
           <label
-            className="block text-[var(--color-text-secondary)] uppercase tracking-wider"
-            style={{ fontSize: "12px" }}
+            className="block text-xs text-[var(--color-text-secondary)] uppercase tracking-wider"
           >
             E-postadress
           </label>
@@ -88,8 +86,7 @@ function UserForm({ onCancel }: { onCancel: () => void }) {
 
         <div className="space-y-1">
           <label
-            className="block text-[var(--color-text-secondary)] uppercase tracking-wider"
-            style={{ fontSize: "12px" }}
+            className="block text-xs text-[var(--color-text-secondary)] uppercase tracking-wider"
           >
             Lösenord
           </label>
@@ -103,8 +100,7 @@ function UserForm({ onCancel }: { onCancel: () => void }) {
 
         <div className="space-y-1">
           <label
-            className="block text-[var(--color-text-secondary)] uppercase tracking-wider"
-            style={{ fontSize: "12px" }}
+            className="block text-xs text-[var(--color-text-secondary)] uppercase tracking-wider"
           >
             Bekräfta lösenord
           </label>
@@ -118,15 +114,14 @@ function UserForm({ onCancel }: { onCancel: () => void }) {
 
         <div className="space-y-1">
           <label
-            className="block text-[var(--color-text-secondary)] uppercase tracking-wider"
-            style={{ fontSize: "12px" }}
+            className="block text-xs text-[var(--color-text-secondary)] uppercase tracking-wider"
           >
             Roll
           </label>
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as UserRole)}
-            className="w-full h-9 rounded-[6px] border border-[var(--color-border-input)] bg-white px-3 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            className="w-full h-9 rounded-[6px] border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
           >
             <option value="agent">Agent</option>
             <option value="admin">Admin</option>
@@ -160,11 +155,10 @@ function UserSessionsRow({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="px-4 py-3 bg-slate-50">
+    <div className="px-4 py-3 bg-[var(--color-bg-panel)]">
       <div className="flex items-center justify-between mb-3">
         <p
-          className="font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-          style={{ fontSize: "12px" }}
+          className="text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
         >
           Sessioner
         </p>
@@ -278,40 +272,34 @@ export function AdminUsersPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 text-left">
+                <tr className="bg-[var(--color-bg-panel)] text-left">
                   <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
+                    className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
                   >
                     Namn
                   </th>
                   <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
+                    className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
                   >
                     E-postadress
                   </th>
                   <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
+                    className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
                   >
                     Mobil
                   </th>
                   <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
+                    className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
                   >
                     Anknytning
                   </th>
                   <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
+                    className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
                   >
                     Roll
                   </th>
                   <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
+                    className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
                   >
                     Åtgärder
                   </th>
@@ -323,7 +311,7 @@ export function AdminUsersPage() {
                     <td
                       className={`px-4 py-3 font-medium text-[var(--color-text-primary)]${
                         expandedUserId !== user.id && i !== users.length - 1
-                          ? " border-b border-slate-200"
+                          ? " border-b border-[var(--color-border)]"
                           : ""
                       }`}
                     >
@@ -332,7 +320,7 @@ export function AdminUsersPage() {
                     <td
                       className={`px-4 py-3 text-[var(--color-text-secondary)]${
                         expandedUserId !== user.id && i !== users.length - 1
-                          ? " border-b border-slate-200"
+                          ? " border-b border-[var(--color-border)]"
                           : ""
                       }`}
                     >
@@ -341,7 +329,7 @@ export function AdminUsersPage() {
                     <td
                       className={`px-4 py-3${
                         expandedUserId !== user.id && i !== users.length - 1
-                          ? " border-b border-slate-200"
+                          ? " border-b border-[var(--color-border)]"
                           : ""
                       }`}
                     >
@@ -350,7 +338,7 @@ export function AdminUsersPage() {
                     <td
                       className={`px-4 py-3${
                         expandedUserId !== user.id && i !== users.length - 1
-                          ? " border-b border-slate-200"
+                          ? " border-b border-[var(--color-border)]"
                           : ""
                       }`}
                     >
@@ -359,7 +347,7 @@ export function AdminUsersPage() {
                     <td
                       className={`px-4 py-3${
                         expandedUserId !== user.id && i !== users.length - 1
-                          ? " border-b border-slate-200"
+                          ? " border-b border-[var(--color-border)]"
                           : ""
                       }`}
                     >
@@ -376,7 +364,7 @@ export function AdminUsersPage() {
                     <td
                       className={`px-4 py-3${
                         expandedUserId !== user.id && i !== users.length - 1
-                          ? " border-b border-slate-200"
+                          ? " border-b border-[var(--color-border)]"
                           : ""
                       }`}
                     >

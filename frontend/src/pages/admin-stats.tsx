@@ -90,8 +90,7 @@ export function AdminStatsPage() {
                 <div key={status} className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span
-                      className="text-[var(--color-text-secondary)] uppercase tracking-wider"
-                      style={{ fontSize: "12px" }}
+                      className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wider"
                     >
                       {STATUS_LABELS[status]}
                     </span>
@@ -104,7 +103,7 @@ export function AdminStatsPage() {
                       )}
                     </span>
                   </div>
-                  <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                  <div className="h-2 w-full rounded-full bg-[var(--color-bg-panel)] overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all ${STATUS_COLORS[status]}`}
                       style={{ width: `${pct}%` }}

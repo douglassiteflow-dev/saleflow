@@ -59,8 +59,7 @@ export function AdminImportPage() {
         <div className="space-y-4">
           <div className="space-y-1">
             <label
-              className="block text-[var(--color-text-secondary)] uppercase tracking-wider"
-              style={{ fontSize: "12px" }}
+              className="block text-xs text-[var(--color-text-secondary)] uppercase tracking-wider"
             >
               Listnamn (valfritt)
             </label>
@@ -77,8 +76,7 @@ export function AdminImportPage() {
 
           <div className="space-y-1">
             <label
-              className="block text-[var(--color-text-secondary)] uppercase tracking-wider"
-              style={{ fontSize: "12px" }}
+              className="block text-xs text-[var(--color-text-secondary)] uppercase tracking-wider"
             >
               Excel-fil (.xlsx)
             </label>
@@ -86,7 +84,7 @@ export function AdminImportPage() {
               ref={fileRef}
               type="file"
               accept=".xlsx"
-              className="block w-full text-sm text-[var(--color-text-primary)] file:mr-4 file:py-2 file:px-4 file:rounded-[6px] file:border file:border-[var(--color-border-input)] file:text-sm file:font-medium file:bg-white file:text-[var(--color-text-primary)] file:cursor-pointer hover:file:bg-[var(--color-bg-panel)] cursor-pointer"
+              className="block w-full text-sm text-[var(--color-text-primary)] file:mr-4 file:py-2 file:px-4 file:rounded-[6px] file:border file:border-[var(--color-border-input)] file:text-sm file:font-medium file:bg-[var(--color-bg-primary)] file:text-[var(--color-text-primary)] file:cursor-pointer hover:file:bg-[var(--color-bg-panel)] cursor-pointer"
             />
           </div>
 
@@ -127,8 +125,8 @@ export function AdminImportPage() {
                   Importerar leads, detta kan ta några minuter för stora filer...
                 </p>
               </div>
-              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                <div className="bg-[var(--color-accent)] h-2 rounded-full animate-pulse" style={{ width: "60%" }} />
+              <div className="w-full bg-[var(--color-bg-panel)] rounded-full h-2 overflow-hidden">
+                <div className="bg-[var(--color-accent)] h-2 rounded-full animate-pulse w-[60%]" />
               </div>
             </div>
           )}
