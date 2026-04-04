@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DialerTabs } from "@/components/dialer/dialer-tabs";
 import { DialerHeader } from "@/components/dialer/dialer-header";
+import { DialerFooter } from "@/components/dialer/dialer-footer";
 import { MiniLeaderboard } from "@/components/dialer/mini-leaderboard";
 import { ActionBar } from "@/components/dialer/action-bar";
 import { LeadComments } from "@/components/dialer/lead-comments";
@@ -211,6 +212,11 @@ export function DialerPage() {
       {activeTab === "history" && <HistoryTabContent />}
 
       {activeTab === "meetings" && <MeetingsTabContent />}
+
+      {/* ---- Footer ---- */}
+      <DialerFooter
+        telavoxConnected={telavoxStatus?.connected ?? false}
+      />
       </div>
     </div>
   );
