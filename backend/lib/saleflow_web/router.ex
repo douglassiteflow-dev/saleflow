@@ -87,6 +87,9 @@ defmodule SaleflowWeb.Router do
     post "/calls/hangup", CallController, :hangup
     get "/calls/history", CallController, :history
     get "/calls/:id/recording", CallController, :recording
+
+    # Apps
+    get "/apps", AppController, :my_apps
   end
 
   # Admin only
@@ -114,6 +117,13 @@ defmodule SaleflowWeb.Router do
     post "/lists/:id/agents", ListController, :assign_agent
     delete "/lists/:id/agents/:user_id", ListController, :remove_agent
     get "/lists/:id/agents", ListController, :list_agents
+
+    # Apps
+    get "/apps", AppController, :index
+    get "/apps/:slug", AppController, :show
+    post "/apps/:slug/toggle", AppController, :toggle
+    post "/apps/:slug/permissions", AppController, :add_permission
+    delete "/apps/:slug/permissions/:user_id", AppController, :remove_permission
   end
 
   # SPA fallback — serve index.html for all non-API routes
