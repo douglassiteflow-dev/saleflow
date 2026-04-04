@@ -135,13 +135,18 @@ defmodule SaleflowWeb.CallController do
           lead_id: lead_id && Saleflow.Sales.decode_uuid(lead_id),
           lead_name: lead_name,
           lead_phone: lead_phone,
-          duration: duration || 0,
+          duration: to_int(duration),
           has_recording: has_recording || false
         }
       end)
 
     json(conn, %{calls: calls})
   end
+
+  defp to_int(nil), do: 0
+  defp to_int(%Decimal{} = d), do: Decimal.to_integer(d)
+  defp to_int(n) when is_integer(n), do: n
+  defp to_int(_), do: 0
 
   defp parse_date(nil), do: nil
   defp parse_date(str) when is_binary(str) do

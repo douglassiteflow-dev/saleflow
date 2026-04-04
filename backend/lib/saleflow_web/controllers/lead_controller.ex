@@ -374,10 +374,15 @@ defmodule SaleflowWeb.LeadController do
            "SELECT COALESCE(SUM(duration), 0), bool_or(recording_key IS NOT NULL) FROM phone_calls WHERE call_log_id = $1",
            [Ecto.UUID.dump!(call_log_id)]
          ) do
-      {:ok, %{rows: [[dur, has_rec]]}} -> {dur || 0, has_rec || false}
+      {:ok, %{rows: [[dur, has_rec]]}} -> {to_int(dur), has_rec || false}
       _ -> {0, false}
     end
   end
+
+  defp to_int(nil), do: 0
+  defp to_int(%Decimal{} = d), do: Decimal.to_integer(d)
+  defp to_int(n) when is_integer(n), do: n
+  defp to_int(_), do: 0
 
   defp serialize_audit_log(log, user_names, _current_user) do
     %{
