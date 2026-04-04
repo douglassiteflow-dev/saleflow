@@ -305,7 +305,7 @@ export function AdminLogsPage() {
                       onClick={() => handleRowClick(log)}
                       className={[
                         i !== filtered.length - 1
-                          ? "border-b border-slate-50"
+                          ? "border-b border-[var(--color-border)]"
                           : "",
                         isClickable
                           ? "cursor-pointer transition-colors hover:bg-[var(--color-bg-panel)]"

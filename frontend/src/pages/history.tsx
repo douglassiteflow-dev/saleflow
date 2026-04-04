@@ -101,7 +101,7 @@ export function HistoryPage() {
                     key={call.id}
                     onClick={() => call.lead_id && void navigate(`/leads/${call.lead_id}`)}
                     className={[
-                      i !== calls.length - 1 ? "border-b border-slate-50" : "",
+                      i !== calls.length - 1 ? "border-b border-[var(--color-border)]" : "",
                       call.lead_id ? "cursor-pointer transition-colors hover:bg-[var(--color-bg-panel)]" : "",
                     ].filter(Boolean).join(" ")}
                   >

@@ -27,7 +27,7 @@ export function AdminAppsPage() {
               key={app.id}
               type="button"
               onClick={() => void navigate(`/admin/apps/${app.slug}`)}
-              className="rounded-[14px] bg-[var(--color-bg-primary)] shadow text-left p-5 space-y-3 transition-shadow hover:shadow-md"
+              className="rounded-[14px] bg-[var(--color-bg-primary)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] text-left p-5 space-y-3 transition-shadow hover:shadow-md"
             >
               {/* Icon + name */}
               <div className="flex items-center gap-3">

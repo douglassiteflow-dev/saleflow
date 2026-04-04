@@ -25,7 +25,7 @@ export function AppTeamsPage() {
           ) : status?.connected ? (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                   Kopplad
                 </span>
                 {status.email && (
