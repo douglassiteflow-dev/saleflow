@@ -77,7 +77,7 @@ export function MeetingsPage() {
               onClick={() => setViewMode("list")}
               className={cn(
                 "px-3 py-1.5 text-sm font-medium transition-colors",
-                viewMode === "list" ? "bg-[var(--color-accent)] text-white" : "bg-white text-[var(--color-text-secondary)] hover:bg-slate-50",
+                viewMode === "list" ? "bg-[var(--color-accent)] text-white" : "bg-[var(--color-bg-primary)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-panel)]",
               )}
             >
               Lista
@@ -87,7 +87,7 @@ export function MeetingsPage() {
               onClick={() => setViewMode("calendar")}
               className={cn(
                 "px-3 py-1.5 text-sm font-medium transition-colors",
-                viewMode === "calendar" ? "bg-[var(--color-accent)] text-white" : "bg-white text-[var(--color-text-secondary)] hover:bg-slate-50",
+                viewMode === "calendar" ? "bg-[var(--color-accent)] text-white" : "bg-[var(--color-bg-primary)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-panel)]",
               )}
             >
               Kalender
@@ -154,41 +154,23 @@ export function MeetingsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 text-left">
-                  <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
-                  >
+                <tr className="bg-[var(--color-bg-panel)] text-left">
+                  <th className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
                     Datum &amp; tid
                   </th>
-                  <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
-                  >
+                  <th className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
                     Titel
                   </th>
-                  <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
-                  >
+                  <th className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
                     Företag
                   </th>
-                  <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
-                  >
+                  <th className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
                     Agent
                   </th>
-                  <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
-                  >
+                  <th className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
                     Status
                   </th>
-                  <th
-                    className="px-4 py-2.5 font-medium text-[var(--color-text-secondary)] uppercase tracking-wider"
-                    style={{ fontSize: "12px" }}
-                  >
+                  <th className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
                     Skapad
                   </th>
                   <th className="px-4 py-2.5" />
@@ -199,7 +181,7 @@ export function MeetingsPage() {
                   <tr
                     key={meeting.id}
                     className={cn(
-                      "cursor-pointer hover:bg-slate-50 transition-colors",
+                      "cursor-pointer hover:bg-[var(--color-bg-panel)] transition-colors",
                       i !== filtered.length - 1
                         ? "border-b border-slate-200"
                         : "",

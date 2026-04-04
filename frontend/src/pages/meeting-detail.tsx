@@ -148,17 +148,14 @@ export function MeetingDetailPage() {
       </div>
 
       {/* Two-column layout */}
-      <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 1fr" }}>
+      <div className="grid grid-cols-2 gap-6">
         {/* Left: Meeting info */}
         <Card>
           <CardTitle className="mb-4">Mötesinfo</CardTitle>
           {editing ? (
             <div className="space-y-4">
               <div className="space-y-1">
-                <label
-                  className="block text-[var(--color-text-secondary)] uppercase tracking-wider"
-                  style={{ fontSize: "12px" }}
-                >
+                <label className="block text-xs text-[var(--color-text-secondary)] uppercase tracking-wider">
                   Datum
                 </label>
                 <Input
@@ -169,10 +166,7 @@ export function MeetingDetailPage() {
                 />
               </div>
               <div className="space-y-1">
-                <label
-                  className="block text-[var(--color-text-secondary)] uppercase tracking-wider"
-                  style={{ fontSize: "12px" }}
-                >
+                <label className="block text-xs text-[var(--color-text-secondary)] uppercase tracking-wider">
                   Tid
                 </label>
                 <TimeSelect
@@ -182,16 +176,13 @@ export function MeetingDetailPage() {
                 />
               </div>
               <div className="space-y-1">
-                <label
-                  className="block text-[var(--color-text-secondary)] uppercase tracking-wider"
-                  style={{ fontSize: "12px" }}
-                >
+                <label className="block text-xs text-[var(--color-text-secondary)] uppercase tracking-wider">
                   Status
                 </label>
                 <select
                   value={editStatus}
                   onChange={(e) => setEditStatus(e.target.value as typeof editStatus)}
-                  className="flex w-full rounded-md border border-[var(--color-border-input)] bg-white px-3 py-2 text-sm"
+                  className="flex w-full rounded-md border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 py-2 text-sm"
                 >
                   <option value="scheduled">Planerad</option>
                   <option value="completed">Genomförd</option>
@@ -199,17 +190,14 @@ export function MeetingDetailPage() {
                 </select>
               </div>
               <div className="space-y-1">
-                <label
-                  className="block text-[var(--color-text-secondary)] uppercase tracking-wider"
-                  style={{ fontSize: "12px" }}
-                >
+                <label className="block text-xs text-[var(--color-text-secondary)] uppercase tracking-wider">
                   Anteckningar
                 </label>
                 <textarea
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
                   rows={4}
-                  className="flex w-full rounded-md border border-[var(--color-border-input)] bg-white px-3 py-2 text-sm resize-y"
+                  className="flex w-full rounded-md border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 py-2 text-sm resize-y"
                 />
               </div>
               <div className="flex gap-2">
@@ -284,7 +272,7 @@ export function MeetingDetailPage() {
               <InfoRow
                 label="Källa"
                 value={
-                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-700">
+                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-[var(--color-bg-panel)] text-slate-700">
                     {lead.källa}
                   </span>
                 }
