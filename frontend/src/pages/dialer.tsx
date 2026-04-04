@@ -26,7 +26,7 @@ import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Loader from "@/components/kokonutui/loader";
-import { TabToolbar, usePagination } from "@/components/dialer/tab-toolbar";
+import { TabToolbar, usePagination, type DateRange } from "@/components/dialer/tab-toolbar";
 import type { Lead, CallLog } from "@/api/types";
 
 /* ---------- shared outcome maps (DRY: used in history table + call log) ---------- */
@@ -71,8 +71,9 @@ export function DialerPage() {
   const [activeTab, setActiveTab] = useState<Tab>("dialer");
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
-  const [meetingsDate, setMeetingsDate] = useState(todayISO);
-  const [historyDate, setHistoryDate] = useState(todayISO);
+  const todayStr = todayISO();
+  const [meetingsRange, setMeetingsRange] = useState<DateRange>({ from: todayStr, to: todayStr });
+  const [historyRange, setHistoryRange] = useState<DateRange>({ from: todayStr, to: todayStr });
   const [currentLeadId, setCurrentLeadIdRaw] = useState<string | null>(
     () => sessionStorage.getItem("dialer_lead_id"),
   );
@@ -220,16 +221,16 @@ export function DialerPage() {
 
       {activeTab === "history" && (
         <HistoryTabContent
-          date={historyDate}
-          onDateChange={setHistoryDate}
+          dateRange={historyRange}
+          onDateRangeChange={setHistoryRange}
           onLeadClick={(id) => { setSelectedLeadId(id); setActiveTab("lead-detail"); }}
         />
       )}
 
       {activeTab === "meetings" && (
         <MeetingsTabContent
-          date={meetingsDate}
-          onDateChange={setMeetingsDate}
+          dateRange={meetingsRange}
+          onDateRangeChange={setMeetingsRange}
           onMeetingClick={(id) => { setSelectedMeetingId(id); setActiveTab("meeting-detail"); }}
         />
       )}
@@ -634,14 +635,25 @@ function CallbacksTabContent({
 
 /* ==================== History tab ==================== */
 
-function HistoryTabContent({ date, onDateChange, onLeadClick }: { date: string; onDateChange: (d: string) => void; onLeadClick: (leadId: string) => void }) {
+function HistoryTabContent({ dateRange, onDateRangeChange, onLeadClick }: { dateRange: DateRange; onDateRangeChange: (r: DateRange) => void; onLeadClick: (leadId: string) => void }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [outcomeFilter, setOutcomeFilter] = useState("");
   const { data: user } = useMe();
-  const { data: calls, isLoading } = useCallHistory(date);
+  const { data: calls, isLoading } = useCallHistory(dateRange.from);
   const isAdmin = user?.role === "admin";
 
-  const { totalPages, totalCount, paginate } = usePagination(calls ?? [], search, (call, q) =>
+  // Filter by date range + outcome + search
+  const rangeFiltered = (calls ?? []).filter((c) => {
+    const d = c.called_at.slice(0, 10);
+    return d >= dateRange.from && d <= dateRange.to;
+  });
+
+  const outcomeFiltered = outcomeFilter
+    ? rangeFiltered.filter((c) => c.outcome === outcomeFilter)
+    : rangeFiltered;
+
+  const { totalPages, totalCount, paginate } = usePagination(outcomeFiltered, search, (call, q) =>
     (call.lead_name ?? "").toLowerCase().includes(q) || (call.lead_phone ?? "").includes(q),
   );
   const visible = paginate(page);
@@ -654,13 +666,39 @@ function HistoryTabContent({ date, onDateChange, onLeadClick }: { date: string; 
         search={search}
         onSearchChange={(v) => { setSearch(v); setPage(1); }}
         searchPlaceholder="Sök företag..."
-        date={date}
-        onDateChange={(v) => { onDateChange(v); setPage(1); }}
+        dateRange={dateRange}
+        onDateRangeChange={(r) => { onDateRangeChange(r); setPage(1); }}
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
         totalCount={totalCount}
       />
+      {/* Outcome filter */}
+      <div className="flex items-center gap-1.5 px-5 py-1.5 border-b border-[var(--color-border)] bg-[var(--color-bg-primary)]">
+        <span className="text-[10px] text-[var(--color-text-secondary)]">Utfall:</span>
+        {[
+          { value: "", label: "Alla" },
+          { value: "meeting_booked", label: "Möte" },
+          { value: "callback", label: "Callback" },
+          { value: "not_interested", label: "Ej intresserad" },
+          { value: "no_answer", label: "Ej svar" },
+          { value: "bad_number", label: "Fel nr" },
+        ].map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => { setOutcomeFilter(o.value); setPage(1); }}
+            className={cn(
+              "px-2 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer",
+              outcomeFilter === o.value
+                ? "bg-[var(--color-accent)] text-white"
+                : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-panel)]",
+            )}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
       <div className="flex-1 overflow-auto">
         {isLoading ? (
           <div className="p-5"><Loader size="sm" title="Laddar samtal..." /></div>
@@ -702,16 +740,17 @@ function HistoryTabContent({ date, onDateChange, onLeadClick }: { date: string; 
 
 /* ==================== Meetings tab ==================== */
 
-function MeetingsTabContent({ date, onDateChange, onMeetingClick }: { date: string; onDateChange: (d: string) => void; onMeetingClick: (id: string) => void }) {
+function MeetingsTabContent({ dateRange, onDateRangeChange, onMeetingClick }: { dateRange: DateRange; onDateRangeChange: (r: DateRange) => void; onMeetingClick: (id: string) => void }) {
   const { data: meetings, isLoading } = useMeetings();
   const cancelMeeting = useCancelMeeting();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  // Filter: meetings created on selected date
-  const forDate = (meetings ?? []).filter(
-    (m) => m.inserted_at.slice(0, 10) === date,
-  );
+  // Filter: meetings created within date range
+  const forDate = (meetings ?? []).filter((m) => {
+    const d = m.inserted_at.slice(0, 10);
+    return d >= dateRange.from && d <= dateRange.to;
+  });
 
   // Upcoming meetings for calendar sidebar
   const upcoming = (meetings ?? []).filter(
@@ -739,8 +778,8 @@ function MeetingsTabContent({ date, onDateChange, onMeetingClick }: { date: stri
           search={search}
           onSearchChange={(v) => { setSearch(v); setPage(1); }}
           searchPlaceholder="Sök möte..."
-          date={date}
-          onDateChange={(v) => { onDateChange(v); setPage(1); }}
+          dateRange={dateRange}
+          onDateRangeChange={(r) => { onDateRangeChange(r); setPage(1); }}
           page={page}
           totalPages={totalPages}
           onPageChange={setPage}
@@ -751,7 +790,7 @@ function MeetingsTabContent({ date, onDateChange, onMeetingClick }: { date: stri
             <div className="p-5"><Loader size="sm" title="Laddar möten..." /></div>
           ) : visible.length === 0 ? (
             <p className="p-5 text-sm text-[var(--color-text-secondary)]">
-              Inga möten {date === todayISO() ? "skapade idag" : `den ${date}`}.
+              Inga möten för vald period.
             </p>
           ) : (
             <table className="w-full text-[13px]">
