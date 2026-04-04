@@ -7,6 +7,7 @@ import { ActionBar } from "@/components/dialer/action-bar";
 import { LeadComments } from "@/components/dialer/lead-comments";
 import { OutcomeInline } from "@/components/dialer/outcome-inline";
 import { MeetingDetailTab } from "@/components/dialer/meeting-detail-tab";
+import { LeadDetailTab } from "@/components/dialer/lead-detail-tab";
 import { useLeaderboard, useDashboard } from "@/api/dashboard";
 import {
   useNextLead,
@@ -61,7 +62,7 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-type Tab = "dialer" | "callbacks" | "history" | "meetings" | "profile" | "meeting-detail";
+type Tab = "dialer" | "callbacks" | "history" | "meetings" | "profile" | "meeting-detail" | "lead-detail";
 
 /* ==================== Main component ==================== */
 
@@ -69,6 +70,7 @@ export function DialerPage() {
   /* --- tab state --- */
   const [activeTab, setActiveTab] = useState<Tab>("dialer");
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [currentLeadId, setCurrentLeadIdRaw] = useState<string | null>(
     () => sessionStorage.getItem("dialer_lead_id"),
   );
@@ -212,7 +214,9 @@ export function DialerPage() {
         />
       )}
 
-      {activeTab === "history" && <HistoryTabContent />}
+      {activeTab === "history" && (
+        <HistoryTabContent onLeadClick={(id) => { setSelectedLeadId(id); setActiveTab("lead-detail"); }} />
+      )}
 
       {activeTab === "meetings" && (
         <MeetingsTabContent onMeetingClick={(id) => { setSelectedMeetingId(id); setActiveTab("meeting-detail"); }} />
@@ -220,6 +224,10 @@ export function DialerPage() {
 
       {activeTab === "meeting-detail" && selectedMeetingId && (
         <MeetingDetailTab meetingId={selectedMeetingId} onBack={() => setActiveTab("meetings")} />
+      )}
+
+      {activeTab === "lead-detail" && selectedLeadId && (
+        <LeadDetailTab leadId={selectedLeadId} onBack={() => setActiveTab("history")} />
       )}
 
       {activeTab === "profile" && <ProfileTabContent onBack={() => setActiveTab("dialer")} />}
@@ -614,7 +622,7 @@ function CallbacksTabContent({
 
 /* ==================== History tab ==================== */
 
-function HistoryTabContent() {
+function HistoryTabContent({ onLeadClick }: { onLeadClick: (leadId: string) => void }) {
   const [date, setDate] = useState(todayISO);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -660,7 +668,7 @@ function HistoryTabContent() {
             </thead>
             <tbody>
               {visible.map((call) => (
-                <tr key={call.id} className="border-t border-[var(--color-border)] transition-colors hover:bg-[var(--color-bg-panel)]">
+                <tr key={call.id} className={`border-t border-[var(--color-border)] transition-colors hover:bg-[var(--color-bg-panel)] ${call.lead_id ? "cursor-pointer" : ""}`} onClick={() => call.lead_id && onLeadClick(call.lead_id)}>
                   <td className="whitespace-nowrap px-5 py-2.5 font-mono text-xs text-[var(--color-text-secondary)]">{formatDateTime(call.called_at)}</td>
                   <td className="px-5 py-2.5 font-medium text-[var(--color-text-primary)]">{call.lead_name ?? "Okänt företag"}</td>
                   <td className="px-5 py-2.5 font-mono text-xs text-[var(--color-text-secondary)]">{call.lead_phone ?? "—"}</td>
