@@ -10,9 +10,12 @@ export function AppTeamsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-[22px] font-light tracking-[-0.5px] text-[var(--color-text-primary)]">
-        Microsoft Teams
-      </h1>
+      <div className="flex items-center gap-3">
+        <img src="/app-icons/microsoft-teams.png" alt="Microsoft Teams" className="h-10 w-10 rounded-lg object-cover" />
+        <h1 className="text-[22px] font-light tracking-[-0.5px] text-[var(--color-text-primary)]">
+          Microsoft Teams
+        </h1>
+      </div>
 
       <Card>
         <div className="space-y-4">
