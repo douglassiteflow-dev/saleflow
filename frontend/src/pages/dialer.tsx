@@ -71,6 +71,8 @@ export function DialerPage() {
   const [activeTab, setActiveTab] = useState<Tab>("dialer");
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [meetingsDate, setMeetingsDate] = useState(todayISO);
+  const [historyDate, setHistoryDate] = useState(todayISO);
   const [currentLeadId, setCurrentLeadIdRaw] = useState<string | null>(
     () => sessionStorage.getItem("dialer_lead_id"),
   );
@@ -217,11 +219,19 @@ export function DialerPage() {
       )}
 
       {activeTab === "history" && (
-        <HistoryTabContent onLeadClick={(id) => { setSelectedLeadId(id); setActiveTab("lead-detail"); }} />
+        <HistoryTabContent
+          date={historyDate}
+          onDateChange={setHistoryDate}
+          onLeadClick={(id) => { setSelectedLeadId(id); setActiveTab("lead-detail"); }}
+        />
       )}
 
       {activeTab === "meetings" && (
-        <MeetingsTabContent onMeetingClick={(id) => { setSelectedMeetingId(id); setActiveTab("meeting-detail"); }} />
+        <MeetingsTabContent
+          date={meetingsDate}
+          onDateChange={setMeetingsDate}
+          onMeetingClick={(id) => { setSelectedMeetingId(id); setActiveTab("meeting-detail"); }}
+        />
       )}
 
       {activeTab === "meeting-detail" && selectedMeetingId && (
@@ -624,8 +634,7 @@ function CallbacksTabContent({
 
 /* ==================== History tab ==================== */
 
-function HistoryTabContent({ onLeadClick }: { onLeadClick: (leadId: string) => void }) {
-  const [date, setDate] = useState(todayISO);
+function HistoryTabContent({ date, onDateChange, onLeadClick }: { date: string; onDateChange: (d: string) => void; onLeadClick: (leadId: string) => void }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const { data: user } = useMe();
@@ -646,7 +655,7 @@ function HistoryTabContent({ onLeadClick }: { onLeadClick: (leadId: string) => v
         onSearchChange={(v) => { setSearch(v); setPage(1); }}
         searchPlaceholder="Sök företag..."
         date={date}
-        onDateChange={(v) => { setDate(v); setPage(1); }}
+        onDateChange={(v) => { onDateChange(v); setPage(1); }}
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
@@ -693,11 +702,10 @@ function HistoryTabContent({ onLeadClick }: { onLeadClick: (leadId: string) => v
 
 /* ==================== Meetings tab ==================== */
 
-function MeetingsTabContent({ onMeetingClick }: { onMeetingClick: (id: string) => void }) {
+function MeetingsTabContent({ date, onDateChange, onMeetingClick }: { date: string; onDateChange: (d: string) => void; onMeetingClick: (id: string) => void }) {
   const { data: meetings, isLoading } = useMeetings();
   const cancelMeeting = useCancelMeeting();
   const [search, setSearch] = useState("");
-  const [date, setDate] = useState(todayISO);
   const [page, setPage] = useState(1);
 
   // Filter: meetings created on selected date
@@ -732,7 +740,7 @@ function MeetingsTabContent({ onMeetingClick }: { onMeetingClick: (id: string) =
           onSearchChange={(v) => { setSearch(v); setPage(1); }}
           searchPlaceholder="Sök möte..."
           date={date}
-          onDateChange={(v) => { setDate(v); setPage(1); }}
+          onDateChange={(v) => { onDateChange(v); setPage(1); }}
           page={page}
           totalPages={totalPages}
           onPageChange={setPage}
