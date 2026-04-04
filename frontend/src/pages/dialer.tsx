@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DialerTabs } from "@/components/dialer/dialer-tabs";
+import { DialerHeader } from "@/components/dialer/dialer-header";
 import { MiniLeaderboard } from "@/components/dialer/mini-leaderboard";
 import { ActionBar } from "@/components/dialer/action-bar";
 import { LeadComments } from "@/components/dialer/lead-comments";
 import { OutcomeInline } from "@/components/dialer/outcome-inline";
-import { useLeaderboard } from "@/api/dashboard";
+import { useLeaderboard, useDashboard } from "@/api/dashboard";
 import {
   useNextLead,
   useLeadDetail,
@@ -86,6 +87,7 @@ export function DialerPage() {
     currentLeadId ?? undefined,
   );
   const { data: leaderboard } = useLeaderboard();
+  const { data: dashboard } = useDashboard();
   const { data: callbacks } = useCallbacks();
   const { data: meetings } = useMeetings();
 
@@ -154,6 +156,13 @@ export function DialerPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden p-5">
       <div className="flex-1 flex flex-col rounded-[14px] bg-[var(--color-bg-primary)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+      {/* ---- Header ---- */}
+      <DialerHeader
+        callsToday={dashboard?.my_stats?.calls_today ?? 0}
+        meetingsToday={dashboard?.my_stats?.meetings_today ?? 0}
+        conversionRate={dashboard?.conversion?.rate ?? 0}
+      />
+
       {/* ---- Tabs ---- */}
       <DialerTabs
         activeTab={activeTab}
