@@ -3,10 +3,13 @@ interface DialerHeaderProps {
   callsToday: number;
   meetingsToday: number;
   conversionRate: number;
+  callbackCount?: number;
   onProfileClick?: () => void;
+  onNotificationsClick?: () => void;
 }
 
-export function DialerHeader({ userName, callsToday, meetingsToday, conversionRate, onProfileClick }: DialerHeaderProps) {
+export function DialerHeader({ userName, callsToday, meetingsToday, conversionRate, callbackCount, onProfileClick, onNotificationsClick }: DialerHeaderProps) {
+  const hasNotifications = (callbackCount ?? 0) > 0;
 
   return (
     <div className="flex items-center px-5 py-3 rounded-t-[14px]" style={{ background: "linear-gradient(135deg, #312E81, #4F46E5, #6366F1)" }}>
@@ -32,6 +35,24 @@ export function DialerHeader({ userName, callsToday, meetingsToday, conversionRa
 
         <div className="w-px h-6 bg-white/20 mx-1" />
 
+        {/* Notifications bell */}
+        <button
+          type="button"
+          onClick={onNotificationsClick}
+          className="relative flex items-center justify-center h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+          {hasNotifications && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+              {callbackCount}
+            </span>
+          )}
+        </button>
+
+        {/* Profile */}
         <button
           type="button"
           onClick={onProfileClick}
