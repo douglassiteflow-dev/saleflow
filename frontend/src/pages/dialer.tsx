@@ -48,8 +48,7 @@ export function DialerPage() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
         <div className="text-center">
           <h2
-            className="font-semibold text-[var(--color-text-primary)] mb-2"
-            style={{ fontSize: "22px" }}
+            className="text-[22px] font-light tracking-[-0.5px] text-[var(--color-text-primary)] mb-2"
           >
             {nextLeadMutation.data === null
               ? "Inga fler leads i kön"
@@ -92,8 +91,7 @@ export function DialerPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1
-          className="font-semibold text-[var(--color-text-primary)]"
-          style={{ fontSize: "22px" }}
+          className="text-[22px] font-light tracking-[-0.5px] text-[var(--color-text-primary)]"
         >
           {lead.företag}
         </h1>

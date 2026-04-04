@@ -104,8 +104,7 @@ export function MeetingDetailPage() {
             Tillbaka
           </Button>
           <h1
-            className="font-semibold text-[var(--color-text-primary)]"
-            style={{ fontSize: "22px" }}
+            className="text-[22px] font-light tracking-[-0.5px] text-[var(--color-text-primary)]"
           >
             {meeting.title}
           </h1>
