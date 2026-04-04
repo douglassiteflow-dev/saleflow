@@ -121,7 +121,7 @@ export function DialerPage() {
           <HistoryTimeline callLogs={calls} />
         </div>
         <OutcomePanel leadId={lead.id} companyName={lead.företag} leadData={lead} onOutcomeSubmitted={handleOutcomeSubmitted} />
-        <div className="rounded-lg border border-[var(--color-border)] bg-white overflow-hidden" style={{ height: "calc(100vh - 160px)", position: "sticky", top: "80px" }}>
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-primary)] overflow-hidden h-[calc(100vh-160px)] sticky top-[80px]">
           <div className="px-4 py-2.5 bg-[var(--color-bg-panel)] border-b border-[var(--color-border)]">
             <p className="text-xs font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
               Webbsökning — {lead.företag}
@@ -173,7 +173,7 @@ export function DialerPage() {
                 </p>
                 <a
                   href={`tel:${lead.telefon}`}
-                  className="flex items-center justify-center gap-2 w-full h-12 rounded-md bg-emerald-600 text-white font-medium text-sm hover:bg-emerald-700 transition-colors"
+                  className="flex items-center justify-center gap-2 w-full h-12 rounded-md bg-[var(--color-success)] text-white font-medium text-sm hover:opacity-90 transition-colors"
                 >
                   {lead.telefon}
                 </a>
