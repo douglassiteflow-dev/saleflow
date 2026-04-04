@@ -13,7 +13,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "dialer", label: "Dialer" },
   { key: "callbacks", label: "Callbacks" },
   { key: "history", label: "Samtalshistorik" },
-  { key: "meetings", label: "Moten" },
+  { key: "meetings", label: "Möten" },
 ];
 
 export function DialerTabs({

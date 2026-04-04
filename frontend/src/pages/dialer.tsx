@@ -252,29 +252,18 @@ function DialerTabContent({
         {showLeaderboard && (
           <MiniLeaderboard entries={leaderboard} currentUserId={user?.id} />
         )}
-        <div className="flex-1 flex flex-col items-center justify-center gap-6">
-          <div className="text-center">
-            <h2 className="text-[22px] font-light tracking-[-0.5px] text-[var(--color-text-primary)] mb-2">
-              {nextLeadData === null
-                ? "Inga fler leads i kön"
-                : "Redo att börja ringa?"}
-            </h2>
-            <p className="text-sm text-[var(--color-text-secondary)]">
-              Tryck på knappen nedan för att hämta nästa kund i kön.
-            </p>
-          </div>
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={onNext}
-            disabled={isNexting}
-          >
-            {isNexting ? "Hämtar..." : "Nästa kund"}
-          </Button>
-          {nextLeadError && (
-            <p className="text-sm text-[var(--color-danger)]">
-              Kunde inte hämta nästa kund.
-            </p>
+        <div className="flex-1 flex flex-col items-center justify-center gap-4">
+          {nextLeadData === null ? (
+            <>
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                Inga fler leads i kön.
+              </p>
+              <Button variant="primary" size="default" onClick={onNext} disabled={isNexting}>
+                Försök igen
+              </Button>
+            </>
+          ) : (
+            <Loader size="sm" title="Hämtar nästa kund..." />
           )}
         </div>
       </div>

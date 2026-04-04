@@ -93,7 +93,7 @@ export function Sidebar() {
             Agent
           </p>
           <NavItem to="/dashboard" label="Dashboard" />
-          <NavItem to="/dialer" label="Ringare" />
+          <NavItem to="/dialer" label="Dialer" />
           <NavItem to="/meetings" label="Möten" />
           <NavItem to="/history" label="Samtalshistorik" />
           <NavItem to="/profile" label="Profil" />
