@@ -440,25 +440,32 @@ function DialerTabContent({
       </div>
 
       {/* ---- Bottom: lead call history ---- */}
-      {calls.length > 0 && (
-        <div className="border-t border-[var(--color-border)] overflow-x-auto shrink-0">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="bg-[var(--color-bg-panel)]">
-                {["Datum", "Agent", "Utfall", "Längd", "Anteckning"].map(
-                  (h) => (
-                    <th
-                      key={h}
-                      className="px-5 py-2 text-left text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]"
-                    >
-                      {h}
-                    </th>
-                  ),
-                )}
+      {/* ---- Bottom: lead call history (always visible) ---- */}
+      <div className="border-t border-[var(--color-border)] overflow-x-auto shrink-0">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-[var(--color-bg-panel)]">
+              {["Datum", "Agent", "Utfall", "Längd", "Anteckning"].map(
+                (h) => (
+                  <th
+                    key={h}
+                    className="px-5 py-2 text-left text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]"
+                  >
+                    {h}
+                  </th>
+                ),
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {calls.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-5 py-4 text-center text-sm text-[var(--color-text-secondary)]">
+                  Inga tidigare samtal
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {calls.map((call) => (
+            ) : (
+              calls.map((call) => (
                 <tr
                   key={call.id}
                   className="border-t border-[var(--color-border)]"
@@ -487,11 +494,11 @@ function DialerTabContent({
                     {call.notes ?? "—"}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
