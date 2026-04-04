@@ -151,7 +151,8 @@ export function DialerPage() {
   const displayPhone = lead ? formatPhone(lead.telefon) : "";
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden p-5">
+      <div className="flex-1 flex flex-col rounded-[14px] bg-[var(--color-bg-primary)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
       {/* ---- Tabs ---- */}
       <DialerTabs
         activeTab={activeTab}
@@ -200,6 +201,7 @@ export function DialerPage() {
       {activeTab === "history" && <HistoryTabContent />}
 
       {activeTab === "meetings" && <MeetingsTabContent />}
+      </div>
     </div>
   );
 }
@@ -342,7 +344,8 @@ function DialerTabContent({
   ];
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-auto">
+
       {/* Mini leaderboard */}
       {showLeaderboard && (
         <MiniLeaderboard entries={leaderboard} currentUserId={user?.id} />
@@ -358,9 +361,7 @@ function DialerTabContent({
         isNexting={isNexting}
       />
 
-      {/* 2-column main content + history — all scrollable together */}
-      <div className="flex-1 min-h-0 overflow-auto p-5">
-      <div className="rounded-[14px] bg-[var(--color-bg-primary)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+      {/* 2-column main content */}
       <div className="grid grid-cols-1 lg:grid-cols-2">
         {/* ---- Left column ---- */}
         <div className="p-5 border-r border-[var(--color-border)] bg-[var(--color-bg-primary)]">
@@ -499,7 +500,6 @@ function DialerTabContent({
             )}
           </tbody>
         </table>
-      </div>
       </div>
       </div>
     </div>
