@@ -8,6 +8,9 @@ import { LeadComments } from "@/components/dialer/lead-comments";
 import { OutcomeInline } from "@/components/dialer/outcome-inline";
 import { MeetingDetailTab } from "@/components/dialer/meeting-detail-tab";
 import { LeadDetailTab } from "@/components/dialer/lead-detail-tab";
+import { DealsTab } from "@/components/dialer/deals-tab";
+import { DealDetailTab } from "@/components/dialer/deal-detail-tab";
+import { CustomersTab } from "@/components/dialer/customers-tab";
 import { useLeaderboard, useDashboard, type LeaderboardEntry } from "@/api/dashboard";
 import {
   useNextLead,
@@ -62,7 +65,7 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-type Tab = DialerTab | "profile" | "meeting-detail" | "lead-detail";
+type Tab = DialerTab | "profile" | "meeting-detail" | "lead-detail" | "deal-detail";
 
 /* ==================== Main component ==================== */
 
@@ -71,6 +74,8 @@ export function DialerPage() {
   const [activeTab, setActiveTab] = useState<Tab>("dialer");
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
+  const [dealReturnTab, setDealReturnTab] = useState<Tab>("deals");
   const todayStr = todayISO();
   const [meetingsRange, setMeetingsRange] = useState<DateRange>({ from: todayStr, to: todayStr });
   const [historyRange, setHistoryRange] = useState<DateRange>({ from: todayStr, to: todayStr });
@@ -183,7 +188,7 @@ export function DialerPage() {
       {/* ---- Tabs ---- */}
       <DialerTabs
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => { setSelectedDealId(null); setActiveTab(tab); }}
         callbackCount={callbacks?.length}
         meetingCount={
           meetings?.filter(
@@ -247,6 +252,18 @@ export function DialerPage() {
 
       {activeTab === "lead-detail" && selectedLeadId && (
         <LeadDetailTab leadId={selectedLeadId} onBack={() => setActiveTab("history")} />
+      )}
+
+      {activeTab === "deals" && !selectedDealId && (
+        <DealsTab onSelectDeal={(id) => { setSelectedDealId(id); setDealReturnTab("deals"); setActiveTab("deal-detail"); }} />
+      )}
+
+      {activeTab === "customers" && !selectedDealId && (
+        <CustomersTab onSelectDeal={(id) => { setSelectedDealId(id); setDealReturnTab("customers"); setActiveTab("deal-detail"); }} />
+      )}
+
+      {activeTab === "deal-detail" && selectedDealId && (
+        <DealDetailTab dealId={selectedDealId} onBack={() => { setSelectedDealId(null); setActiveTab(dealReturnTab); }} />
       )}
 
       {activeTab === "profile" && <ProfileTabContent onBack={() => setActiveTab("dialer")} />}

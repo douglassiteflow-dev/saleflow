@@ -33,6 +33,10 @@ const AdminRequestsPage = lazy(() => import("@/pages/admin-requests").then((m) =
 const ProfilePage = lazy(() => import("@/pages/profile").then((m) => ({ default: m.ProfilePage })));
 const AdminAppsPage = lazy(() => import("@/pages/admin-apps").then((m) => ({ default: m.AdminAppsPage })));
 const AdminAppDetailPage = lazy(() => import("@/pages/admin-app-detail").then((m) => ({ default: m.AdminAppDetailPage })));
+const PipelinePage = lazy(() => import("@/pages/pipeline").then((m) => ({ default: m.PipelinePage })));
+const PipelineDetailPage = lazy(() => import("@/pages/pipeline-detail").then((m) => ({ default: m.PipelineDetailPage })));
+const CustomersPage = lazy(() => import("@/pages/customers").then((m) => ({ default: m.CustomersPage })));
+const CustomerDetailPage = lazy(() => import("@/pages/customer-detail").then((m) => ({ default: m.CustomerDetailPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -78,6 +82,10 @@ export function App() {
                 <Route path="/admin/logs" element={<Suspense fallback={<LazyFallback />}><AdminLogsPage /></Suspense>} />
                 <Route path="/admin/apps" element={<Suspense fallback={<LazyFallback />}><AdminAppsPage /></Suspense>} />
                 <Route path="/admin/apps/:slug" element={<Suspense fallback={<LazyFallback />}><AdminAppDetailPage /></Suspense>} />
+                <Route path="/pipeline" element={<Suspense fallback={<LazyFallback />}><PipelinePage /></Suspense>} />
+                <Route path="/pipeline/:id" element={<Suspense fallback={<LazyFallback />}><PipelineDetailPage /></Suspense>} />
+                <Route path="/customers" element={<Suspense fallback={<LazyFallback />}><CustomersPage /></Suspense>} />
+                <Route path="/customers/:id" element={<Suspense fallback={<LazyFallback />}><CustomerDetailPage /></Suspense>} />
               </Route>
             </Route>
           </Route>
