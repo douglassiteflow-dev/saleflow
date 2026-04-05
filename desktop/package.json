@@ -1,0 +1,51 @@
+{
+  "name": "saleflow-dialer",
+  "version": "1.0.0",
+  "description": "Saleflow Dialer — Desktop app för säljare",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  },
+  "build": {
+    "appId": "se.siteflow.saleflow-dialer",
+    "productName": "Saleflow Dialer",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "icons/**"
+    ],
+    "mac": {
+      "category": "public.app-category.business",
+      "icon": "icons/icon.png",
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "icon": "icons/icon.png",
+      "target": ["nsis"]
+    },
+    "linux": {
+      "icon": "icons/icon.png",
+      "target": ["AppImage", "deb"],
+      "category": "Office"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "icons/icon.png"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "dependencies": {
+    "electron-updater": "^6.0.0"
+  }
+}

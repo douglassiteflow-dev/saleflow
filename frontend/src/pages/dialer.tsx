@@ -164,7 +164,7 @@ export function DialerPage() {
   const displayPhone = lead ? formatPhone(lead.telefon) : "";
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden p-5">
+    <div className={`flex flex-col overflow-hidden p-5 ${window.location.pathname === "/app" ? "h-screen" : "h-[calc(100vh-64px)]"}`}>
       <div className="flex-1 flex flex-col rounded-[14px] bg-[var(--color-bg-primary)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
       {/* ---- Header ---- */}
       <DialerHeader

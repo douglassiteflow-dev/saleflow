@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate, Link } from "react-router-dom";
+
+const HOME = (window as any).saleflowDesktop ? "/app" : "/dashboard";
 import {
   useMe,
   useLogin,
@@ -35,7 +37,7 @@ export function LoginPage() {
   }
 
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={HOME} replace />;
   }
 
   function handleSubmit(e: FormEvent) {
@@ -46,7 +48,7 @@ export function LoginPage() {
         onSuccess: (data) => {
           if (isLoginTrustedResponse(data)) {
             // Trusted device — skip OTP, go directly to dashboard
-            void navigate("/dashboard");
+            void navigate(HOME);
           } else {
             setUserId(data.user_id);
             setStep("otp");
@@ -61,7 +63,7 @@ export function LoginPage() {
       { user_id: userId, code, remember_me: rememberMe },
       {
         onSuccess: () => {
-          void navigate("/dashboard");
+          void navigate(HOME);
         },
       },
     );

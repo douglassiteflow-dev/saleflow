@@ -54,6 +54,8 @@ export function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route element={<ProtectedRoute />}>
+            {/* Desktop app route — dialer without sidebar/topbar */}
+            <Route path="/app" element={<DialerPage />} />
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/dialer" element={<DialerPage />} />
