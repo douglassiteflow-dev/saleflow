@@ -19,6 +19,7 @@ import { MeetingDetailPage } from "@/pages/meeting-detail";
 import { HistoryPage } from "@/pages/history";
 
 import { AppPlaceholderPage } from "@/pages/app-placeholder";
+import { DownloadAppPage } from "@/pages/download-app";
 import { AppTelavoxPage } from "@/pages/app-telavox";
 import { AppTeamsPage } from "@/pages/app-teams";
 
@@ -53,6 +54,7 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/download-app" element={<DownloadAppPage />} />
           <Route element={<ProtectedRoute />}>
             {/* Desktop app route — dialer without sidebar/topbar */}
             <Route path="/app" element={<DialerPage />} />
