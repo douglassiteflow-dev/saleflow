@@ -22,7 +22,7 @@ function createWindow() {
       contextIsolation: true,
     },
     titleBarStyle: "hiddenInset",
-    trafficLightPosition: { x: 15, y: 15 },
+    trafficLightPosition: { x: 12, y: 18 },
     backgroundColor: "#F8FAFC",
     show: false,
   });

@@ -28,9 +28,10 @@ export function DialerHeader({
 }: DialerHeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const unreadCount = useUnreadCount();
+  const isDesktop = !!(window as any).saleflowDesktop;
 
   return (
-    <div className="relative flex items-center px-5 py-3 rounded-t-[14px]" style={{ background: "linear-gradient(135deg, #312E81, #4F46E5, #6366F1)" }}>
+    <div className={`relative flex items-center py-3 ${isDesktop ? "pl-20 pr-5" : "px-5 rounded-t-[14px]"}`} style={{ background: "linear-gradient(135deg, #312E81, #4F46E5, #6366F1)", WebkitAppRegion: isDesktop ? "drag" : undefined } as React.CSSProperties}>
       <div className="flex items-center gap-2">
         <img src="/app-icons/saleflow.png" alt="Saleflow" className="h-7 w-7 rounded" />
         <span className="text-[15px] font-semibold tracking-[-0.3px] text-white">
@@ -40,7 +41,7 @@ export function DialerHeader({
 
       <div className="flex-1" />
 
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-5" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
         <div className="text-center">
           <p className="text-[9px] uppercase tracking-[1px] text-white/50 mb-0.5">Samtal</p>
           <p className="text-lg font-light text-white leading-none">{callsToday}</p>
