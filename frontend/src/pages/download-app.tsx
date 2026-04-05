@@ -18,7 +18,7 @@ export function DownloadAppPage() {
       <div className="flex flex-col sm:flex-row gap-4 mb-16">
         {/* macOS */}
         <a
-          href="#"
+          href="https://github.com/douglassiteflow-dev/saleflow/releases/latest/download/Saleflow-Dialer-macOS.dmg"
           className="flex items-center gap-4 rounded-xl bg-white/10 border border-white/10 px-8 py-5 hover:bg-white/15 transition-colors no-underline group"
         >
           <svg width="32" height="32" viewBox="0 0 24 24" fill="white" className="shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -32,7 +32,7 @@ export function DownloadAppPage() {
 
         {/* Windows */}
         <a
-          href="#"
+          href="https://github.com/douglassiteflow-dev/saleflow/releases/latest/download/Saleflow-Dialer-Windows-Setup.exe"
           className="flex items-center gap-4 rounded-xl bg-white/10 border border-white/10 px-8 py-5 hover:bg-white/15 transition-colors no-underline group"
         >
           <svg width="32" height="32" viewBox="0 0 24 24" fill="white" className="shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -44,9 +44,9 @@ export function DownloadAppPage() {
           </div>
         </a>
 
-        {/* Linux */}
+        {/* Linux — TODO: bygg AppImage */}
         <a
-          href="#"
+          href="https://github.com/douglassiteflow-dev/saleflow/releases/latest"
           className="flex items-center gap-4 rounded-xl bg-white/10 border border-white/10 px-8 py-5 hover:bg-white/15 transition-colors no-underline group"
         >
           <svg width="32" height="32" viewBox="0 0 24 24" fill="white" className="shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
