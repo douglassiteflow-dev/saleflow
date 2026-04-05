@@ -69,6 +69,7 @@ defmodule Saleflow.Sales do
     resource Saleflow.Sales.PhoneCall
     resource Saleflow.Sales.Goal
     resource Saleflow.Sales.LeadComment
+    resource Saleflow.Sales.Deal
     resource Saleflow.Notifications.Notification
   end
 
@@ -683,6 +684,63 @@ defmodule Saleflow.Sales do
       end
 
     Ash.read(query)
+  end
+
+  # ---------------------------------------------------------------------------
+  # Deal functions
+  # ---------------------------------------------------------------------------
+
+  def create_deal(params) do
+    Saleflow.Sales.Deal
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create()
+  end
+
+  def advance_deal(deal) do
+    deal
+    |> Ash.Changeset.for_update(:advance, %{})
+    |> Ash.update()
+  end
+
+  def update_deal(deal, params) do
+    deal
+    |> Ash.Changeset.for_update(:update_fields, params)
+    |> Ash.update()
+  end
+
+  def get_deal(id) do
+    Saleflow.Sales.Deal
+    |> Ash.get(id)
+  end
+
+  def list_deals do
+    Saleflow.Sales.Deal
+    |> Ash.Query.sort(updated_at: :desc)
+    |> Ash.read()
+  end
+
+  def list_deals_for_user(user_id) do
+    require Ash.Query
+
+    Saleflow.Sales.Deal
+    |> Ash.Query.filter(user_id == ^user_id)
+    |> Ash.Query.sort(updated_at: :desc)
+    |> Ash.read()
+  end
+
+  def get_active_deal_for_lead(lead_id) do
+    require Ash.Query
+
+    Saleflow.Sales.Deal
+    |> Ash.Query.filter(lead_id == ^lead_id and stage != :won)
+    |> Ash.Query.sort(inserted_at: :desc)
+    |> Ash.Query.limit(1)
+    |> Ash.read()
+    |> case do
+      {:ok, [deal | _]} -> {:ok, deal}
+      {:ok, []} -> {:ok, nil}
+      error -> error
+    end
   end
 
   def decode_uuid(value) when is_binary(value) and byte_size(value) == 16 do

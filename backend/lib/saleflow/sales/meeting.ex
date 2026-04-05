@@ -97,6 +97,11 @@ defmodule Saleflow.Sales.Meeting do
       public? true
     end
 
+    attribute :deal_id, :uuid do
+      allow_nil? true
+      public? true
+    end
+
     create_timestamp :inserted_at
     update_timestamp :updated_at
   end
@@ -106,7 +111,7 @@ defmodule Saleflow.Sales.Meeting do
 
     create :create do
       description "Create a new meeting for a lead"
-      accept [:lead_id, :user_id, :title, :meeting_date, :meeting_time, :notes, :duration_minutes, :attendee_email, :attendee_name]
+      accept [:lead_id, :user_id, :title, :meeting_date, :meeting_time, :notes, :duration_minutes, :attendee_email, :attendee_name, :deal_id]
 
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "meeting.created"}
     end
