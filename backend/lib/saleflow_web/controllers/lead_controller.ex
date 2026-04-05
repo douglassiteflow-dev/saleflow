@@ -220,6 +220,20 @@ defmodule SaleflowWeb.LeadController do
 
           {:ok, meeting} = Sales.create_meeting(meeting_params)
 
+          # Auto-create or reuse deal for this lead
+          deal =
+            case Sales.get_active_deal_for_lead(lead.id) do
+              {:ok, nil} ->
+                {:ok, new_deal} = Sales.create_deal(%{lead_id: lead.id, user_id: user.id})
+                new_deal
+
+              {:ok, existing_deal} ->
+                existing_deal
+            end
+
+          # Link meeting to deal
+          {:ok, meeting} = Sales.update_meeting(meeting, %{deal_id: deal.id})
+
           # Auto-create Teams meeting if user has Microsoft connected and opted in
           if params["create_teams_meeting"] != false do
             attendee_overrides = %{

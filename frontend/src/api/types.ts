@@ -335,3 +335,38 @@ export interface AppNotification {
   read_at: string | null;
   inserted_at: string;
 }
+
+export type DealStage =
+  | "meeting_booked"
+  | "needs_website"
+  | "generating_website"
+  | "reviewing"
+  | "deployed"
+  | "demo_followup"
+  | "contract_sent"
+  | "signed"
+  | "dns_launch"
+  | "won";
+
+export interface Deal {
+  id: string;
+  lead_id: string;
+  user_id: string;
+  stage: DealStage;
+  website_url: string | null;
+  contract_url: string | null;
+  domain: string | null;
+  domain_sponsored: boolean;
+  notes: string | null;
+  lead_name: string | null;
+  user_name: string | null;
+  inserted_at: string;
+  updated_at: string;
+}
+
+export interface DealDetailData {
+  deal: Deal;
+  lead: Lead;
+  meetings: Meeting[];
+  audit_logs: AuditLog[];
+}

@@ -150,7 +150,7 @@ defmodule Saleflow.Sales.Meeting do
     update :update do
       description "Update meeting fields (date, time, notes, status)"
       require_atomic? false
-      accept [:meeting_date, :meeting_time, :notes, :status]
+      accept [:meeting_date, :meeting_time, :notes, :status, :deal_id]
 
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "meeting.updated"}
     end

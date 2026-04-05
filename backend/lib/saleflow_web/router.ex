@@ -69,6 +69,12 @@ defmodule SaleflowWeb.Router do
     post "/meetings/:id/cancel", MeetingController, :cancel
     post "/meetings/:id/create-teams-meeting", MicrosoftController, :create_teams_meeting
 
+    # Deals
+    get "/deals", DealController, :index
+    get "/deals/:id", DealController, :show
+    post "/deals/:id/advance", DealController, :advance
+    patch "/deals/:id", DealController, :update
+
     get "/audit", AuditController, :index
 
     get "/my-stats", AdminController, :my_stats

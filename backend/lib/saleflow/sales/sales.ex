@@ -743,6 +743,15 @@ defmodule Saleflow.Sales do
     end
   end
 
+  def list_meetings_for_deal(deal_id) do
+    require Ash.Query
+
+    Saleflow.Sales.Meeting
+    |> Ash.Query.filter(deal_id == ^deal_id)
+    |> Ash.Query.sort(meeting_date: :asc, meeting_time: :asc)
+    |> Ash.read()
+  end
+
   def decode_uuid(value) when is_binary(value) and byte_size(value) == 16 do
     Ecto.UUID.load!(value)
   end
