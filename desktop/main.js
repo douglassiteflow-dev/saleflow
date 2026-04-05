@@ -46,12 +46,29 @@ function createWindow() {
   // Intercept navigation — keep user in dialer
   mainWindow.webContents.on("will-navigate", (event, url) => {
     const parsed = new URL(url);
-    const allowedPaths = ["/app", "/login", "/forgot-password", "/reset-password", "/api/"];
-    const isAllowed = allowedPaths.some((p) => parsed.pathname.startsWith(p));
+    // Only allow /app, /login, and auth routes — everything else redirects to /app
+    if (parsed.origin === new URL(API_URL).origin) {
+      const allowedPaths = ["/app", "/login", "/forgot-password", "/reset-password"];
+      const isAllowed = allowedPaths.some((p) => parsed.pathname.startsWith(p)) || parsed.pathname.startsWith("/api/");
 
-    if (!isAllowed && parsed.origin === new URL(API_URL).origin) {
-      event.preventDefault();
-      mainWindow.loadURL(`${API_URL}/app`);
+      if (!isAllowed) {
+        event.preventDefault();
+        mainWindow.loadURL(`${API_URL}/app`);
+      }
+    }
+  });
+
+  // Catch client-side routing that lands on wrong page
+  mainWindow.webContents.on("did-navigate-in-page", (_event, url) => {
+    const parsed = new URL(url);
+    if (parsed.origin === new URL(API_URL).origin) {
+      const p = parsed.pathname;
+      if (p !== "/app" && p !== "/login" && !p.startsWith("/forgot") && !p.startsWith("/reset")) {
+        mainWindow.webContents.executeJavaScript(`
+          window.history.replaceState(null, '', '/app');
+          window.dispatchEvent(new PopStateEvent('popstate'));
+        `);
+      }
     }
   });
 

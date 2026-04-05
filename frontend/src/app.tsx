@@ -79,7 +79,7 @@ export function App() {
               </Route>
             </Route>
           </Route>
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to={(window as any).saleflowDesktop ? "/app" : "/dashboard"} replace />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
