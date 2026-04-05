@@ -41,6 +41,8 @@ describe("Sidebar", () => {
   it("shows admin nav items for admin users", () => {
     useMeMock.mockReturnValue({ data: { role: "admin" } });
     render(<Sidebar />, { wrapper: Wrapper });
+    expect(screen.getByText("Pipeline")).toBeInTheDocument();
+    expect(screen.getByText("Kunder")).toBeInTheDocument();
     expect(screen.getByText("Användare")).toBeInTheDocument();
     expect(screen.getByText("Importera")).toBeInTheDocument();
     expect(screen.getByText("Statistik")).toBeInTheDocument();
@@ -50,6 +52,8 @@ describe("Sidebar", () => {
   it("hides admin nav items for non-admin users", () => {
     useMeMock.mockReturnValue({ data: { role: "agent" } });
     render(<Sidebar />, { wrapper: Wrapper });
+    expect(screen.queryByText("Pipeline")).not.toBeInTheDocument();
+    expect(screen.queryByText("Kunder")).not.toBeInTheDocument();
     expect(screen.queryByText("Användare")).not.toBeInTheDocument();
     expect(screen.queryByText("Importera")).not.toBeInTheDocument();
     expect(screen.queryByText("Statistik")).not.toBeInTheDocument();

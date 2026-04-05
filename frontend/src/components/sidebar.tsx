@@ -114,6 +114,8 @@ export function Sidebar() {
               <p className="px-3 mt-5 mb-2 text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
                 Admin
               </p>
+              <NavItem to="/pipeline" label="Pipeline" />
+              <NavItem to="/customers" label="Kunder" />
               <NavItem to="/admin/users" label="Användare" />
               <NavItem to="/admin/import" label="Importera" />
               <NavItem to="/admin/lists" label="Listor" />

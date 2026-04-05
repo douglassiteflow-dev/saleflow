@@ -133,6 +133,11 @@ defmodule SaleflowWeb.Router do
     delete "/lists/:id/agents/:user_id", ListController, :remove_agent
     get "/lists/:id/agents", ListController, :list_agents
 
+    # Deal Flowing AI proxy
+    post "/deals/:id/scrape", DealController, :scrape
+    post "/deals/:id/generate", DealController, :generate
+    post "/deals/:id/deploy", DealController, :deploy
+
     # Apps
     get "/apps", AppController, :index
     get "/apps/:slug", AppController, :show

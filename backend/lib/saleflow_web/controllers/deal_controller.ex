@@ -114,6 +114,54 @@ defmodule SaleflowWeb.DealController do
   end
 
   # ---------------------------------------------------------------------------
+  # Flowing AI proxy actions (admin-only)
+  # ---------------------------------------------------------------------------
+
+  def scrape(conn, %{"id" => id, "url" => url}) do
+    user = conn.assigns.current_user
+
+    with {:ok, _deal} <- get_deal(id),
+         :ok <- authorize_admin(user),
+         {:ok, data} <- Saleflow.FlowingAi.scrape(url) do
+      json(conn, %{ok: true, data: data})
+    else
+      {:error, reason} -> conn |> put_status(422) |> json(%{error: inspect(reason)})
+    end
+  end
+
+  def generate(conn, %{"id" => id} = params) do
+    user = conn.assigns.current_user
+
+    with {:ok, deal} <- get_deal(id),
+         :ok <- authorize_admin(user),
+         {:ok, data} <-
+           Saleflow.FlowingAi.generate(
+             params["slug"],
+             params["selectedImages"],
+             params["selectedServices"]
+           ),
+         {:ok, _} <- Sales.advance_deal(deal) do
+      json(conn, %{ok: true, data: data})
+    else
+      {:error, reason} -> conn |> put_status(422) |> json(%{error: inspect(reason)})
+    end
+  end
+
+  def deploy(conn, %{"id" => id, "slug" => slug}) do
+    user = conn.assigns.current_user
+
+    with {:ok, deal} <- get_deal(id),
+         :ok <- authorize_admin(user),
+         {:ok, data} <- Saleflow.FlowingAi.deploy(slug),
+         url = if(is_map(data), do: data["url"], else: nil),
+         {:ok, _} <- Sales.update_deal(deal, %{website_url: url}) do
+      json(conn, %{ok: true, url: url})
+    else
+      {:error, reason} -> conn |> put_status(422) |> json(%{error: inspect(reason)})
+    end
+  end
+
+  # ---------------------------------------------------------------------------
   # Helpers
   # ---------------------------------------------------------------------------
 
@@ -248,6 +296,9 @@ defmodule SaleflowWeb.DealController do
       inserted_at: log.inserted_at
     }
   end
+
+  defp authorize_admin(%{role: :admin}), do: :ok
+  defp authorize_admin(_), do: {:error, :forbidden}
 
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
