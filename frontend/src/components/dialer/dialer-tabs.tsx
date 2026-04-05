@@ -11,9 +11,9 @@ interface DialerTabsProps {
 
 const TABS: { key: DialerTab; label: string }[] = [
   { key: "dialer", label: "Dialer" },
-  { key: "callbacks", label: "Callbacks" },
   { key: "history", label: "Samtalshistorik" },
   { key: "meetings", label: "Möten" },
+  { key: "callbacks", label: "Callbacks" },
 ];
 
 export function DialerTabs({
