@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useMeetingDetail, useUpdateMeeting, useCancelMeeting } from "@/api/meetings";
-import { useLeadDetail } from "@/api/leads";
 import { Badge } from "@/components/ui/badge";
 import { HistoryTimeline } from "@/components/history-timeline";
 import { formatDate, formatTime, formatPhone } from "@/lib/format";

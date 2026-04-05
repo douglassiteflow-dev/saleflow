@@ -153,6 +153,8 @@ export interface Meeting {
   reminded_at: string | null;
   teams_join_url: string | null;
   teams_event_id: string | null;
+  attendee_name: string | null;
+  attendee_email: string | null;
   updated_at: string;
   inserted_at: string;
   user_name?: string | null;

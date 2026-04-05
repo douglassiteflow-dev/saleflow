@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { DialerTabs } from "@/components/dialer/dialer-tabs";
+import { DialerTabs, type DialerTab } from "@/components/dialer/dialer-tabs";
 import { DialerHeader } from "@/components/dialer/dialer-header";
 import { DialerFooter } from "@/components/dialer/dialer-footer";
 import { MiniLeaderboard } from "@/components/dialer/mini-leaderboard";
@@ -8,7 +8,7 @@ import { LeadComments } from "@/components/dialer/lead-comments";
 import { OutcomeInline } from "@/components/dialer/outcome-inline";
 import { MeetingDetailTab } from "@/components/dialer/meeting-detail-tab";
 import { LeadDetailTab } from "@/components/dialer/lead-detail-tab";
-import { useLeaderboard, useDashboard } from "@/api/dashboard";
+import { useLeaderboard, useDashboard, type LeaderboardEntry } from "@/api/dashboard";
 import {
   useNextLead,
   useLeadDetail,
@@ -62,7 +62,7 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-type Tab = "dialer" | "callbacks" | "history" | "meetings" | "profile" | "meeting-detail" | "lead-detail";
+type Tab = DialerTab | "profile" | "meeting-detail" | "lead-detail";
 
 /* ==================== Main component ==================== */
 
@@ -264,7 +264,7 @@ export function DialerPage() {
 
 interface DialerTabContentProps {
   user?: { id: string; name: string; role: string };
-  leaderboard: { user_id: string; name: string; calls_today: number; net_meetings_today: number }[];
+  leaderboard: LeaderboardEntry[];
   hasLead: boolean;
   lead?: Lead;
   calls: CallLog[];
@@ -288,16 +288,10 @@ interface DialerTabContentProps {
 function DialerTabContent({
   user,
   leaderboard,
-  hasLead,
   lead,
   calls,
   leadLoading,
   displayPhone,
-  calling,
-  telavoxConnected,
-  onDial,
-  onHangup,
-  isDialing,
   onSkip,
   isSkipping,
   onNext,
@@ -305,7 +299,6 @@ function DialerTabContent({
   onOutcomeSubmitted,
   currentLeadId,
   nextLeadData,
-  nextLeadError,
 }: DialerTabContentProps) {
   /* Leaderboard */
   const showLeaderboard = leaderboard.length > 0;
@@ -710,7 +703,7 @@ function HistoryTabContent({ dateRange, onDateRangeChange, onLeadClick }: { date
           <div className="p-5"><Loader size="sm" title="Laddar samtal..." /></div>
         ) : visible.length === 0 ? (
           <p className="p-5 text-sm text-[var(--color-text-secondary)]">
-            Inga samtal {date === todayISO() ? "idag" : `den ${date}`}.
+            Inga samtal {dateRange.from === todayISO() ? "idag" : `den ${dateRange.from}`}.
           </p>
         ) : (
           <table className="w-full text-[13px]">

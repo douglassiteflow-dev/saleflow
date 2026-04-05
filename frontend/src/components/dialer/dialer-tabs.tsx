@@ -1,15 +1,15 @@
 import { cn } from "@/lib/cn";
 
-type Tab = "dialer" | "callbacks" | "history" | "meetings";
+export type DialerTab = "dialer" | "callbacks" | "history" | "meetings";
 
 interface DialerTabsProps {
-  activeTab: Tab;
-  onTabChange: (tab: Tab) => void;
+  activeTab: string;
+  onTabChange: (tab: DialerTab) => void;
   callbackCount?: number;
   meetingCount?: number;
 }
 
-const TABS: { key: Tab; label: string }[] = [
+const TABS: { key: DialerTab; label: string }[] = [
   { key: "dialer", label: "Dialer" },
   { key: "callbacks", label: "Callbacks" },
   { key: "history", label: "Samtalshistorik" },
