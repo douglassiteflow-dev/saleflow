@@ -28,7 +28,7 @@ export function DialerHeader({
 }: DialerHeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const unreadCount = useUnreadCount();
-  const isDesktop = !!(window as any).saleflowDesktop;
+  const isDesktop = window.location.pathname === "/app" || !!(window as any).saleflowDesktop;
 
   return (
     <div className={`relative flex items-center py-3 ${isDesktop ? "pl-[85px] pr-5" : "px-5 rounded-t-[14px]"}`} style={{ background: "linear-gradient(135deg, #312E81, #4F46E5, #6366F1)", WebkitAppRegion: isDesktop ? "drag" : undefined } as React.CSSProperties}>
