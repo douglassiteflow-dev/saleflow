@@ -129,6 +129,14 @@ function createTray() {
 }
 
 app.whenReady().then(() => {
+  // Set dock icon on macOS
+  if (process.platform === "darwin") {
+    const dockIcon = nativeImage.createFromPath(path.join(__dirname, "icons", "icon.png"));
+    if (!dockIcon.isEmpty()) {
+      app.dock.setIcon(dockIcon);
+    }
+  }
+
   createWindow();
   createTray();
 });

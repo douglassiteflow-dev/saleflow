@@ -31,7 +31,7 @@ export function DialerHeader({
   const isDesktop = !!(window as any).saleflowDesktop;
 
   return (
-    <div className={`relative flex items-center py-3 ${isDesktop ? "pl-20 pr-5" : "px-5 rounded-t-[14px]"}`} style={{ background: "linear-gradient(135deg, #312E81, #4F46E5, #6366F1)", WebkitAppRegion: isDesktop ? "drag" : undefined } as React.CSSProperties}>
+    <div className={`relative flex items-center py-3 ${isDesktop ? "pl-[85px] pr-5" : "px-5 rounded-t-[14px]"}`} style={{ background: "linear-gradient(135deg, #312E81, #4F46E5, #6366F1)", WebkitAppRegion: isDesktop ? "drag" : undefined } as React.CSSProperties}>
       <div className="flex items-center gap-2">
         <img src="/app-icons/saleflow.png" alt="Saleflow" className="h-7 w-7 rounded" />
         <span className="text-[15px] font-semibold tracking-[-0.3px] text-white">
