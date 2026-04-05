@@ -16,7 +16,7 @@ import {
   useCallbacks,
 } from "@/api/leads";
 import { useCallHistory } from "@/api/calls";
-import { useMeetings, useCancelMeeting } from "@/api/meetings";
+import { useMeetings, useCancelMeeting, useUpdateMeeting } from "@/api/meetings";
 import { useMe } from "@/api/auth";
 import { useDial, useTelavoxStatus, useHangup, useTelavoxConnect, useTelavoxDisconnect } from "@/api/telavox";
 import { useMicrosoftStatus, useMicrosoftAuthorize, useMicrosoftDisconnect } from "@/api/microsoft";
@@ -98,6 +98,9 @@ export function DialerPage() {
   const { data: callbacks } = useCallbacks();
   const { data: meetings } = useMeetings();
 
+  /* --- meeting update (for notification actions) --- */
+  const updateMeeting = useUpdateMeeting();
+
   /* --- dial / hangup (Telavox) --- */
   const { data: telavoxStatus } = useTelavoxStatus();
   const dial = useDial();
@@ -171,7 +174,10 @@ export function DialerPage() {
         conversionRate={dashboard?.conversion?.rate ?? 0}
         callbackCount={callbacks?.length}
         onProfileClick={() => setActiveTab("profile")}
-        onNotificationsClick={() => setActiveTab("callbacks")}
+        onOpenMeeting={(id) => { setSelectedMeetingId(id); setActiveTab("meeting-detail"); }}
+        onOpenLead={(id) => { setCurrentLeadId(id); setActiveTab("dialer"); }}
+        onUpdateMeetingStatus={(id, status) => { updateMeeting.mutate({ id, status }); }}
+        onRebookMeeting={(id) => { setSelectedMeetingId(id); setActiveTab("meeting-detail"); }}
       />
 
       {/* ---- Tabs ---- */}

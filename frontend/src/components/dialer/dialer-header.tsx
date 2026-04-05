@@ -1,3 +1,7 @@
+import { useState } from "react";
+import { NotificationDropdown } from "./notification-dropdown";
+import { useUnreadCount } from "@/api/notifications";
+
 interface DialerHeaderProps {
   userName?: string;
   callsToday: number;
@@ -5,14 +9,28 @@ interface DialerHeaderProps {
   conversionRate: number;
   callbackCount?: number;
   onProfileClick?: () => void;
-  onNotificationsClick?: () => void;
+  onOpenMeeting?: (id: string) => void;
+  onOpenLead?: (id: string) => void;
+  onUpdateMeetingStatus?: (id: string, status: "completed" | "cancelled") => void;
+  onRebookMeeting?: (id: string) => void;
 }
 
-export function DialerHeader({ userName, callsToday, meetingsToday, conversionRate, callbackCount, onProfileClick, onNotificationsClick }: DialerHeaderProps) {
-  const hasNotifications = (callbackCount ?? 0) > 0;
+export function DialerHeader({
+  userName,
+  callsToday,
+  meetingsToday,
+  conversionRate,
+  onProfileClick,
+  onOpenMeeting,
+  onOpenLead,
+  onUpdateMeetingStatus,
+  onRebookMeeting,
+}: DialerHeaderProps) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const unreadCount = useUnreadCount();
 
   return (
-    <div className="flex items-center px-5 py-3 rounded-t-[14px]" style={{ background: "linear-gradient(135deg, #312E81, #4F46E5, #6366F1)" }}>
+    <div className="relative flex items-center px-5 py-3 rounded-t-[14px]" style={{ background: "linear-gradient(135deg, #312E81, #4F46E5, #6366F1)" }}>
       <div className="flex items-center gap-2">
         <img src="/app-icons/saleflow.png" alt="Saleflow" className="h-7 w-7 rounded" />
         <span className="text-[15px] font-semibold tracking-[-0.3px] text-white">
@@ -41,19 +59,41 @@ export function DialerHeader({ userName, callsToday, meetingsToday, conversionRa
         {/* Notifications bell */}
         <button
           type="button"
-          onClick={onNotificationsClick}
+          onClick={() => setDropdownOpen((prev) => !prev)}
           className="relative flex items-center justify-center h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
           </svg>
-          {hasNotifications && (
+          {unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
-              {callbackCount}
+              {unreadCount}
             </span>
           )}
         </button>
+
+        {/* Notification dropdown */}
+        <NotificationDropdown
+          open={dropdownOpen}
+          onClose={() => setDropdownOpen(false)}
+          onOpenMeeting={(id) => {
+            setDropdownOpen(false);
+            onOpenMeeting?.(id);
+          }}
+          onOpenLead={(id) => {
+            setDropdownOpen(false);
+            onOpenLead?.(id);
+          }}
+          onUpdateMeetingStatus={(id, status) => {
+            setDropdownOpen(false);
+            onUpdateMeetingStatus?.(id, status);
+          }}
+          onRebookMeeting={(id) => {
+            setDropdownOpen(false);
+            onRebookMeeting?.(id);
+          }}
+        />
 
         {/* Profile */}
         <button

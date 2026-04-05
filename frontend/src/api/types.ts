@@ -322,3 +322,14 @@ export interface LeadComment {
   text: string;
   inserted_at: string;
 }
+
+export interface AppNotification {
+  id: string;
+  type: "meeting_soon" | "meeting_update" | "callback_due" | "goal_reached";
+  title: string;
+  body: string | null;
+  resource_type: string | null;
+  resource_id: string | null;
+  read_at: string | null;
+  inserted_at: string;
+}
