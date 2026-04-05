@@ -9,6 +9,10 @@ vi.mock("@/api/auth", () => ({
   useMe: () => useMeMock(),
 }));
 
+vi.mock("@/api/apps", () => ({
+  useMyApps: vi.fn(() => ({ data: [] })),
+}));
+
 function Wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return (
@@ -29,7 +33,7 @@ describe("Sidebar", () => {
     useMeMock.mockReturnValue({ data: { role: "agent" } });
     render(<Sidebar />, { wrapper: Wrapper });
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
-    expect(screen.getByText("Ringare")).toBeInTheDocument();
+    expect(screen.getByText("Dialer")).toBeInTheDocument();
     expect(screen.getByText("Möten")).toBeInTheDocument();
     expect(screen.getByText("Samtalshistorik")).toBeInTheDocument();
   });

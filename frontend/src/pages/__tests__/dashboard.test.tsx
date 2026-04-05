@@ -70,9 +70,9 @@ describe("DashboardPage", () => {
 
   it("renders stat cards", () => {
     render(<DashboardPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Samtal idag")).toBeInTheDocument();
-    expect(screen.getByText("Möten idag")).toBeInTheDocument();
-    expect(screen.getByText("Konvertering")).toBeInTheDocument();
+    expect(screen.getByText("Utgående samtal idag")).toBeInTheDocument();
+    expect(screen.getByText("Nya möten idag")).toBeInTheDocument();
+    expect(screen.getByText("Konvertering idag")).toBeInTheDocument();
   });
 
   it("renders my stats values", () => {
