@@ -18,7 +18,7 @@ export function DownloadAppPage() {
       <div className="flex flex-col sm:flex-row gap-4 mb-16">
         {/* macOS */}
         <a
-          href="https://github.com/douglassiteflow-dev/saleflow-releases/releases/latest/download/Saleflow.Dialer-1.0.0-arm64.dmg"
+          href="https://github.com/douglassiteflow-dev/saleflow/releases/latest/download/Saleflow-Dialer-arm64.dmg"
           className="flex items-center gap-4 rounded-xl bg-white/10 border border-white/10 px-8 py-5 hover:bg-white/15 transition-colors no-underline group"
         >
           <svg width="32" height="32" viewBox="0 0 24 24" fill="white" className="shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -32,7 +32,7 @@ export function DownloadAppPage() {
 
         {/* Windows */}
         <a
-          href="https://github.com/douglassiteflow-dev/saleflow-releases/releases/latest/download/Saleflow.Dialer.Setup.1.0.0.exe"
+          href="https://github.com/douglassiteflow-dev/saleflow/releases/latest/download/Saleflow-Dialer-Setup.exe"
           className="flex items-center gap-4 rounded-xl bg-white/10 border border-white/10 px-8 py-5 hover:bg-white/15 transition-colors no-underline group"
         >
           <svg width="32" height="32" viewBox="0 0 24 24" fill="white" className="shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -46,7 +46,7 @@ export function DownloadAppPage() {
 
         {/* Linux — TODO: bygg AppImage */}
         <a
-          href="https://github.com/douglassiteflow-dev/saleflow-releases/releases/latest/download/Saleflow.Dialer-1.0.0-arm64.dmg"
+          href="https://github.com/douglassiteflow-dev/saleflow/releases/latest/download/Saleflow-Dialer-arm64.dmg"
           className="flex items-center gap-4 rounded-xl bg-white/10 border border-white/10 px-8 py-5 hover:bg-white/15 transition-colors no-underline group"
         >
           <svg width="32" height="32" viewBox="0 0 24 24" fill="white" className="shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -92,7 +92,7 @@ export function DownloadAppPage() {
 
       {/* Version info */}
       <p className="text-xs text-white/20">
-        Saleflow Dialer v1.0.0 · Kräver macOS 12+, Windows 10+, eller Ubuntu 20+
+        Saleflow Dialer v1.0.1 · Kräver macOS 12+, Windows 10+, eller Ubuntu 20+
       </p>
     </div>
   );
