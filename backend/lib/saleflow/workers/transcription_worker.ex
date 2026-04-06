@@ -117,11 +117,12 @@ defmodule Saleflow.Workers.TranscriptionWorker do
     ---
 
     INSTRUKTIONER:
-    1. Rätta ALL text grammatiskt. Fixa felstavningar, hörfel och tal-till-text-artefakter. Gör texten naturlig och lättläst men behåll innebörden och tonen exakt.
-    2. Separera vem som pratar (säljare vs kund) baserat på kontext.
-    3. Ge detaljerad feedback som CITERAR specifika delar av samtalet.
+    1. Avgör FÖRST om detta är en telefonsvarare/röstbrevlåda. Om det bara är ett automatiskt meddelande (typ "Välkommen till röstbrevlådan", "Lämna ett meddelande efter signalen") — returnera: {"voicemail": true, "summary": "Telefonsvarare/röstbrevlåda"} och INGET annat.
+    2. Om det är ett riktigt samtal: Rätta ALL text grammatiskt. Fixa felstavningar, hörfel och tal-till-text-artefakter. Gör texten naturlig och lättläst men behåll innebörden och tonen exakt.
+    3. Separera vem som pratar (säljare vs kund) baserat på kontext.
+    4. Ge detaljerad feedback som CITERAR specifika delar av samtalet.
 
-    Returnera EXAKT detta JSON-format (inget annat):
+    Om det är ett RIKTIGT samtal, returnera EXAKT detta JSON-format (inget annat):
     {
       "conversation": [
         {"speaker": "Säljare", "text": "Grammatiskt korrekt text..."},
