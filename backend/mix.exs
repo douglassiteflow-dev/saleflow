@@ -69,6 +69,8 @@ defmodule Saleflow.MixProject do
       # S3-compatible storage (Cloudflare R2)
       {:ex_aws, "~> 2.5"},
       {:ex_aws_s3, "~> 2.5"},
+      {:hackney, "~> 1.20"},
+      {:sweet_xml, "~> 0.7"},
       # CORS
       {:cors_plug, "~> 3.0"},
       # Test coverage
