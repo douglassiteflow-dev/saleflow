@@ -346,7 +346,8 @@ export type DealStage =
   | "contract_sent"
   | "signed"
   | "dns_launch"
-  | "won";
+  | "won"
+  | "cancelled";
 
 export interface Deal {
   id: string;

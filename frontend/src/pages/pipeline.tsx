@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import type { DealStage } from "@/api/types";
 import Loader from "@/components/kokonutui/loader";
 
-const STAGE_LABELS: Record<Exclude<DealStage, "won">, string> = {
+const STAGE_LABELS: Record<Exclude<DealStage, "won" | "cancelled">, string> = {
   meeting_booked: "Möte bokat",
   needs_website: "Behöver hemsida",
   generating_website: "Genereras",
@@ -17,7 +17,7 @@ const STAGE_LABELS: Record<Exclude<DealStage, "won">, string> = {
   dns_launch: "DNS & Lansering",
 };
 
-const STAGE_ORDER: Exclude<DealStage, "won">[] = [
+const STAGE_ORDER: Exclude<DealStage, "won" | "cancelled">[] = [
   "meeting_booked",
   "needs_website",
   "generating_website",
@@ -74,7 +74,7 @@ export function PipelinePage() {
         Object.entries(grouped).map(([stage, stageDeals]) => (
           <div key={stage} className="space-y-2">
             <h2 className="text-[14px] font-medium uppercase tracking-[0.05em] text-[var(--color-text-secondary)]">
-              {STAGE_LABELS[stage as Exclude<DealStage, "won">]} ({stageDeals.length})
+              {STAGE_LABELS[stage as Exclude<DealStage, "won" | "cancelled">]} ({stageDeals.length})
             </h2>
             <Card>
               <div className="overflow-x-auto">
