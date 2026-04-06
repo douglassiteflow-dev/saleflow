@@ -1,6 +1,8 @@
+import { Fragment, useState } from "react";
 import type { CallLog } from "@/api/types";
 import { Card, CardTitle } from "@/components/ui/card";
 import { RecordingPlayer } from "@/components/recording-player";
+import { CallAnalysisModal, ScoreStars } from "@/components/call-analysis-modal";
 import { formatDateTime, formatDuration } from "@/lib/format";
 import { OUTCOME_LABELS, OUTCOME_COLORS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
@@ -12,6 +14,7 @@ interface HistoryTimelineProps {
 }
 
 export function HistoryTimeline({ callLogs = [], bare = false }: HistoryTimelineProps) {
+  const [analysisCall, setAnalysisCall] = useState<CallLog | null>(null);
   const sorted = [...callLogs].sort(
     (a, b) => new Date(b.called_at).getTime() - new Date(a.called_at).getTime()
   );
@@ -35,11 +38,13 @@ export function HistoryTimeline({ callLogs = [], bare = false }: HistoryTimeline
             <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">Utfall</th>
             <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">Anteckningar</th>
             <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">Inspelning</th>
+            <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">Betyg</th>
           </tr>
         </thead>
         <tbody>
           {sorted.map((call, idx) => (
-            <tr key={call.id} className={idx < sorted.length - 1 ? "border-b border-[var(--color-border)]" : ""}>
+            <Fragment key={call.id}>
+            <tr className={idx < sorted.length - 1 && !call.transcription ? "border-b border-[var(--color-border)]" : ""}>
               <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-[var(--color-text-secondary)]">
                 {formatDateTime(call.called_at)}
               </td>
@@ -70,19 +75,38 @@ export function HistoryTimeline({ callLogs = [], bare = false }: HistoryTimeline
                   <span className="text-[var(--color-text-secondary)]">—</span>
                 )}
               </td>
+              <td className="px-4 py-3">
+                {call.transcription_analysis ? (
+                  <ScoreStars
+                    score={(() => { try { return JSON.parse(call.transcription_analysis).score?.overall ?? 0; } catch { return 0; } })()}
+                    onClick={() => setAnalysisCall(call)}
+                  />
+                ) : (
+                  <span className="text-[var(--color-text-secondary)]">—</span>
+                )}
+              </td>
             </tr>
+            </Fragment>
           ))}
         </tbody>
       </table>
     </div>
   );
 
-  if (bare) return table;
+  const modal = analysisCall?.transcription_analysis ? (
+    <CallAnalysisModal
+      analysis={(() => { try { return JSON.parse(analysisCall.transcription_analysis); } catch { return null; } })()}
+      onClose={() => setAnalysisCall(null)}
+    />
+  ) : null;
+
+  if (bare) return <>{table}{modal}</>;
 
   return (
     <Card>
       <CardTitle className="mb-4">Samtalshistorik</CardTitle>
       {table}
+      {modal}
     </Card>
   );
 }

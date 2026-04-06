@@ -98,6 +98,8 @@ export interface CallLog {
   duration: number;
   has_recording: boolean;
   phone_call_id?: string | null;
+  transcription?: string | null;
+  transcription_analysis?: string | null;
 }
 
 export interface CallHistoryEntry {
@@ -113,6 +115,8 @@ export interface CallHistoryEntry {
   duration: number;
   has_recording: boolean;
   phone_call_id: string | null;
+  transcription: string | null;
+  transcription_analysis: string | null;
 }
 
 export interface AuditLog {

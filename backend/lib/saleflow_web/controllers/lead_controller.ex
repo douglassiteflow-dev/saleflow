@@ -159,12 +159,19 @@ defmodule SaleflowWeb.LeadController do
         {:dashboard_update, %{event: "call_completed", user_id: user.id}}
       )
 
-      # Schedule recording fetch in background (best-effort, never blocks the response)
+      # Schedule recording fetch + transcription in background
       if phone_call do
         try do
           %{phone_call_id: phone_call.id, user_id: user.id}
           |> Saleflow.Workers.RecordingFetchWorker.new(schedule_in: 15)
           |> Oban.insert()
+
+          # Transcribe meeting_booked calls (after recording is fetched)
+          if outcome == "meeting_booked" do
+            %{phone_call_id: phone_call.id}
+            |> Saleflow.Workers.TranscriptionWorker.new(schedule_in: 45)
+            |> Oban.insert()
+          end
         rescue
           _ -> :ok
         catch
@@ -448,7 +455,7 @@ defmodule SaleflowWeb.LeadController do
   end
 
   defp serialize_call(call, user_names, _current_user) do
-    {duration, has_recording, phone_call_id} = get_call_phone_data(call.id)
+    {duration, has_recording, phone_call_id, transcription, transcription_analysis} = get_call_phone_data(call.id)
 
     %{
       id: call.id,
@@ -460,18 +467,20 @@ defmodule SaleflowWeb.LeadController do
       called_at: call.called_at,
       duration: duration,
       has_recording: has_recording,
-      phone_call_id: phone_call_id
+      phone_call_id: phone_call_id,
+      transcription: transcription,
+      transcription_analysis: transcription_analysis
     }
   end
 
   defp get_call_phone_data(call_log_id) do
     case Saleflow.Repo.query(
-           "SELECT COALESCE(SUM(duration), 0), bool_or(recording_key IS NOT NULL), (SELECT id FROM phone_calls WHERE call_log_id = $1 AND recording_key IS NOT NULL LIMIT 1) FROM phone_calls WHERE call_log_id = $1",
+           "SELECT COALESCE(SUM(duration), 0), bool_or(recording_key IS NOT NULL), (SELECT id FROM phone_calls WHERE call_log_id = $1 AND recording_key IS NOT NULL LIMIT 1), (SELECT transcription FROM phone_calls WHERE call_log_id = $1 AND transcription IS NOT NULL LIMIT 1), (SELECT transcription_analysis FROM phone_calls WHERE call_log_id = $1 AND transcription_analysis IS NOT NULL LIMIT 1) FROM phone_calls WHERE call_log_id = $1",
            [Ecto.UUID.dump!(call_log_id)]
          ) do
-      {:ok, %{rows: [[dur, has_rec, pc_id]]}} ->
-        {to_int(dur), has_rec || false, pc_id && Saleflow.Sales.decode_uuid(pc_id)}
-      _ -> {0, false, nil}
+      {:ok, %{rows: [[dur, has_rec, pc_id, transcription, analysis]]}} ->
+        {to_int(dur), has_rec || false, pc_id && Saleflow.Sales.decode_uuid(pc_id), transcription, analysis}
+      _ -> {0, false, nil, nil}
     end
   end
 

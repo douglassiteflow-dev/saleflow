@@ -64,3 +64,7 @@ config :phoenix, :plug_init_mode, :runtime
 
 # Skip OTP in development
 config :saleflow, :skip_otp, true
+
+# OpenAI Whisper API
+config :saleflow, :openai_api_key, System.get_env("OPENAI_API_KEY") || ""
+config :saleflow, :anthropic_api_key, System.get_env("ANTHROPIC_API_KEY") || ""

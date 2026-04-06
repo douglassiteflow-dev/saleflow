@@ -135,7 +135,9 @@ defmodule SaleflowWeb.CallController do
       l.företag as lead_name, l.telefon as lead_phone,
       pc.duration as duration,
       (pc.recording_key IS NOT NULL) as has_recording,
-      pc.id as phone_call_id
+      pc.id as phone_call_id,
+      pc.transcription,
+      pc.transcription_analysis
     FROM phone_calls pc
     LEFT JOIN call_logs cl ON cl.id = pc.call_log_id
     JOIN users u ON u.id = COALESCE(cl.user_id, pc.user_id)
@@ -158,7 +160,7 @@ defmodule SaleflowWeb.CallController do
 
     calls =
       Enum.map(rows, fn [id, called_at, outcome, notes, user_id, lead_id,
-                          user_name, lead_name, lead_phone, duration, has_recording, phone_call_id] ->
+                          user_name, lead_name, lead_phone, duration, has_recording, phone_call_id, transcription, transcription_analysis] ->
         %{
           id: Saleflow.Sales.decode_uuid(id),
           called_at: called_at && NaiveDateTime.to_iso8601(called_at),
@@ -171,7 +173,9 @@ defmodule SaleflowWeb.CallController do
           lead_phone: lead_phone,
           duration: to_int(duration),
           has_recording: has_recording || false,
-          phone_call_id: phone_call_id && Saleflow.Sales.decode_uuid(phone_call_id)
+          phone_call_id: phone_call_id && Saleflow.Sales.decode_uuid(phone_call_id),
+          transcription: transcription,
+          transcription_analysis: transcription_analysis
         }
       end)
 
