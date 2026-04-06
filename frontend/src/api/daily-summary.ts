@@ -41,3 +41,21 @@ export function useDailySummary(date: string) {
     staleTime: 60_000,
   });
 }
+
+export interface DailyReport {
+  headline: string;
+  summary: string;
+  wins: string[];
+  improvements: string[];
+  focus_tomorrow: string;
+  agent_shoutouts: { agent: string; reason: string }[];
+  trend_note: string;
+}
+
+export function useDailyReport(date: string) {
+  return useQuery<{ date: string; report: DailyReport | null }>({
+    queryKey: ["daily-report", date],
+    queryFn: () => api<{ date: string; report: DailyReport | null }>(`/api/calls/daily-report?date=${date}`),
+    staleTime: 60_000,
+  });
+}

@@ -250,6 +250,21 @@ defmodule SaleflowWeb.CallController do
     json(conn, %{date: Date.to_iso8601(date), calls: analyses})
   end
 
+  def daily_report(conn, params) do
+    date = parse_date(params["date"]) || Date.utc_today()
+
+    case Saleflow.Repo.query("SELECT report FROM daily_reports WHERE date = $1", [date]) do
+      {:ok, %{rows: [[report_json]]}} ->
+        case Jason.decode(report_json || "") do
+          {:ok, report} -> json(conn, %{date: Date.to_iso8601(date), report: report})
+          _ -> json(conn, %{date: Date.to_iso8601(date), report: nil})
+        end
+
+      _ ->
+        json(conn, %{date: Date.to_iso8601(date), report: nil})
+    end
+  end
+
   defp get_lead_name(lead_id) do
     case Saleflow.Repo.query("SELECT företag FROM leads WHERE id = $1 LIMIT 1", [Ecto.UUID.dump!(lead_id)]) do
       {:ok, %{rows: [[name]]}} when is_binary(name) -> name

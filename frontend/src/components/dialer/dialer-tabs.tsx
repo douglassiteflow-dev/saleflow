@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn";
 
-export type DialerTab = "dialer" | "callbacks" | "history" | "meetings" | "deals" | "customers";
+export type DialerTab = "dialer" | "callbacks" | "history" | "meetings" | "deals" | "customers" | "report";
 
 interface DialerTabsProps {
   activeTab: string;
@@ -16,6 +16,7 @@ const TABS: { key: DialerTab; label: string }[] = [
   { key: "callbacks", label: "Callbacks" },
   { key: "deals", label: "Deals" },
   { key: "customers", label: "Kunder" },
+  { key: "report", label: "Rapport" },
 ];
 
 export function DialerTabs({

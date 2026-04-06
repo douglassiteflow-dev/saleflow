@@ -12,6 +12,7 @@ import { LeadDetailTab } from "@/components/dialer/lead-detail-tab";
 import { DealsTab } from "@/components/dialer/deals-tab";
 import { DealDetailTab } from "@/components/dialer/deal-detail-tab";
 import { CustomersTab } from "@/components/dialer/customers-tab";
+import { ReportTab } from "@/components/dialer/report-tab";
 import { UpdateBanner } from "@/components/dialer/update-banner";
 import { CallModal } from "@/components/dialer/call-modal";
 import { RecordingPlayer } from "@/components/recording-player";
@@ -249,6 +250,8 @@ export function DialerPage() {
       {activeTab === "deal-detail" && selectedDealId && (
         <DealDetailTab dealId={selectedDealId} onBack={() => { setSelectedDealId(null); setActiveTab(dealReturnTab); }} />
       )}
+
+      {activeTab === "report" && <ReportTab />}
 
       {activeTab === "profile" && <ProfileTabContent onBack={() => setActiveTab("dialer")} />}
 
