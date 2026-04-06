@@ -22,8 +22,8 @@ export function UpdateBanner() {
       }
     };
     check();
-    // Re-check every 5 minutes
-    const interval = setInterval(check, 5 * 60 * 1000);
+    // Re-check every 15 seconds (short for testing, increase later)
+    const interval = setInterval(check, 15 * 1000);
     return () => clearInterval(interval);
   }, []);
 
