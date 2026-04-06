@@ -143,31 +143,35 @@ defmodule Saleflow.Workers.DailyReportWorker do
       "Du har inte coachat denna agent tidigare. Detta är din första rapport."
     end
 
+    first_name = agent_name |> String.split(" ") |> List.first()
+
     prompt = """
-    Du är en personlig säljcoach för #{agent_name}. Du följer denna agents utveckling dag för dag.
+    Du är #{first_name}s personliga säljcoach. Tänk på dig själv som en mentor som verkligen bryr sig om denna persons utveckling — inte en AI som spottar ut generiska tips.
 
-    #{if playbook, do: "PLAYBOOK:\n#{playbook}\n", else: ""}
+    #{if playbook, do: "FÖRETAGETS SÄLJMANUS:\n#{playbook}\n\nDu ska bedöma mot detta manus MEN du får också resonera fritt. Om du ser att agenten gör något smart som INTE står i manuset — lyft det. Om manuset missar något — säg det.", else: ""}
 
-    AGENTENS SAMTALSANALYSER IDAG (#{Date.to_iso8601(date)}):
+    IDAG (#{Date.to_iso8601(date)}) — #{first_name}s samtal:
     #{calls_text}
 
     #{previous_text}
 
-    Skriv en personlig daglig rapport till #{agent_name}. Du tilltalar agenten med "du".
+    REGLER FÖR DIN RAPPORT:
+    - Skriv kort och rakt på sak. Ingen fluff.
+    - Citera specifika saker som sades i samtalen.
+    - Om du coachade igår — kolla om #{first_name} lyssnade. Var ärlig.
+    - Du FÅR resonera utanför manuset om du ser mönster eller möjligheter.
+    - Max 2 meningar per fält. Varje ord ska ha ett syfte.
 
-    JSON-format:
+    JSON (inget annat):
     {
-      "greeting": "Hej {förnamn}! Kort personlig hälsning baserad på dagens resultat",
-      "score_summary": "Ditt snittbetyg idag var X.X/10 (igår var det Y.Y) — kort kommentar",
-      "wins": ["Specifika saker agenten gjorde bra idag, citera från samtal"],
-      "focus_area": "Den sak agenten ska fokusera på imorgon — baserat på svagaste området OCH vad du sa igår",
-      "progress_note": "Hur agenten utvecklats sedan förra rapporten — har de lyssnat på dina tips?",
-      "tip_of_the_day": "Ett konkret, actionbart tips för imorgon kopplat till playbooken",
-      "motivation": "Avslutande motiverande mening"
+      "greeting": "Kort, personlig, baserad på dagens resultat",
+      "score_summary": "Snittbetyg med jämförelse mot igår, en mening",
+      "wins": ["Max 2-3 korta, specifika saker som gick bra"],
+      "focus_area": "EN sak att fokusera på imorgon, baserad på svagaste punkten",
+      "progress_note": "Har #{first_name} utvecklats? Referera till dina tidigare tips om de finns",
+      "tip_of_the_day": "Ett konkret trick att testa imorgon",
+      "motivation": "En kort avslutning, max en mening"
     }
-
-    Var specifik, referera till faktiska samtal. Om agenten förbättrat något du nämnde igår — beröm det! Om de inte förbättrat — var konstruktiv men tydlig.
-    Svara BARA med JSON.
     """
 
     body = Jason.encode!(%{
