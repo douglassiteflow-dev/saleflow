@@ -9,11 +9,11 @@ import { cn } from "@/lib/cn";
 
 interface HistoryTimelineProps {
   callLogs?: CallLog[];
-  /** When true, skip the Card + CardTitle wrapper (used when parent already provides its own section heading). */
   bare?: boolean;
+  onPlayRecording?: (url: string) => void;
 }
 
-export function HistoryTimeline({ callLogs = [], bare = false }: HistoryTimelineProps) {
+export function HistoryTimeline({ callLogs = [], bare = false, onPlayRecording }: HistoryTimelineProps) {
   const [analysisCall, setAnalysisCall] = useState<CallLog | null>(null);
   const sorted = [...callLogs].sort(
     (a, b) => new Date(b.called_at).getTime() - new Date(a.called_at).getTime()
@@ -70,7 +70,7 @@ export function HistoryTimeline({ callLogs = [], bare = false }: HistoryTimeline
               </td>
               <td className="px-4 py-3">
                 {call.has_recording && (call.phone_call_id || call.id) ? (
-                  <RecordingPlayer phoneCallId={call.phone_call_id ?? call.id} />
+                  <RecordingPlayer phoneCallId={call.phone_call_id ?? call.id} onPlay={onPlayRecording} />
                 ) : (
                   <span className="text-[var(--color-text-secondary)]">—</span>
                 )}

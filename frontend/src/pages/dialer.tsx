@@ -16,6 +16,7 @@ import { UpdateBanner } from "@/components/dialer/update-banner";
 import { CallModal } from "@/components/dialer/call-modal";
 import { RecordingPlayer } from "@/components/recording-player";
 import { CallAnalysisModal, ScoreStars } from "@/components/call-analysis-modal";
+import { AudioPlayerBar } from "@/components/audio-player-bar";
 import { useLeaderboard, useDashboard, type LeaderboardEntry } from "@/api/dashboard";
 import {
   useNextLead,
@@ -86,6 +87,7 @@ export function DialerPage() {
   const { data: telavoxStatus } = useTelavoxStatus();
   const dial = useDial();
   const [callModalOpen, setCallModalOpen] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   /* --- skip outcome --- */
   const skipOutcome = useSubmitOutcome(currentLeadId ?? "");
@@ -214,6 +216,7 @@ export function DialerPage() {
           activePreset={historyPreset}
           onPresetChange={setHistoryPreset}
           onLeadClick={(id) => { setSelectedLeadId(id); setActiveTab("lead-detail"); }}
+          onPlayRecording={setAudioUrl}
         />
       )}
 
@@ -248,6 +251,11 @@ export function DialerPage() {
       )}
 
       {activeTab === "profile" && <ProfileTabContent onBack={() => setActiveTab("dialer")} />}
+
+      {/* ---- Audio Player ---- */}
+      {audioUrl && (
+        <AudioPlayerBar url={audioUrl} onClose={() => setAudioUrl(null)} />
+      )}
 
       {/* ---- Footer ---- */}
       <DialerFooter
@@ -655,7 +663,7 @@ function CallbacksTabContent({
 
 /* ==================== History tab ==================== */
 
-function HistoryTabContent({ dateRange, onDateRangeChange, activePreset, onPresetChange, onLeadClick }: { dateRange: DateRange; onDateRangeChange: (r: DateRange) => void; activePreset?: string | null; onPresetChange?: (label: string) => void; onLeadClick: (leadId: string) => void }) {
+function HistoryTabContent({ dateRange, onDateRangeChange, activePreset, onPresetChange, onLeadClick, onPlayRecording }: { dateRange: DateRange; onDateRangeChange: (r: DateRange) => void; activePreset?: string | null; onPresetChange?: (label: string) => void; onLeadClick: (leadId: string) => void; onPlayRecording?: (url: string) => void }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [outcomeFilter, setOutcomeFilter] = useState("");
@@ -747,7 +755,7 @@ function HistoryTabContent({ dateRange, onDateRangeChange, activePreset, onPrese
                   </td>
                   <td className="px-5 py-2.5" onClick={(e) => e.stopPropagation()}>
                     {call.has_recording && (call.phone_call_id || call.id) ? (
-                      <RecordingPlayer phoneCallId={call.phone_call_id ?? call.id} />
+                      <RecordingPlayer phoneCallId={call.phone_call_id ?? call.id} onPlay={onPlayRecording} />
                     ) : (
                       <span className="text-[var(--color-text-secondary)]">—</span>
                     )}
