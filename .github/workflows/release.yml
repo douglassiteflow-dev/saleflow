@@ -82,6 +82,9 @@ jobs:
           # frontend/src/version.ts (single source of truth)
           echo "export const APP_VERSION = \"$VERSION\";" > frontend/src/version.ts
 
+          # frontend/public/version.json (served statically for update checks)
+          echo "{\"version\":\"$VERSION\"}" > frontend/public/version.json
+
       - name: Install desktop dependencies
         run: cd desktop && npm install
 
@@ -122,7 +125,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add desktop/package.json desktop/preload.js frontend/src/version.ts
+          git add desktop/package.json desktop/preload.js frontend/src/version.ts frontend/public/version.json
           git commit -m "chore: bump version to ${VERSION} [skip ci]"
           git tag "v${VERSION}"
           git push origin main --tags
