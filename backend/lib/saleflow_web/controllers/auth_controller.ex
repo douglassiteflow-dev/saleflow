@@ -2,6 +2,7 @@ defmodule SaleflowWeb.AuthController do
   use SaleflowWeb, :controller
 
   alias Saleflow.Accounts
+  require Logger
 
   @device_cookie "saleflow_device_token"
   @thirty_days 30 * 24 * 3600
