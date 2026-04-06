@@ -155,8 +155,8 @@ export function HistoryPage() {
                       )}
                     </td>
                     <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
-                      {call.has_recording && call.id ? (
-                        <RecordingPlayer phoneCallId={call.id} />
+                      {call.has_recording && (call.phone_call_id || call.id) ? (
+                        <RecordingPlayer phoneCallId={call.phone_call_id ?? call.id} />
                       ) : (
                         <span className="text-[var(--color-text-secondary)]">—</span>
                       )}

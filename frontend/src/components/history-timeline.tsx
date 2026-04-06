@@ -64,8 +64,8 @@ export function HistoryTimeline({ callLogs = [], bare = false }: HistoryTimeline
                 {call.notes ?? "—"}
               </td>
               <td className="px-4 py-3">
-                {call.has_recording && call.id ? (
-                  <RecordingPlayer phoneCallId={call.id} />
+                {call.has_recording && (call.phone_call_id || call.id) ? (
+                  <RecordingPlayer phoneCallId={call.phone_call_id ?? call.id} />
                 ) : (
                   <span className="text-[var(--color-text-secondary)]">—</span>
                 )}

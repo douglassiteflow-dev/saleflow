@@ -97,6 +97,7 @@ export interface CallLog {
   called_at: string;
   duration: number;
   has_recording: boolean;
+  phone_call_id?: string | null;
 }
 
 export interface CallHistoryEntry {
@@ -111,6 +112,7 @@ export interface CallHistoryEntry {
   lead_phone: string | null;
   duration: number;
   has_recording: boolean;
+  phone_call_id: string | null;
 }
 
 export interface AuditLog {
