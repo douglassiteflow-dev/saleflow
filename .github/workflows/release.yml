@@ -79,8 +79,8 @@ jobs:
           # desktop/preload.js
           sed -i '' "s/version: \".*\"/version: \"$VERSION\"/" desktop/preload.js
 
-          # frontend update-banner.tsx
-          sed -i '' "s/LATEST_DESKTOP_VERSION = \".*\"/LATEST_DESKTOP_VERSION = \"$VERSION\"/" frontend/src/components/dialer/update-banner.tsx
+          # frontend/src/version.ts (single source of truth)
+          echo "export const APP_VERSION = \"$VERSION\";" > frontend/src/version.ts
 
       - name: Install desktop dependencies
         run: cd desktop && npm install
@@ -122,7 +122,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add desktop/package.json desktop/preload.js frontend/src/components/dialer/update-banner.tsx
+          git add desktop/package.json desktop/preload.js frontend/src/version.ts
           git commit -m "chore: bump version to ${VERSION} [skip ci]"
           git tag "v${VERSION}"
           git push origin main --tags

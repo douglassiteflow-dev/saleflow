@@ -1,3 +1,5 @@
+import { APP_VERSION } from "@/version";
+
 interface DialerFooterProps {
   telavoxConnected: boolean;
   leadCount?: number;
@@ -23,7 +25,7 @@ export function DialerFooter({ telavoxConnected, leadCount }: DialerFooterProps)
       <div className="flex items-center gap-2 text-[10px] text-white/40">
         {leadCount != null && <span>{leadCount} leads</span>}
         <span>·</span>
-        <span>Saleflow v0.9</span>
+        <span>Saleflow v{APP_VERSION}</span>
       </div>
     </div>
   );

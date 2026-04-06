@@ -1,3 +1,5 @@
+import { APP_VERSION } from "@/version";
+
 export function DownloadAppPage() {
   return (
     <div className="min-h-screen bg-[#0A0A1B] flex flex-col items-center justify-center px-6 py-16">
@@ -92,7 +94,7 @@ export function DownloadAppPage() {
 
       {/* Version info */}
       <p className="text-xs text-white/20">
-        Saleflow Dialer v1.0.1 · Kräver macOS 12+, Windows 10+, eller Ubuntu 20+
+        Saleflow Dialer v{APP_VERSION} · Kräver macOS 12+, Windows 10+, eller Ubuntu 20+
       </p>
     </div>
   );

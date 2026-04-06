@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Download, X } from "lucide-react";
+import { APP_VERSION } from "@/version";
 
-const LATEST_DESKTOP_VERSION = "1.0.1";
+const LATEST_DESKTOP_VERSION = APP_VERSION;
 const DOWNLOAD_URL = "https://sale.siteflow.se/download-app";
 
 export function UpdateBanner() {
