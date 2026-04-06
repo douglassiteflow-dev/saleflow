@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useDailySummary, useAgentReport } from "@/api/daily-summary";
 import { todayISO } from "@/lib/date";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Circle, TrendingUp, Eye, Quote } from "lucide-react";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   PieChart, Pie, Cell, ResponsiveContainer,
@@ -17,11 +17,17 @@ function fmtDate(iso: string) {
   return new Date(iso + "T12:00:00").toLocaleDateString("sv-SE", { weekday: "long", day: "numeric", month: "long" });
 }
 
+const HIGHLIGHT_ICON = {
+  win: <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />,
+  improve: <TrendingUp className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />,
+  observe: <Eye className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />,
+};
+
 export function ReportTab() {
   const [date, setDate] = useState(todayISO());
   const { data } = useDailySummary(date);
   const { data: rd } = useAgentReport(date);
-  const report = rd?.report;
+  const report = rd?.report as any;
 
   const prev = () => { const d = new Date(date + "T12:00:00"); d.setDate(d.getDate() - 1); setDate(d.toISOString().slice(0, 10)); };
   const next = () => { const d = new Date(date + "T12:00:00"); d.setDate(d.getDate() + 1); if (d.toISOString().slice(0, 10) <= todayISO()) setDate(d.toISOString().slice(0, 10)); };
@@ -63,82 +69,63 @@ export function ReportTab() {
           <button onClick={prev} className="mt-3 text-[13px] text-[#0071E3] hover:underline cursor-pointer">← Föregående dag</button>
         </div>
       ) : (
-        <div className="px-6 pb-8 space-y-5">
+        <div className="px-6 pb-8 space-y-4">
 
-          {/* KPIs */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: "Samtal", value: rd?.call_count ?? calls.length },
-              { label: "Snitt", value: score != null ? score.toFixed(1) : avg(calls.map(c => c.analysis?.score?.overall ?? 0).filter(Boolean)).toFixed(1) },
-              { label: "Möten", value: meetings },
-            ].map(k => (
-              <div key={k.label} className="bg-white rounded-2xl p-4 text-center" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                <p className="text-[28px] font-light tracking-tight text-[#1D1D1F]">{k.value}</p>
-                <p className="text-[11px] text-[#86868B] mt-0.5">{k.label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Charts side by side */}
-          {calls.length > 0 && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white rounded-2xl p-4" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                <p className="text-[11px] text-[#86868B] mb-1">Kompetenser</p>
-                <ResponsiveContainer width="100%" height={160}>
-                  <RadarChart data={radar}>
-                    <PolarGrid stroke="#F1F1F1" />
-                    <PolarAngleAxis dataKey="cat" tick={{ fontSize: 9, fill: "#86868B" }} />
-                    <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
-                    <Radar dataKey="v" stroke="#0071E3" fill="#0071E3" fillOpacity={0.12} strokeWidth={1.5} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="bg-white rounded-2xl p-4" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                <p className="text-[11px] text-[#86868B] mb-1">Utfall</p>
-                <ResponsiveContainer width="100%" height={120}>
-                  <PieChart>
-                    <Pie data={pie} dataKey="value" cx="50%" cy="50%" outerRadius={45} innerRadius={25} paddingAngle={3} strokeWidth={0}>
-                      {pie.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="flex flex-wrap justify-center gap-x-3 gap-y-0.5">
-                  {pie.map((d, i) => (
-                    <span key={d.name} className="flex items-center gap-1 text-[10px] text-[#86868B]">
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />{d.name} ({d.value})
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* AI Report */}
+          {/* AI Report — TEXT FIRST */}
           {report ? (
-            <div className="space-y-3">
+            <>
+              {/* Greeting + Score */}
               <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
                 <p className="text-[15px] text-[#1D1D1F] leading-relaxed">{report.greeting}</p>
                 {report.score_summary && (
-                  <p className="text-[13px] text-[#86868B] mt-2">{report.score_summary}</p>
+                  <p className="text-[13px] text-[#86868B] mt-1.5">{report.score_summary}</p>
                 )}
               </div>
 
-              {report.wins?.length > 0 && (
-                <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                  <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider mb-2">Bra idag</p>
-                  {report.wins.map((w, i) => (
-                    <p key={i} className="text-[13px] text-[#1D1D1F] mb-1.5 last:mb-0 leading-relaxed">{w}</p>
+              {/* Highlights */}
+              {report.highlights?.length > 0 && (
+                <div className="bg-white rounded-2xl p-5 space-y-3" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                  {report.highlights.map((h: any, i: number) => (
+                    <div key={i} className="flex items-start gap-2.5">
+                      {HIGHLIGHT_ICON[h.type as keyof typeof HIGHLIGHT_ICON] ?? HIGHLIGHT_ICON.observe}
+                      <p className="text-[13px] text-[#1D1D1F] leading-relaxed">{h.text}</p>
+                    </div>
                   ))}
                 </div>
               )}
 
-              {report.focus_area && (
-                <div className="bg-[#0071E3] rounded-2xl p-5">
-                  <p className="text-[11px] font-medium text-white/60 uppercase tracking-wider mb-1">Fokus imorgon</p>
-                  <p className="text-[14px] text-white leading-relaxed">{report.focus_area}</p>
+              {/* Quote */}
+              {report.quote_of_the_day && (
+                <div className="bg-white rounded-2xl p-5 flex items-start gap-3" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                  <Quote className="h-5 w-5 text-[#0071E3] shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[13px] text-[#1D1D1F] italic leading-relaxed">&ldquo;{report.quote_of_the_day}&rdquo;</p>
+                    <p className="text-[10px] text-[#86868B] mt-1">Bästa citatet idag</p>
+                  </div>
                 </div>
               )}
 
+              {/* Checklist */}
+              {report.checklist?.length > 0 && (
+                <div className="bg-[#0071E3] rounded-2xl p-5">
+                  <p className="text-[11px] font-medium text-white/50 uppercase tracking-wider mb-3">Checklista för imorgon</p>
+                  <div className="space-y-2.5">
+                    {report.checklist.map((item: any, i: number) => (
+                      <div key={i} className="flex items-start gap-2.5">
+                        <Circle className="h-4 w-4 text-white/40 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-[13px] text-white leading-relaxed">{item.task}</p>
+                          {item.source && (
+                            <p className="text-[10px] text-white/40 mt-0.5">{item.source}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Progress */}
               {report.progress_note && (
                 <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
                   <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider mb-2">Din utveckling</p>
@@ -146,22 +133,86 @@ export function ReportTab() {
                 </div>
               )}
 
-              {report.tip_of_the_day && (
+              {/* Fallback for old format */}
+              {!report.highlights && report.wins?.length > 0 && (
                 <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                  <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider mb-2">Tips</p>
-                  <p className="text-[13px] text-[#1D1D1F] leading-relaxed">{report.tip_of_the_day}</p>
+                  <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider mb-2">Bra idag</p>
+                  {report.wins.map((w: string, i: number) => (
+                    <p key={i} className="text-[13px] text-[#1D1D1F] mb-1.5 leading-relaxed">{w}</p>
+                  ))}
+                </div>
+              )}
+              {!report.checklist && report.focus_area && (
+                <div className="bg-[#0071E3] rounded-2xl p-5">
+                  <p className="text-[11px] font-medium text-white/50 uppercase tracking-wider mb-1">Fokus imorgon</p>
+                  <p className="text-[14px] text-white leading-relaxed">{report.focus_area}</p>
                 </div>
               )}
 
               {report.motivation && (
-                <p className="text-[13px] text-[#86868B] text-center italic px-4">{report.motivation}</p>
+                <p className="text-[13px] text-[#86868B] text-center italic px-4 pt-1">{report.motivation}</p>
               )}
-            </div>
+            </>
           ) : (
             <div className="bg-white rounded-2xl p-8 text-center" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
               <p className="text-[15px] text-[#1D1D1F]">Dagens rapport uppdateras kl 16:10 varje vardag</p>
               <p className="text-[12px] text-[#86868B] mt-1">Bläddra bakåt för att se tidigare rapporter</p>
             </div>
+          )}
+
+          {/* STATS + CHARTS AT BOTTOM */}
+          {calls.length > 0 && (
+            <>
+              <div className="pt-2">
+                <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider mb-3">Statistik</p>
+              </div>
+
+              {/* KPIs */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: "Samtal", value: rd?.call_count ?? calls.length },
+                  { label: "Snitt", value: score != null ? score.toFixed(1) : avg(calls.map(c => c.analysis?.score?.overall ?? 0).filter(Boolean)).toFixed(1) },
+                  { label: "Möten", value: meetings },
+                ].map(k => (
+                  <div key={k.label} className="bg-white rounded-2xl p-4 text-center" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                    <p className="text-[28px] font-light tracking-tight text-[#1D1D1F]">{k.value}</p>
+                    <p className="text-[11px] text-[#86868B] mt-0.5">{k.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Charts side by side */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white rounded-2xl p-4" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                  <p className="text-[11px] text-[#86868B] mb-1">Kompetenser</p>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <RadarChart data={radar}>
+                      <PolarGrid stroke="#F1F1F1" />
+                      <PolarAngleAxis dataKey="cat" tick={{ fontSize: 9, fill: "#86868B" }} />
+                      <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
+                      <Radar dataKey="v" stroke="#0071E3" fill="#0071E3" fillOpacity={0.12} strokeWidth={1.5} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="bg-white rounded-2xl p-4" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                  <p className="text-[11px] text-[#86868B] mb-1">Utfall</p>
+                  <ResponsiveContainer width="100%" height={120}>
+                    <PieChart>
+                      <Pie data={pie} dataKey="value" cx="50%" cy="50%" outerRadius={45} innerRadius={25} paddingAngle={3} strokeWidth={0}>
+                        {pie.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex flex-wrap justify-center gap-x-3 gap-y-0.5">
+                    {pie.map((d, i) => (
+                      <span key={d.name} className="flex items-center gap-1 text-[10px] text-[#86868B]">
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />{d.name} ({d.value})
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
       )}

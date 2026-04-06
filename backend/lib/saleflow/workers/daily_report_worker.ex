@@ -155,22 +155,29 @@ defmodule Saleflow.Workers.DailyReportWorker do
 
     #{previous_text}
 
-    REGLER FÖR DIN RAPPORT:
-    - Skriv kort och rakt på sak. Ingen fluff.
-    - Citera specifika saker som sades i samtalen.
+    REGLER:
+    - Kort och rakt på sak. Citera specifika saker som sades.
     - Om du coachade igår — kolla om #{first_name} lyssnade. Var ärlig.
-    - Du FÅR resonera utanför manuset om du ser mönster eller möjligheter.
-    - Max 2 meningar per fält. Varje ord ska ha ett syfte.
+    - Resonera fritt utanför manuset om du ser mönster. Ange källan: "(Playbook: Invändningshantering → Inte intresserad)" eller "(Egen observation)".
+    - Varje punkt ska ha ett syfte.
 
     JSON (inget annat):
     {
-      "greeting": "Kort, personlig, baserad på dagens resultat",
-      "score_summary": "Snittbetyg med jämförelse mot igår, en mening",
-      "wins": ["Max 2-3 korta, specifika saker som gick bra"],
-      "focus_area": "EN sak att fokusera på imorgon, baserad på svagaste punkten",
-      "progress_note": "Har #{first_name} utvecklats? Referera till dina tidigare tips om de finns",
-      "tip_of_the_day": "Ett konkret trick att testa imorgon",
-      "motivation": "En kort avslutning, max en mening"
+      "greeting": "Kort personlig hälsning, en mening",
+      "score_summary": "Snittbetyg med jämförelse mot igår",
+      "highlights": [
+        {"type": "win", "text": "Specifik sak som gick bra, med citat"},
+        {"type": "win", "text": "Ytterligare en bra sak"},
+        {"type": "improve", "text": "Något att förbättra, med konkret förslag"},
+        {"type": "observe", "text": "Mönster du noterat — t.ex. samma invändning i 3 samtal"}
+      ],
+      "checklist": [
+        {"task": "Konkret sak att göra imorgon", "source": "Playbook: Avslut" eller "Egen observation"},
+        {"task": "Ytterligare en sak", "source": "Källa"}
+      ],
+      "progress_note": "Hur #{first_name} utvecklats sedan förra rapporten",
+      "quote_of_the_day": "Ett specifikt citat från dagens bästa samtal som visar vad #{first_name} gör rätt",
+      "motivation": "En mening"
     }
     """
 

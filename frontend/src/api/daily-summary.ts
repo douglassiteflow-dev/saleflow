@@ -67,11 +67,15 @@ export function useDailyReport(date: string) {
 export interface AgentReport {
   greeting: string;
   score_summary: string;
-  wins: string[];
-  focus_area: string;
+  highlights?: { type: "win" | "improve" | "observe"; text: string }[];
+  checklist?: { task: string; source?: string }[];
+  quote_of_the_day?: string;
   progress_note: string;
-  tip_of_the_day: string;
   motivation: string;
+  // Legacy fields (backward compat)
+  wins?: string[];
+  focus_area?: string;
+  tip_of_the_day?: string;
 }
 
 export interface AgentReportData {
