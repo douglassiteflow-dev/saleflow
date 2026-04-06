@@ -2,7 +2,7 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
-import { ProtectedRoute, AdminRoute, AdminOnlyRoute } from "@/components/protected-route";
+import { ProtectedRoute, AdminOnlyRoute } from "@/components/protected-route";
 import Loader from "@/components/kokonutui/loader";
 
 // Eager imports: login, dashboard, dialer, meetings (frequently used)
