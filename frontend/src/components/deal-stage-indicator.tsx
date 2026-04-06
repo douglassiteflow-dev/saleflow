@@ -1,19 +1,22 @@
 import { cn } from "@/lib/cn";
 import { Check } from "lucide-react";
+import { STAGE_LABELS } from "@/lib/constants";
 import type { DealStage } from "@/api/types";
 
-const STAGES: { key: DealStage; label: string }[] = [
-  { key: "meeting_booked", label: "Möte bokat" },
-  { key: "needs_website", label: "Behöver hemsida" },
-  { key: "generating_website", label: "Genereras" },
-  { key: "reviewing", label: "Granskning" },
-  { key: "deployed", label: "Deployad" },
-  { key: "demo_followup", label: "Demo & uppföljning" },
-  { key: "contract_sent", label: "Avtal skickat" },
-  { key: "signed", label: "Signerat" },
-  { key: "dns_launch", label: "DNS & Lansering" },
-  { key: "won", label: "Klar" },
+const STAGE_KEYS: DealStage[] = [
+  "meeting_booked",
+  "needs_website",
+  "generating_website",
+  "reviewing",
+  "deployed",
+  "demo_followup",
+  "contract_sent",
+  "signed",
+  "dns_launch",
+  "won",
 ];
+
+const STAGES = STAGE_KEYS.map((key) => ({ key, label: STAGE_LABELS[key] ?? key }));
 
 interface Props {
   currentStage: DealStage;

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useMe, useLogin, useVerifyOtp, useResendOtp, useLogout } from "../auth";
+import { useMe, useLogin, useVerifyOtp, useResendOtp, useLogout, getSocketToken } from "../auth";
 import type { ReactNode } from "react";
 
 const originalFetch = globalThis.fetch;
@@ -26,12 +26,36 @@ describe("useMe", () => {
   it("returns user data on success", async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ user: { id: "1", email: "test@test.se", name: "Test", role: "agent" } }),
+      json: () => Promise.resolve({ user: { id: "1", email: "test@test.se", name: "Test", role: "agent" }, socket_token: "tok-123" }),
     });
 
     const { result } = renderHook(() => useMe(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({ id: "1", email: "test@test.se", name: "Test", role: "agent" });
+  });
+
+  it("stores socket_token on success", async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ user: { id: "1", email: "test@test.se", name: "Test", role: "agent" }, socket_token: "tok-456" }),
+    });
+
+    const { result } = renderHook(() => useMe(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getSocketToken()).toBe("tok-456");
+  });
+
+  it("clears socket_token on 401", async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: "Unauthorized",
+      json: () => Promise.resolve({ error: "Unauthorized" }),
+    });
+
+    const { result } = renderHook(() => useMe(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getSocketToken()).toBeNull();
   });
 
   it("returns null on 401", async () => {
