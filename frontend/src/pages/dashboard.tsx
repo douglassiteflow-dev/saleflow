@@ -36,7 +36,7 @@ export function DashboardPage() {
   const myStats = dashboard?.my_stats;
   const conversion = dashboard?.conversion;
 
-  const activeDeals = (deals ?? []).filter((d) => d.stage !== "won");
+  const activeDeals = (deals ?? []).filter((d) => d.stage !== "won" && d.stage !== "cancelled");
   const wonDeals = (deals ?? []).filter((d) => d.stage === "won");
 
   const stageCounts = PIPELINE_STAGES.map((s) => ({

@@ -33,7 +33,7 @@ interface DealsTabProps {
 export function DealsTab({ onSelectDeal }: DealsTabProps) {
   const { data: deals, isLoading } = useDeals();
 
-  const activeDeals = (deals ?? []).filter((d) => d.stage !== "won");
+  const activeDeals = (deals ?? []).filter((d) => d.stage !== "won" && d.stage !== "cancelled");
 
   if (isLoading) {
     return (

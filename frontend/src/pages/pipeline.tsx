@@ -41,7 +41,7 @@ export function PipelinePage() {
   const navigate = useNavigate();
   const { data: deals, isLoading } = useDeals();
 
-  const activeDeals = (deals ?? []).filter((d) => d.stage !== "won");
+  const activeDeals = (deals ?? []).filter((d) => d.stage !== "won" && d.stage !== "cancelled");
 
   const grouped = STAGE_ORDER.reduce<
     Record<string, typeof activeDeals>

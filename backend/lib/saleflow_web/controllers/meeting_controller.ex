@@ -134,10 +134,24 @@ defmodule SaleflowWeb.MeetingController do
   def cancel(conn, %{"id" => id}) do
     with {:ok, meeting} <- get_meeting(id),
          {:ok, cancelled} <- Sales.cancel_meeting(meeting) do
+      # If all meetings for this deal are cancelled, cancel the deal too
+      if cancelled.deal_id, do: maybe_cancel_deal(cancelled.deal_id)
+
       json(conn, %{meeting: serialize_meeting(cancelled)})
     else
       {:error, :not_found} ->
         conn |> put_status(:not_found) |> json(%{error: "Meeting not found"})
+    end
+  end
+
+  defp maybe_cancel_deal(deal_id) do
+    with {:ok, deal} <- Sales.get_deal(deal_id),
+         {:ok, meetings} <- Sales.list_meetings_for_deal(deal_id) do
+      all_cancelled = Enum.all?(meetings, fn m -> m.status == :cancelled end)
+
+      if all_cancelled and deal.stage not in [:won, :cancelled] do
+        Sales.cancel_deal(deal)
+      end
     end
   end
 

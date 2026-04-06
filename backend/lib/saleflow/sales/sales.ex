@@ -713,6 +713,12 @@ defmodule Saleflow.Sales do
     |> Ash.get(id)
   end
 
+  def cancel_deal(deal) do
+    deal
+    |> Ash.Changeset.for_update(:cancel, %{})
+    |> Ash.update()
+  end
+
   def list_deals do
     Saleflow.Sales.Deal
     |> Ash.Query.sort(updated_at: :desc)
@@ -732,7 +738,7 @@ defmodule Saleflow.Sales do
     require Ash.Query
 
     Saleflow.Sales.Deal
-    |> Ash.Query.filter(lead_id == ^lead_id and stage != :won)
+    |> Ash.Query.filter(lead_id == ^lead_id and stage != :won and stage != :cancelled)
     |> Ash.Query.sort(inserted_at: :desc)
     |> Ash.Query.limit(1)
     |> Ash.read()

@@ -66,7 +66,8 @@ defmodule Saleflow.Sales.Deal do
         :contract_sent,
         :signed,
         :dns_launch,
-        :won
+        :won,
+        :cancelled
       ]
       default :meeting_booked
       allow_nil? false
@@ -130,6 +131,17 @@ defmodule Saleflow.Sales.Deal do
       end
 
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "deal.advanced"}
+    end
+
+    update :cancel do
+      description "Cancel a deal (e.g. when all meetings are cancelled)"
+      require_atomic? false
+
+      change fn changeset, _context ->
+        Ash.Changeset.force_change_attribute(changeset, :stage, :cancelled)
+      end
+
+      change {Saleflow.Audit.Changes.CreateAuditLog, action: "deal.cancelled"}
     end
 
     update :update_fields do
