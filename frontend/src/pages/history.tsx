@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useCallHistory } from "@/api/calls";
 import { useMe } from "@/api/auth";
 import { RecordingPlayer } from "@/components/recording-player";
+import { CallAnalysisModal, ScoreStars } from "@/components/call-analysis-modal";
 import { formatDateTime, formatDuration } from "@/lib/format";
 import { todayISO, yesterdayISO, daysAgoISO, type DateRange } from "@/lib/date";
 import { OUTCOME_LABELS, OUTCOME_COLORS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
 import Loader from "@/components/kokonutui/loader";
+import type { CallHistoryEntry } from "@/api/types";
 
 const PRESETS: { label: string; get: () => DateRange }[] = [
   { label: "Idag", get: () => ({ from: todayISO(), to: todayISO() }) },
@@ -21,6 +23,7 @@ export function HistoryPage() {
     from: todayISO(),
     to: todayISO(),
   }));
+  const [analysisCall, setAnalysisCall] = useState<CallHistoryEntry | null>(null);
   const [activePreset, setActivePreset] = useState<string | null>("Idag");
   const navigate = useNavigate();
   const { data: user } = useMe();
@@ -116,6 +119,9 @@ export function HistoryPage() {
                   <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
                     Inspelning
                   </th>
+                  <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
+                    Betyg
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -161,6 +167,16 @@ export function HistoryPage() {
                         <span className="text-[var(--color-text-secondary)]">—</span>
                       )}
                     </td>
+                    <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
+                      {call.transcription_analysis ? (
+                        <ScoreStars
+                          score={(() => { try { return JSON.parse(call.transcription_analysis).score?.overall ?? 0; } catch { return 0; } })()}
+                          onClick={() => setAnalysisCall(call)}
+                        />
+                      ) : (
+                        <span className="text-[var(--color-text-secondary)]">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -168,6 +184,14 @@ export function HistoryPage() {
           </div>
         )}
       </div>
+
+      {analysisCall?.transcription_analysis && (
+        <CallAnalysisModal
+          analysis={(() => { try { const parsed = JSON.parse(analysisCall.transcription_analysis); return parsed.raw_analysis ? JSON.parse(parsed.raw_analysis.replace(/```json\n?|\n?```/g, "")) : parsed; } catch { return null; } })()}
+          companyName={analysisCall.lead_name ?? undefined}
+          onClose={() => setAnalysisCall(null)}
+        />
+      )}
     </div>
   );
 }

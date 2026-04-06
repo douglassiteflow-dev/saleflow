@@ -15,6 +15,7 @@ import { CustomersTab } from "@/components/dialer/customers-tab";
 import { UpdateBanner } from "@/components/dialer/update-banner";
 import { CallModal } from "@/components/dialer/call-modal";
 import { RecordingPlayer } from "@/components/recording-player";
+import { CallAnalysisModal, ScoreStars } from "@/components/call-analysis-modal";
 import { useLeaderboard, useDashboard, type LeaderboardEntry } from "@/api/dashboard";
 import {
   useNextLead,
@@ -658,6 +659,7 @@ function HistoryTabContent({ dateRange, onDateRangeChange, activePreset, onPrese
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [outcomeFilter, setOutcomeFilter] = useState("");
+  const [analysisModal, setAnalysisModal] = useState<{ analysis: unknown; companyName?: string } | null>(null);
   const { data: user } = useMe();
   const { data: calls, isLoading } = useCallHistory(dateRange.from, dateRange.to);
   const isAdmin = user?.role === "admin";
@@ -670,7 +672,7 @@ function HistoryTabContent({ dateRange, onDateRangeChange, activePreset, onPrese
     (call.lead_name ?? "").toLowerCase().includes(q) || phoneMatches(call.lead_phone, q),
   );
   const visible = paginate(page);
-  const headers = ["Tid", "Företag", "Telefon", ...(isAdmin ? ["Agent"] : []), "Längd", "Utfall", "Inspelning"];
+  const headers = ["Tid", "Företag", "Telefon", ...(isAdmin ? ["Agent"] : []), "Längd", "Utfall", "Inspelning", "Betyg"];
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -750,12 +752,36 @@ function HistoryTabContent({ dateRange, onDateRangeChange, activePreset, onPrese
                       <span className="text-[var(--color-text-secondary)]">—</span>
                     )}
                   </td>
+                  <td className="px-5 py-2.5" onClick={(e) => e.stopPropagation()}>
+                    {call.transcription_analysis ? (
+                      <ScoreStars
+                        score={(() => { try { const p = JSON.parse(call.transcription_analysis); const s = p.score?.overall ?? (p.raw_analysis ? JSON.parse(p.raw_analysis.replace(/```json\n?|\n?```/g, "")).score?.overall : 0); return s ?? 0; } catch { return 0; } })()}
+                        onClick={() => {
+                          try {
+                            const p = JSON.parse(call.transcription_analysis!);
+                            const analysis = p.raw_analysis ? JSON.parse(p.raw_analysis.replace(/```json\n?|\n?```/g, "")) : p;
+                            setAnalysisModal({ analysis, companyName: call.lead_name ?? undefined });
+                          } catch { /* ignore */ }
+                        }}
+                      />
+                    ) : (
+                      <span className="text-[var(--color-text-secondary)]">—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
+
+      {analysisModal && (
+        <CallAnalysisModal
+          analysis={analysisModal.analysis as any}
+          companyName={analysisModal.companyName}
+          onClose={() => setAnalysisModal(null)}
+        />
+      )}
     </div>
   );
 }

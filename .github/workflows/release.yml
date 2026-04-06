@@ -76,8 +76,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add frontend/src/version.ts frontend/public/version.json desktop/preload.js desktop/package.json
           git commit -m "chore: bump version to ${VERSION} [skip ci]"
-          git tag "v${VERSION}"
-          git push origin main --tags
+          git tag -f "v${VERSION}"
+          git push origin main --tags --force
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
