@@ -2,12 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "./client";
 import type { CallHistoryEntry } from "./types";
 
-export function useCallHistory(date: string) {
+export function useCallHistory(from: string, to: string) {
   return useQuery<CallHistoryEntry[]>({
-    queryKey: ["calls", "history", date],
+    queryKey: ["calls", "history", from, to],
     queryFn: async () => {
       const data = await api<{ calls: CallHistoryEntry[] }>(
-        `/api/calls/history?date=${date}`,
+        `/api/calls/history?from=${from}&to=${to}`,
       );
       return data.calls;
     },

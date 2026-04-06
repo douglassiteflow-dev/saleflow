@@ -34,10 +34,6 @@ function Wrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
-function todayDateString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 // Future date for upcoming meetings
 function futureDateString(): string {
   const d = new Date();

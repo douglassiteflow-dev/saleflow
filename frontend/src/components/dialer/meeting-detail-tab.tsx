@@ -3,11 +3,8 @@ import { useMeetingDetail, useUpdateMeeting, useCancelMeeting } from "@/api/meet
 import { Badge } from "@/components/ui/badge";
 import { HistoryTimeline } from "@/components/history-timeline";
 import { formatDate, formatTime, formatPhone } from "@/lib/format";
+import { todayISO } from "@/lib/date";
 import Loader from "@/components/kokonutui/loader";
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 interface MeetingDetailTabProps {
   meetingId: string;

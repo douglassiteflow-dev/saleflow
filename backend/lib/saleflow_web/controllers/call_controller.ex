@@ -87,7 +87,23 @@ defmodule SaleflowWeb.CallController do
   @doc "List calls with lead/outcome data for the agent's call history."
   def history(conn, params) do
     user = conn.assigns.current_user
-    date = parse_date(params["date"]) || Date.utc_today()
+
+    # Support date range (from/to) with backwards-compatible single "date" param
+    {from_date, to_date} =
+      case {parse_date(params["from"]), parse_date(params["to"])} do
+        {nil, nil} ->
+          date = parse_date(params["date"]) || Date.utc_today()
+          {date, date}
+
+        {from, nil} ->
+          {from || Date.utc_today(), from || Date.utc_today()}
+
+        {nil, to} ->
+          {to || Date.utc_today(), to || Date.utc_today()}
+
+        {from, to} ->
+          {from, to}
+      end
 
     query = """
     SELECT
@@ -107,17 +123,17 @@ defmodule SaleflowWeb.CallController do
       FROM phone_calls
       WHERE phone_calls.call_log_id = cl.id
     ) pc_agg ON true
-    WHERE cl.called_at::date = $1
+    WHERE cl.called_at::date >= $1 AND cl.called_at::date <= $2
     """
 
     {query, query_params} =
       case user.role do
         :admin ->
-          {query <> " ORDER BY cl.called_at DESC", [date]}
+          {query <> " ORDER BY cl.called_at DESC", [from_date, to_date]}
 
         _ ->
           uid = Ecto.UUID.dump!(user.id)
-          {query <> " AND cl.user_id = $2 ORDER BY cl.called_at DESC", [date, uid]}
+          {query <> " AND cl.user_id = $3 ORDER BY cl.called_at DESC", [from_date, to_date, uid]}
       end
 
     {:ok, %{rows: rows}} = Saleflow.Repo.query(query, query_params)

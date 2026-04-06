@@ -26,6 +26,7 @@ import { useDial, useTelavoxStatus, useHangup, useTelavoxConnect, useTelavoxDisc
 import { useMicrosoftStatus, useMicrosoftAuthorize, useMicrosoftDisconnect } from "@/api/microsoft";
 import { useMySessions, useLogoutAll } from "@/api/sessions";
 import { formatPhone, formatDateTime, formatCurrency, formatDate, formatTime } from "@/lib/format";
+import { todayISO } from "@/lib/date";
 import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,10 +61,6 @@ function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
-}
-
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 type Tab = DialerTab | "profile" | "meeting-detail" | "lead-detail" | "deal-detail";
@@ -659,18 +656,12 @@ function HistoryTabContent({ dateRange, onDateRangeChange, onLeadClick }: { date
   const [page, setPage] = useState(1);
   const [outcomeFilter, setOutcomeFilter] = useState("");
   const { data: user } = useMe();
-  const { data: calls, isLoading } = useCallHistory(dateRange.from);
+  const { data: calls, isLoading } = useCallHistory(dateRange.from, dateRange.to);
   const isAdmin = user?.role === "admin";
 
-  // Filter by date range + outcome + search
-  const rangeFiltered = (calls ?? []).filter((c) => {
-    const d = c.called_at.slice(0, 10);
-    return d >= dateRange.from && d <= dateRange.to;
-  });
-
   const outcomeFiltered = outcomeFilter
-    ? rangeFiltered.filter((c) => c.outcome === outcomeFilter)
-    : rangeFiltered;
+    ? (calls ?? []).filter((c) => c.outcome === outcomeFilter)
+    : (calls ?? []);
 
   const { totalPages, totalCount, paginate } = usePagination(outcomeFiltered, search, (call, q) =>
     (call.lead_name ?? "").toLowerCase().includes(q) || (call.lead_phone ?? "").includes(q),

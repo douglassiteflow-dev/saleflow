@@ -1,9 +1,7 @@
 import { cn } from "@/lib/cn";
+import { todayISO, type DateRange } from "@/lib/date";
 
-export interface DateRange {
-  from: string;
-  to: string;
-}
+export type { DateRange };
 
 interface TabToolbarProps {
   title: string;
@@ -16,10 +14,6 @@ interface TabToolbarProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   totalCount: number;
-}
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 const PRESETS = [

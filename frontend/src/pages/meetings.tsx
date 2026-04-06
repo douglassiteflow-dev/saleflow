@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { MeetingForm } from "@/components/meeting-form";
 import { MeetingCalendar } from "@/components/meeting-calendar";
 import { formatDate, formatTime } from "@/lib/format";
+import { todayISO } from "@/lib/date";
 import { cn } from "@/lib/cn";
 import Loader from "@/components/kokonutui/loader";
 
@@ -19,10 +20,6 @@ const TABS: { key: FilterTab; label: string }[] = [
   { key: "completed", label: "Genomförda" },
   { key: "cancelled", label: "Avbokade" },
 ];
-
-function todayDateString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 type ViewMode = "list" | "calendar";
 
@@ -43,7 +40,7 @@ export function MeetingsPage() {
     }
   }
 
-  const today = todayDateString();
+  const today = todayISO();
 
   const filtered = (meetings ?? []).filter((m) => {
     switch (activeTab) {

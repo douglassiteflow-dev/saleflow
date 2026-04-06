@@ -4,10 +4,7 @@ import { useSubmitOutcome } from "@/api/leads";
 import { TimeSelect } from "@/components/ui/time-select";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatPhone } from "@/lib/format";
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
+import { todayISO } from "@/lib/date";
 
 interface MeetingBookingModalProps {
   isOpen: boolean;

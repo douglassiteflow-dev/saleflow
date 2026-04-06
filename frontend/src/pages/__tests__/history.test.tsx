@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HistoryPage } from "../history";
@@ -101,10 +101,34 @@ describe("HistoryPage", () => {
     expect(screen.getByText("Laddar samtal...")).toBeInTheDocument();
   });
 
-  it("renders date picker", () => {
+  it("renders date range pickers (from and to)", () => {
     render(<HistoryPage />, { wrapper: Wrapper });
-    const datePicker = document.querySelector('input[type="date"]');
-    expect(datePicker).toBeInTheDocument();
+    const datePickers = document.querySelectorAll('input[type="date"]');
+    expect(datePickers.length).toBe(2);
+  });
+
+  it("renders preset buttons", () => {
+    render(<HistoryPage />, { wrapper: Wrapper });
+    expect(screen.getByText("Idag")).toBeInTheDocument();
+    expect(screen.getByText("Igår")).toBeInTheDocument();
+    expect(screen.getByText("Senaste 7 dagarna")).toBeInTheDocument();
+    expect(screen.getByText("Senaste 30 dagarna")).toBeInTheDocument();
+  });
+
+  it("calls useCallHistory with from and to params", () => {
+    render(<HistoryPage />, { wrapper: Wrapper });
+    // On initial render, should be called with today's date for both from and to
+    const today = new Date().toISOString().slice(0, 10);
+    expect(useCallHistoryMock).toHaveBeenCalledWith(today, today);
+  });
+
+  it("switches date range when preset is clicked", () => {
+    render(<HistoryPage />, { wrapper: Wrapper });
+    fireEvent.click(screen.getByText("Igår"));
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().slice(0, 10);
+    expect(useCallHistoryMock).toHaveBeenCalledWith(yesterdayStr, yesterdayStr);
   });
 
   it("navigates to lead on row click", () => {

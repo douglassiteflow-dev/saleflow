@@ -3,10 +3,7 @@ import { useCreateMeeting } from "@/api/meetings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TimeSelect } from "@/components/ui/time-select";
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
+import { todayISO } from "@/lib/date";
 
 interface MeetingFormProps {
   onCancel: () => void;

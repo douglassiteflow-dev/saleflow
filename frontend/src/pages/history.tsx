@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useCallHistory } from "@/api/calls";
 import { useMe } from "@/api/auth";
 import { formatDateTime } from "@/lib/format";
+import { todayISO, yesterdayISO, daysAgoISO, type DateRange } from "@/lib/date";
+import { cn } from "@/lib/cn";
 import Loader from "@/components/kokonutui/loader";
 
 const OUTCOME_LABELS: Record<string, string> = {
@@ -34,15 +36,21 @@ function formatDuration(seconds: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+const PRESETS: { label: string; get: () => DateRange }[] = [
+  { label: "Idag", get: () => ({ from: todayISO(), to: todayISO() }) },
+  { label: "Igår", get: () => ({ from: yesterdayISO(), to: yesterdayISO() }) },
+  { label: "Senaste 7 dagarna", get: () => ({ from: daysAgoISO(6), to: todayISO() }) },
+  { label: "Senaste 30 dagarna", get: () => ({ from: daysAgoISO(29), to: todayISO() }) },
+];
 
 export function HistoryPage() {
-  const [date, setDate] = useState(todayISO);
+  const [dateRange, setDateRange] = useState<DateRange>(() => ({
+    from: todayISO(),
+    to: todayISO(),
+  }));
   const navigate = useNavigate();
   const { data: user } = useMe();
-  const { data: calls, isLoading } = useCallHistory(date);
+  const { data: calls, isLoading } = useCallHistory(dateRange.from, dateRange.to);
   const isAdmin = user?.role === "admin";
 
   return (
@@ -51,12 +59,46 @@ export function HistoryPage() {
         <h1 className="text-[22px] font-light tracking-[-0.5px] text-[var(--color-text-primary)]">
           Samtalshistorik
         </h1>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="h-9 rounded-[10px] border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20"
-        />
+      </div>
+
+      {/* Presets + date range */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex gap-1">
+          {PRESETS.map((p) => {
+            const preset = p.get();
+            const isActive = dateRange.from === preset.from && dateRange.to === preset.to;
+            return (
+              <button
+                key={p.label}
+                type="button"
+                onClick={() => setDateRange(preset)}
+                className={cn(
+                  "px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer",
+                  isActive
+                    ? "bg-[var(--color-accent)] text-white"
+                    : "bg-[var(--color-bg-panel)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-primary)] border border-[var(--color-border)]",
+                )}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={dateRange.from}
+            onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
+            className="h-9 rounded-[10px] border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20"
+          />
+          <span className="text-sm text-[var(--color-text-secondary)]">&ndash;</span>
+          <input
+            type="date"
+            value={dateRange.to}
+            onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
+            className="h-9 rounded-[10px] border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20"
+          />
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-[14px] bg-[var(--color-bg-primary)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
@@ -66,7 +108,12 @@ export function HistoryPage() {
           </div>
         ) : !calls || calls.length === 0 ? (
           <p className="p-[var(--spacing-card)] text-sm text-[var(--color-text-secondary)]">
-            Inga samtal {date === todayISO() ? "idag" : `den ${date}`}.
+            Inga samtal{" "}
+            {dateRange.from === todayISO() && dateRange.to === todayISO()
+              ? "idag"
+              : dateRange.from === dateRange.to
+                ? `den ${dateRange.from}`
+                : `${dateRange.from} – ${dateRange.to}`}.
           </p>
         ) : (
           <div className="overflow-x-auto">

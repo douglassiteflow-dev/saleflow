@@ -8,11 +8,8 @@ import { Input } from "@/components/ui/input";
 import { TimeSelect } from "@/components/ui/time-select";
 import { HistoryTimeline } from "@/components/history-timeline";
 import { formatDate, formatTime, formatPhone } from "@/lib/format";
+import { todayISO } from "@/lib/date";
 import Loader from "@/components/kokonutui/loader";
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export function MeetingDetailPage() {
   const { id } = useParams<{ id: string }>();
