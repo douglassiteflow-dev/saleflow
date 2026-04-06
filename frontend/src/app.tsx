@@ -38,6 +38,7 @@ const PipelinePage = lazy(() => import("@/pages/pipeline").then((m) => ({ defaul
 const PipelineDetailPage = lazy(() => import("@/pages/pipeline-detail").then((m) => ({ default: m.PipelineDetailPage })));
 const CustomersPage = lazy(() => import("@/pages/customers").then((m) => ({ default: m.CustomersPage })));
 const CustomerDetailPage = lazy(() => import("@/pages/customer-detail").then((m) => ({ default: m.CustomerDetailPage })));
+const DailySummaryPage = lazy(() => import("@/pages/daily-summary").then((m) => ({ default: m.DailySummaryPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -73,6 +74,7 @@ export function App() {
               <Route path="/meetings" element={<MeetingsPage />} />
               <Route path="/meetings/:id" element={<MeetingDetailPage />} />
               <Route path="/history" element={<HistoryPage />} />
+              <Route path="/daily-summary" element={<Suspense fallback={<LazyFallback />}><DailySummaryPage /></Suspense>} />
               <Route path="/apps/telavox" element={<AppTelavoxPage />} />
               <Route path="/apps/microsoft-teams" element={<AppTeamsPage />} />
               <Route path="/apps/:slug/*" element={<AppPlaceholderPage />} />

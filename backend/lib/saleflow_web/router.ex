@@ -96,6 +96,7 @@ defmodule SaleflowWeb.Router do
     post "/calls/dial", CallController, :dial
     post "/calls/hangup", CallController, :hangup
     get "/calls/history", CallController, :history
+    get "/calls/daily-summary", CallController, :daily_summary
     get "/calls/:id/recording", CallController, :recording
 
     # Apps

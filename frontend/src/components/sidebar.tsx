@@ -89,6 +89,7 @@ export function Sidebar() {
           <NavItem to="/dashboard" label="Dashboard" />
           <NavItem to="/meetings" label="Möten" />
           <NavItem to="/history" label="Samtalshistorik" />
+          <NavItem to="/daily-summary" label="Dagssammanfattning" />
 
           <p className="px-3 mt-5 mb-2 text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
             Försäljning

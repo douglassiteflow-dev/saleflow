@@ -204,6 +204,52 @@ defmodule SaleflowWeb.CallController do
     end
   end
 
+  @doc "Daily summary of calls with transcription analysis for a given date."
+  def daily_summary(conn, params) do
+    date = parse_date(params["date"]) || Date.utc_today()
+
+    {:ok, %{rows: rows}} =
+      Saleflow.Repo.query(
+        """
+        SELECT pc.transcription_analysis, pc.duration, cl.outcome::text, u.name as agent_name
+        FROM phone_calls pc
+        LEFT JOIN call_logs cl ON cl.id = pc.call_log_id
+        LEFT JOIN users u ON u.id = pc.user_id
+        WHERE pc.received_at::date = $1 AND pc.transcription_analysis IS NOT NULL
+        """,
+        [date]
+      )
+
+    analyses =
+      Enum.map(rows, fn [analysis, duration, outcome, agent] ->
+        parsed =
+          case Jason.decode(analysis || "") do
+            {:ok, %{"raw_analysis" => raw}} ->
+              raw_cleaned = String.replace(raw, ~r/```json\n?|\n?```/, "")
+
+              case Jason.decode(raw_cleaned) do
+                {:ok, data} -> data
+                _ -> %{}
+              end
+
+            {:ok, data} ->
+              data
+
+            _ ->
+              %{}
+          end
+
+        %{
+          analysis: parsed,
+          duration: to_int(duration),
+          outcome: outcome,
+          agent: agent
+        }
+      end)
+
+    json(conn, %{date: Date.to_iso8601(date), calls: analyses})
+  end
+
   defp get_lead_name(lead_id) do
     case Saleflow.Repo.query("SELECT företag FROM leads WHERE id = $1 LIMIT 1", [Ecto.UUID.dump!(lead_id)]) do
       {:ok, %{rows: [[name]]}} when is_binary(name) -> name
