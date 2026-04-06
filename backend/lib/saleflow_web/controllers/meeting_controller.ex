@@ -313,6 +313,8 @@ defmodule SaleflowWeb.MeetingController do
   end
 
   defp serialize_call(call, user_names) do
+    {duration, has_recording, phone_call_id} = get_call_phone_data(call.id)
+
     %{
       id: call.id,
       lead_id: call.lead_id,
@@ -320,9 +322,28 @@ defmodule SaleflowWeb.MeetingController do
       user_name: Map.get(user_names, call.user_id),
       outcome: call.outcome,
       notes: call.notes,
-      called_at: call.called_at
+      called_at: call.called_at,
+      duration: duration,
+      has_recording: has_recording,
+      phone_call_id: phone_call_id
     }
   end
+
+  defp get_call_phone_data(call_log_id) do
+    case Saleflow.Repo.query(
+           "SELECT COALESCE(SUM(duration), 0), bool_or(recording_key IS NOT NULL), (SELECT id FROM phone_calls WHERE call_log_id = $1 AND recording_key IS NOT NULL LIMIT 1) FROM phone_calls WHERE call_log_id = $1",
+           [Ecto.UUID.dump!(call_log_id)]
+         ) do
+      {:ok, %{rows: [[dur, has_rec, pc_id]]}} ->
+        {to_int(dur), has_rec || false, pc_id && Saleflow.Sales.decode_uuid(pc_id)}
+      _ -> {0, false, nil}
+    end
+  end
+
+  defp to_int(nil), do: 0
+  defp to_int(%Decimal{} = d), do: Decimal.to_integer(d)
+  defp to_int(n) when is_integer(n), do: n
+  defp to_int(_), do: 0
 
   defp serialize_audit_log(log, user_names) do
     %{

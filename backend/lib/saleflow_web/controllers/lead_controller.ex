@@ -448,7 +448,7 @@ defmodule SaleflowWeb.LeadController do
   end
 
   defp serialize_call(call, user_names, _current_user) do
-    {duration, has_recording} = get_call_phone_data(call.id)
+    {duration, has_recording, phone_call_id} = get_call_phone_data(call.id)
 
     %{
       id: call.id,
@@ -459,17 +459,19 @@ defmodule SaleflowWeb.LeadController do
       notes: call.notes,
       called_at: call.called_at,
       duration: duration,
-      has_recording: has_recording
+      has_recording: has_recording,
+      phone_call_id: phone_call_id
     }
   end
 
   defp get_call_phone_data(call_log_id) do
     case Saleflow.Repo.query(
-           "SELECT COALESCE(SUM(duration), 0), bool_or(recording_key IS NOT NULL) FROM phone_calls WHERE call_log_id = $1",
+           "SELECT COALESCE(SUM(duration), 0), bool_or(recording_key IS NOT NULL), (SELECT id FROM phone_calls WHERE call_log_id = $1 AND recording_key IS NOT NULL LIMIT 1) FROM phone_calls WHERE call_log_id = $1",
            [Ecto.UUID.dump!(call_log_id)]
          ) do
-      {:ok, %{rows: [[dur, has_rec]]}} -> {to_int(dur), has_rec || false}
-      _ -> {0, false}
+      {:ok, %{rows: [[dur, has_rec, pc_id]]}} ->
+        {to_int(dur), has_rec || false, pc_id && Saleflow.Sales.decode_uuid(pc_id)}
+      _ -> {0, false, nil}
     end
   end
 
