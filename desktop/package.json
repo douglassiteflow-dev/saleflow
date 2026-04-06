@@ -1,6 +1,6 @@
 {
   "name": "saleflow-dialer",
-  "version": "1.3.6",
+  "version": "1.4.0",
   "description": "Saleflow Dialer — Desktop app för säljare",
   "main": "main.js",
   "scripts": {
