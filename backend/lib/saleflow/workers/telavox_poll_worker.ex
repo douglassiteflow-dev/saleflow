@@ -12,7 +12,7 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
 
   alias Saleflow.Sales
 
-  @poll_interval 1_000
+  @poll_interval 5_000
 
   # --- Public API ---
 
