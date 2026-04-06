@@ -48,6 +48,7 @@ export function HistoryPage() {
     from: todayISO(),
     to: todayISO(),
   }));
+  const [activePreset, setActivePreset] = useState<string | null>("Idag");
   const navigate = useNavigate();
   const { data: user } = useMe();
   const { data: calls, isLoading } = useCallHistory(dateRange.from, dateRange.to);
@@ -65,13 +66,12 @@ export function HistoryPage() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex gap-1">
           {PRESETS.map((p) => {
-            const preset = p.get();
-            const isActive = dateRange.from === preset.from && dateRange.to === preset.to;
+            const isActive = activePreset === p.label;
             return (
               <button
                 key={p.label}
                 type="button"
-                onClick={() => setDateRange(preset)}
+                onClick={() => { setDateRange(p.get()); setActivePreset(p.label); }}
                 className={cn(
                   "px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer",
                   isActive
@@ -88,14 +88,14 @@ export function HistoryPage() {
           <input
             type="date"
             value={dateRange.from}
-            onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
+            onChange={(e) => { setDateRange({ ...dateRange, from: e.target.value }); setActivePreset(null); }}
             className="h-9 rounded-[10px] border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20"
           />
           <span className="text-sm text-[var(--color-text-secondary)]">&ndash;</span>
           <input
             type="date"
             value={dateRange.to}
-            onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
+            onChange={(e) => { setDateRange({ ...dateRange, to: e.target.value }); setActivePreset(null); }}
             className="h-9 rounded-[10px] border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20"
           />
         </div>

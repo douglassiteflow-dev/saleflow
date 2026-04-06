@@ -76,7 +76,9 @@ export function DialerPage() {
   const [dealReturnTab, setDealReturnTab] = useState<Tab>("deals");
   const todayStr = todayISO();
   const [meetingsRange, setMeetingsRange] = useState<DateRange>({ from: todayStr, to: todayStr });
+  const [meetingsPreset, setMeetingsPreset] = useState<string | null>("Idag");
   const [historyRange, setHistoryRange] = useState<DateRange>({ from: todayStr, to: todayStr });
+  const [historyPreset, setHistoryPreset] = useState<string | null>("Idag");
   const [currentLeadId, setCurrentLeadIdRaw] = useState<string | null>(
     () => sessionStorage.getItem("dialer_lead_id"),
   );
@@ -233,7 +235,9 @@ export function DialerPage() {
       {activeTab === "history" && (
         <HistoryTabContent
           dateRange={historyRange}
-          onDateRangeChange={setHistoryRange}
+          onDateRangeChange={(r) => { setHistoryRange(r); setHistoryPreset(null); }}
+          activePreset={historyPreset}
+          onPresetChange={setHistoryPreset}
           onLeadClick={(id) => { setSelectedLeadId(id); setActiveTab("lead-detail"); }}
         />
       )}
@@ -241,7 +245,9 @@ export function DialerPage() {
       {activeTab === "meetings" && (
         <MeetingsTabContent
           dateRange={meetingsRange}
-          onDateRangeChange={setMeetingsRange}
+          onDateRangeChange={(r) => { setMeetingsRange(r); setMeetingsPreset(null); }}
+          activePreset={meetingsPreset}
+          onPresetChange={setMeetingsPreset}
           onMeetingClick={(id) => { setSelectedMeetingId(id); setActiveTab("meeting-detail"); }}
         />
       )}
@@ -651,7 +657,7 @@ function CallbacksTabContent({
 
 /* ==================== History tab ==================== */
 
-function HistoryTabContent({ dateRange, onDateRangeChange, onLeadClick }: { dateRange: DateRange; onDateRangeChange: (r: DateRange) => void; onLeadClick: (leadId: string) => void }) {
+function HistoryTabContent({ dateRange, onDateRangeChange, activePreset, onPresetChange, onLeadClick }: { dateRange: DateRange; onDateRangeChange: (r: DateRange) => void; activePreset?: string | null; onPresetChange?: (label: string) => void; onLeadClick: (leadId: string) => void }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [outcomeFilter, setOutcomeFilter] = useState("");
@@ -678,6 +684,8 @@ function HistoryTabContent({ dateRange, onDateRangeChange, onLeadClick }: { date
         searchPlaceholder="Sök företag..."
         dateRange={dateRange}
         onDateRangeChange={(r) => { onDateRangeChange(r); setPage(1); }}
+        activePreset={activePreset}
+        onPresetChange={onPresetChange}
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
@@ -750,7 +758,7 @@ function HistoryTabContent({ dateRange, onDateRangeChange, onLeadClick }: { date
 
 /* ==================== Meetings tab ==================== */
 
-function MeetingsTabContent({ dateRange, onDateRangeChange, onMeetingClick }: { dateRange: DateRange; onDateRangeChange: (r: DateRange) => void; onMeetingClick: (id: string) => void }) {
+function MeetingsTabContent({ dateRange, onDateRangeChange, activePreset, onPresetChange, onMeetingClick }: { dateRange: DateRange; onDateRangeChange: (r: DateRange) => void; activePreset?: string | null; onPresetChange?: (label: string) => void; onMeetingClick: (id: string) => void }) {
   const { data: meetings, isLoading } = useMeetings();
   const cancelMeeting = useCancelMeeting();
   const [search, setSearch] = useState("");
@@ -790,6 +798,8 @@ function MeetingsTabContent({ dateRange, onDateRangeChange, onMeetingClick }: { 
           searchPlaceholder="Sök möte..."
           dateRange={dateRange}
           onDateRangeChange={(r) => { onDateRangeChange(r); setPage(1); }}
+          activePreset={activePreset}
+          onPresetChange={onPresetChange}
           page={page}
           totalPages={totalPages}
           onPageChange={setPage}

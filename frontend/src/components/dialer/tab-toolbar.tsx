@@ -1,5 +1,5 @@
 import { cn } from "@/lib/cn";
-import { todayISO, type DateRange } from "@/lib/date";
+import { todayISO, daysAgoISO, type DateRange } from "@/lib/date";
 
 export type { DateRange };
 
@@ -10,6 +10,8 @@ interface TabToolbarProps {
   searchPlaceholder?: string;
   dateRange?: DateRange;
   onDateRangeChange?: (range: DateRange) => void;
+  activePreset?: string | null;
+  onPresetChange?: (label: string) => void;
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
@@ -18,9 +20,9 @@ interface TabToolbarProps {
 
 const PRESETS = [
   { label: "Idag", get: () => ({ from: todayISO(), to: todayISO() }) },
-  { label: "Igår", get: () => { const d = new Date(); d.setDate(d.getDate() - 1); const s = d.toISOString().slice(0, 10); return { from: s, to: s }; } },
-  { label: "Veckan", get: () => { const now = new Date(); const day = now.getDay() || 7; const mon = new Date(now); mon.setDate(now.getDate() - day + 1); return { from: mon.toISOString().slice(0, 10), to: todayISO() }; } },
-  { label: "Månaden", get: () => { const now = new Date(); return { from: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`, to: todayISO() }; } },
+  { label: "Igår", get: () => { const s = daysAgoISO(1); return { from: s, to: s }; } },
+  { label: "Senaste 7 dagarna", get: () => ({ from: daysAgoISO(6), to: todayISO() }) },
+  { label: "Senaste 30 dagarna", get: () => ({ from: daysAgoISO(29), to: todayISO() }) },
 ];
 
 export function TabToolbar({
@@ -30,6 +32,8 @@ export function TabToolbar({
   searchPlaceholder = "Sök...",
   dateRange,
   onDateRangeChange,
+  activePreset,
+  onPresetChange,
   page,
   totalPages,
   onPageChange,
@@ -45,13 +49,16 @@ export function TabToolbar({
       {onDateRangeChange && (
         <div className="flex gap-1 ml-2">
           {PRESETS.map((p) => {
-            const preset = p.get();
-            const isActive = dateRange?.from === preset.from && dateRange?.to === preset.to;
+            const isActive = activePreset === p.label;
             return (
               <button
                 key={p.label}
                 type="button"
-                onClick={() => { onDateRangeChange(preset); onPageChange(1); }}
+                onClick={() => {
+                  onDateRangeChange(p.get());
+                  onPresetChange?.(p.label);
+                  onPageChange(1);
+                }}
                 className={cn(
                   "px-2 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer",
                   isActive
@@ -82,14 +89,14 @@ export function TabToolbar({
           <input
             type="date"
             value={dateRange.from}
-            onChange={(e) => onDateRangeChange({ ...dateRange, from: e.target.value })}
+            onChange={(e) => { onDateRangeChange({ ...dateRange, from: e.target.value }); onPresetChange?.(""); }}
             className="h-7 rounded-md border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-1.5 text-[10px] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20"
           />
           <span className="text-[10px] text-[var(--color-text-secondary)]">–</span>
           <input
             type="date"
             value={dateRange.to}
-            onChange={(e) => onDateRangeChange({ ...dateRange, to: e.target.value })}
+            onChange={(e) => { onDateRangeChange({ ...dateRange, to: e.target.value }); onPresetChange?.(""); }}
             className="h-7 rounded-md border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-1.5 text-[10px] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20"
           />
         </div>
