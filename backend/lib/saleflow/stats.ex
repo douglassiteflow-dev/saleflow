@@ -18,26 +18,42 @@ defmodule Saleflow.Stats do
   # Per-user stats
   # ---------------------------------------------------------------------------
 
-  @doc "Antal utgående samtal idag för en specifik agent."
+  @doc "Antal utgående samtal idag för en specifik agent (exkluderar samtal till leads med status meeting_booked/customer)."
   def calls_today(user_id) do
     uid = Ecto.UUID.dump!(user_id)
     today = Date.utc_today()
 
     {:ok, %{rows: [[count]]}} =
       Repo.query(
-        "SELECT COUNT(*) FROM phone_calls WHERE user_id = $1 AND received_at::date = $2 AND direction = 'outgoing'",
+        """
+        SELECT COUNT(*) FROM phone_calls pc
+        LEFT JOIN leads l ON l.id = pc.lead_id
+        WHERE pc.user_id = $1
+          AND pc.received_at::date = $2
+          AND pc.direction = 'outgoing'
+          AND (l.status IS NULL OR l.status NOT IN ('meeting_booked', 'customer'))
+        """,
         [uid, today]
       )
 
     count
   end
 
-  @doc "Totalt antal utgående samtal för en specifik agent."
+  @doc "Totalt antal utgående samtal för en specifik agent (exkluderar samtal till leads med status meeting_booked/customer)."
   def total_calls(user_id) do
     uid = Ecto.UUID.dump!(user_id)
 
     {:ok, %{rows: [[count]]}} =
-      Repo.query("SELECT COUNT(*) FROM phone_calls WHERE user_id = $1 AND direction = 'outgoing'", [uid])
+      Repo.query(
+        """
+        SELECT COUNT(*) FROM phone_calls pc
+        LEFT JOIN leads l ON l.id = pc.lead_id
+        WHERE pc.user_id = $1
+          AND pc.direction = 'outgoing'
+          AND (l.status IS NULL OR l.status NOT IN ('meeting_booked', 'customer'))
+        """,
+        [uid]
+      )
 
     count
   end
@@ -70,19 +86,37 @@ defmodule Saleflow.Stats do
   # Global stats (admin)
   # ---------------------------------------------------------------------------
 
-  @doc "Totalt antal utgående samtal idag (alla agenter)."
+  @doc "Totalt antal utgående samtal idag (alla agenter, exkluderar samtal till leads med status meeting_booked/customer)."
   def all_calls_today do
     today = Date.utc_today()
 
     {:ok, %{rows: [[count]]}} =
-      Repo.query("SELECT COUNT(*) FROM phone_calls WHERE received_at::date = $1 AND direction = 'outgoing'", [today])
+      Repo.query(
+        """
+        SELECT COUNT(*) FROM phone_calls pc
+        LEFT JOIN leads l ON l.id = pc.lead_id
+        WHERE pc.received_at::date = $1
+          AND pc.direction = 'outgoing'
+          AND (l.status IS NULL OR l.status NOT IN ('meeting_booked', 'customer'))
+        """,
+        [today]
+      )
 
     count
   end
 
-  @doc "Totalt antal utgående samtal (alla agenter, all tid)."
+  @doc "Totalt antal utgående samtal (alla agenter, all tid, exkluderar samtal till leads med status meeting_booked/customer)."
   def all_total_calls do
-    {:ok, %{rows: [[count]]}} = Repo.query("SELECT COUNT(*) FROM phone_calls WHERE direction = 'outgoing'")
+    {:ok, %{rows: [[count]]}} =
+      Repo.query(
+        """
+        SELECT COUNT(*) FROM phone_calls pc
+        LEFT JOIN leads l ON l.id = pc.lead_id
+        WHERE pc.direction = 'outgoing'
+          AND (l.status IS NULL OR l.status NOT IN ('meeting_booked', 'customer'))
+        """
+      )
+
     count
   end
 
@@ -153,10 +187,13 @@ defmodule Saleflow.Stats do
       COALESCE(m.booked, 0) as net_meetings_today
     FROM users u
     LEFT JOIN (
-      SELECT user_id, COUNT(*) as cnt
-      FROM phone_calls
-      WHERE received_at::date = CURRENT_DATE AND direction = 'outgoing'
-      GROUP BY user_id
+      SELECT pc.user_id, COUNT(*) as cnt
+      FROM phone_calls pc
+      LEFT JOIN leads l ON l.id = pc.lead_id
+      WHERE pc.received_at::date = CURRENT_DATE
+        AND pc.direction = 'outgoing'
+        AND (l.status IS NULL OR l.status NOT IN ('meeting_booked', 'customer'))
+      GROUP BY pc.user_id
     ) c ON c.user_id = u.id
     LEFT JOIN (
       SELECT user_id,

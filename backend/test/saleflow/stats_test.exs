@@ -45,16 +45,28 @@ defmodule Saleflow.StatsTest do
     meeting
   end
 
-  defp create_outgoing_call!(user) do
-    {:ok, call} =
-      Sales.create_phone_call(%{
+  defp create_outgoing_call!(user, opts \\ []) do
+    params =
+      %{
         user_id: user.id,
         caller: "+46701111111",
         callee: "+46702222222",
         direction: :outgoing
-      })
+      }
+      |> then(fn p ->
+        case Keyword.get(opts, :lead_id) do
+          nil -> p
+          lead_id -> Map.put(p, :lead_id, lead_id)
+        end
+      end)
 
+    {:ok, call} = Sales.create_phone_call(params)
     call
+  end
+
+  defp set_lead_status!(lead, status) do
+    {:ok, updated} = Sales.update_lead_status(lead, %{status: status})
+    updated
   end
 
   defp create_incoming_call!(user) do
@@ -108,6 +120,26 @@ defmodule Saleflow.StatsTest do
       assert row.meetings_cancelled_today == 0
       assert row.net_meetings_today == 1
     end
+
+    test "calls_today excludes calls to leads with meeting_booked or customer status" do
+      user = create_user!()
+      lead_booked = create_lead!()
+      set_lead_status!(lead_booked, :meeting_booked)
+      lead_customer = create_lead!()
+      set_lead_status!(lead_customer, :customer)
+      lead_new = create_lead!()
+
+      create_outgoing_call!(user, lead_id: lead_booked.id)
+      create_outgoing_call!(user, lead_id: lead_customer.id)
+      create_outgoing_call!(user, lead_id: lead_new.id)
+      create_outgoing_call!(user)
+
+      rows = Stats.leaderboard()
+      row = Enum.find(rows, fn r -> r.user_id == user.id end)
+
+      assert row != nil
+      assert row.calls_today == 2
+    end
   end
 
   # ---------------------------------------------------------------------------
@@ -129,6 +161,86 @@ defmodule Saleflow.StatsTest do
       user = create_user!()
       assert Stats.calls_today(user.id) == 0
     end
+
+    test "excludes calls to leads with status meeting_booked" do
+      user = create_user!()
+      lead = create_lead!()
+      set_lead_status!(lead, :meeting_booked)
+
+      create_outgoing_call!(user, lead_id: lead.id)
+      create_outgoing_call!(user)
+
+      assert Stats.calls_today(user.id) == 1
+    end
+
+    test "excludes calls to leads with status customer" do
+      user = create_user!()
+      lead = create_lead!()
+      set_lead_status!(lead, :customer)
+
+      create_outgoing_call!(user, lead_id: lead.id)
+      create_outgoing_call!(user)
+
+      assert Stats.calls_today(user.id) == 1
+    end
+
+    test "includes calls to leads with status new, assigned, callback" do
+      user = create_user!()
+      lead_new = create_lead!()
+      lead_assigned = create_lead!()
+      set_lead_status!(lead_assigned, :assigned)
+      lead_callback = create_lead!()
+      set_lead_status!(lead_callback, :callback)
+
+      create_outgoing_call!(user, lead_id: lead_new.id)
+      create_outgoing_call!(user, lead_id: lead_assigned.id)
+      create_outgoing_call!(user, lead_id: lead_callback.id)
+
+      assert Stats.calls_today(user.id) == 3
+    end
+
+    test "includes calls without a lead_id (backward compatibility)" do
+      user = create_user!()
+
+      create_outgoing_call!(user)
+      create_outgoing_call!(user)
+
+      assert Stats.calls_today(user.id) == 2
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # total_calls/1
+  # ---------------------------------------------------------------------------
+
+  describe "total_calls/1" do
+    test "excludes calls to leads with status meeting_booked" do
+      user = create_user!()
+      lead = create_lead!()
+      set_lead_status!(lead, :meeting_booked)
+
+      create_outgoing_call!(user, lead_id: lead.id)
+      create_outgoing_call!(user)
+
+      assert Stats.total_calls(user.id) == 1
+    end
+
+    test "excludes calls to leads with status customer" do
+      user = create_user!()
+      lead = create_lead!()
+      set_lead_status!(lead, :customer)
+
+      create_outgoing_call!(user, lead_id: lead.id)
+      create_outgoing_call!(user)
+
+      assert Stats.total_calls(user.id) == 1
+    end
+
+    test "includes calls without a lead_id" do
+      user = create_user!()
+      create_outgoing_call!(user)
+      assert Stats.total_calls(user.id) == 1
+    end
   end
 
   # ---------------------------------------------------------------------------
@@ -146,6 +258,48 @@ defmodule Saleflow.StatsTest do
       create_incoming_call!(user2)
 
       assert Stats.all_calls_today() == 3
+    end
+
+    test "excludes calls to leads with status meeting_booked or customer" do
+      user1 = create_user!()
+      user2 = create_user!()
+      lead_booked = create_lead!()
+      set_lead_status!(lead_booked, :meeting_booked)
+      lead_customer = create_lead!()
+      set_lead_status!(lead_customer, :customer)
+
+      create_outgoing_call!(user1, lead_id: lead_booked.id)
+      create_outgoing_call!(user2, lead_id: lead_customer.id)
+      create_outgoing_call!(user1)
+      create_outgoing_call!(user2)
+
+      assert Stats.all_calls_today() == 2
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # all_total_calls/0
+  # ---------------------------------------------------------------------------
+
+  describe "all_total_calls/0" do
+    test "excludes calls to leads with status meeting_booked or customer" do
+      user = create_user!()
+      lead_booked = create_lead!()
+      set_lead_status!(lead_booked, :meeting_booked)
+      lead_customer = create_lead!()
+      set_lead_status!(lead_customer, :customer)
+
+      create_outgoing_call!(user, lead_id: lead_booked.id)
+      create_outgoing_call!(user, lead_id: lead_customer.id)
+      create_outgoing_call!(user)
+
+      assert Stats.all_total_calls() == 1
+    end
+
+    test "includes calls without a lead_id" do
+      user = create_user!()
+      create_outgoing_call!(user)
+      assert Stats.all_total_calls() >= 1
     end
   end
 
