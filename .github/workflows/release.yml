@@ -1,0 +1,144 @@
+name: Release & Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  check-bump:
+    runs-on: ubuntu-latest
+    outputs:
+      bump: ${{ steps.bump.outputs.bump }}
+      new_version: ${{ steps.bump.outputs.new_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version bump
+        id: bump
+        run: |
+          # Get latest tag or default to 1.0.1
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.1")
+          CURRENT="${LATEST_TAG#v}"
+
+          # Get commits since last tag
+          COMMITS=$(git log "${LATEST_TAG}..HEAD" --pretty=format:"%s" 2>/dev/null || git log --pretty=format:"%s" -10)
+
+          # Determine bump type from conventional commits
+          BUMP="none"
+          if echo "$COMMITS" | grep -qiE "^feat(\(.*\))?!?:"; then
+            BUMP="minor"
+          elif echo "$COMMITS" | grep -qiE "^fix(\(.*\))?:"; then
+            BUMP="patch"
+          fi
+
+          if [ "$BUMP" = "none" ]; then
+            echo "bump=none" >> "$GITHUB_OUTPUT"
+            echo "No version bump needed"
+            exit 0
+          fi
+
+          # Calculate new version
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          if [ "$BUMP" = "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          elif [ "$BUMP" = "patch" ]; then
+            PATCH=$((PATCH + 1))
+          fi
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+
+          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Bumping $BUMP: $CURRENT -> $NEW_VERSION"
+
+  release:
+    needs: check-bump
+    if: needs.check-bump.outputs.bump != 'none'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Update versions in code
+        env:
+          VERSION: ${{ needs.check-bump.outputs.new_version }}
+        run: |
+          # desktop/package.json
+          cd desktop
+          npm version "$VERSION" --no-git-tag-version
+          cd ..
+
+          # desktop/preload.js
+          sed -i '' "s/version: \".*\"/version: \"$VERSION\"/" desktop/preload.js
+
+          # frontend update-banner.tsx
+          sed -i '' "s/LATEST_DESKTOP_VERSION = \".*\"/LATEST_DESKTOP_VERSION = \"$VERSION\"/" frontend/src/components/dialer/update-banner.tsx
+
+      - name: Install desktop dependencies
+        run: cd desktop && npm install
+
+      - name: Build Mac (arm64 + x64)
+        run: cd desktop && npx electron-builder --mac --arm64
+
+      - name: Build Windows (x64)
+        run: cd desktop && npx electron-builder --win --x64
+
+      - name: Rename assets
+        env:
+          VERSION: ${{ needs.check-bump.outputs.new_version }}
+        run: |
+          cd desktop/dist
+          # Rename to clean names for download links
+          cp "Saleflow Dialer-${VERSION}-arm64.dmg" Saleflow-Dialer-arm64.dmg 2>/dev/null || true
+          cp "Saleflow Dialer Setup ${VERSION}.exe" Saleflow-Dialer-Setup.exe 2>/dev/null || true
+          ls -la *.dmg *.exe 2>/dev/null
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.check-bump.outputs.new_version }}
+        run: |
+          # Generate changelog from commits since last tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.1")
+          CHANGELOG=$(git log "${LATEST_TAG}..HEAD" --pretty=format:"- %s" 2>/dev/null | head -20)
+
+          gh release create "v${VERSION}" \
+            --title "Saleflow Dialer v${VERSION}" \
+            --notes "$CHANGELOG" \
+            desktop/dist/Saleflow-Dialer-arm64.dmg \
+            desktop/dist/Saleflow-Dialer-Setup.exe
+
+      - name: Commit version bump
+        env:
+          VERSION: ${{ needs.check-bump.outputs.new_version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add desktop/package.json desktop/preload.js frontend/src/components/dialer/update-banner.tsx
+          git commit -m "chore: bump version to ${VERSION} [skip ci]"
+          git tag "v${VERSION}"
+          git push origin main --tags
+
+  deploy:
+    needs: [check-bump, release]
+    if: always() && !cancelled()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy --config fly.toml --remote-only
