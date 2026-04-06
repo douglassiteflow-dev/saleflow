@@ -200,13 +200,14 @@ defmodule Saleflow.Workers.TelavoxPollWorkerTest do
       assert hd(ended).extension == "123"
     end
 
-    test "ignores calls that were ringing (not up)" do
+    test "detects ended calls that were ringing (unanswered)" do
       previous = [
         %{extension: "123", callerid: "0701234567", linestatus: "ringing", agent_name: "A", user_id: nil, direction: "out"}
       ]
 
       ended = TelavoxPollWorker.find_ended_calls(previous, [])
-      assert ended == []
+      assert length(ended) == 1
+      assert hd(ended).callerid == "0701234567"
     end
 
     test "returns empty when no calls ended" do

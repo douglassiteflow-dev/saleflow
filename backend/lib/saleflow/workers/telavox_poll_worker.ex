@@ -129,8 +129,7 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
     current_keys = MapSet.new(current, fn c -> {c.extension, c.callerid} end)
 
     Enum.filter(previous, fn prev ->
-      prev.linestatus == "up" &&
-        not MapSet.member?(current_keys, {prev.extension, prev.callerid})
+      not MapSet.member?(current_keys, {prev.extension, prev.callerid})
     end)
   end
 
