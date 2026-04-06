@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { RefreshCw, X } from "lucide-react";
 import { APP_VERSION } from "@/version";
 
-const DOWNLOAD_URL = "https://sale.siteflow.se/download-app";
-
 export function UpdateBanner() {
   const [dismissed, setDismissed] = useState(false);
   const [serverVersion, setServerVersion] = useState<string | null>(null);
