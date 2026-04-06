@@ -106,6 +106,7 @@ export function Sidebar() {
           <NavItem to="/admin/requests" label="Förfrågningar" />
           <NavItem to="/admin/logs" label="Loggar" />
           <NavItem to="/admin/apps" label="Appar" />
+          <NavItem to="/admin/playbook" label="Säljmanus" />
         </nav>
 
         {/* Report button at bottom */}

@@ -144,6 +144,13 @@ defmodule SaleflowWeb.Router do
     post "/apps/:slug/toggle", AppController, :toggle
     post "/apps/:slug/permissions", AppController, :add_permission
     delete "/apps/:slug/permissions/:user_id", AppController, :remove_permission
+
+    # Playbooks
+    get "/playbooks", PlaybookController, :index
+    get "/playbooks/active", PlaybookController, :active
+    post "/playbooks", PlaybookController, :create
+    put "/playbooks/:id", PlaybookController, :update
+    delete "/playbooks/:id", PlaybookController, :delete
   end
 
   # SPA fallback — serve index.html for all non-API routes

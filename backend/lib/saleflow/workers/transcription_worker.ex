@@ -64,13 +64,53 @@ defmodule Saleflow.Workers.TranscriptionWorker do
 
   # --- Step 2: Claude ---
 
+  defp get_active_playbook do
+    case Saleflow.Repo.query(
+           "SELECT opening, pitch, objections, closing, guidelines FROM playbooks WHERE active = true LIMIT 1"
+         ) do
+      {:ok, %{rows: [[opening, pitch, objections, closing, guidelines]]}} ->
+        %{opening: opening, pitch: pitch, objections: objections, closing: closing, guidelines: guidelines}
+
+      _ ->
+        nil
+    end
+  end
+
+  defp playbook_prompt(nil), do: ""
+
+  defp playbook_prompt(playbook) do
+    """
+
+    FÖRETAGETS PLAYBOOK (bedöm samtalet mot detta):
+
+    ÖPPNING:
+    #{playbook.opening}
+
+    PITCH:
+    #{playbook.pitch}
+
+    INVÄNDNINGSHANTERING:
+    #{playbook.objections}
+
+    AVSLUT:
+    #{playbook.closing}
+
+    RIKTLINJER:
+    #{playbook.guidelines}
+
+    Bedöm hur väl säljaren följde detta manus. Referera till specifika delar av playbooken i din feedback.
+    """
+  end
+
   defp claude_analyze(raw_text) do
     api_key = Application.get_env(:saleflow, :anthropic_api_key, "")
     if api_key == "", do: throw({:error, "ANTHROPIC_API_KEY not set"})
 
+    playbook = get_active_playbook()
+
     prompt = """
     Du är en erfaren säljcoach som analyserar inspelade säljsamtal. Samtalet är mellan en säljare och en potentiell kund.
-
+    #{playbook_prompt(playbook)}
     Här är den råa transkriptionen (kan innehålla felstavningar och grammatikfel från tal-till-text):
     ---
     #{raw_text}
