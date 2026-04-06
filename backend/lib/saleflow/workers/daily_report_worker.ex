@@ -1,8 +1,8 @@
 defmodule Saleflow.Workers.DailyReportWorker do
   @moduledoc """
-  Runs daily at 16:00. Collects all AI call analyses from today,
-  sends them to Claude for a team-wide daily summary report.
-  Stores the report in a daily_reports table.
+  Runs daily at 16:10 on weekdays. Generates a PERSONAL AI coaching report
+  for each agent based on their individual call history and scores.
+  Each agent gets their own report saved in agent_daily_reports.
   """
 
   use Oban.Worker, queue: :default, max_attempts: 2
@@ -13,71 +13,161 @@ defmodule Saleflow.Workers.DailyReportWorker do
   def perform(_job) do
     today = Date.utc_today()
 
-    {:ok, %{rows: rows}} =
-      Saleflow.Repo.query(
-        "SELECT pc.transcription_analysis, pc.duration, cl.outcome::text, u.name
-         FROM phone_calls pc
-         LEFT JOIN call_logs cl ON cl.id = pc.call_log_id
-         LEFT JOIN users u ON u.id = pc.user_id
-         WHERE pc.received_at::date = $1 AND pc.transcription_analysis IS NOT NULL",
-        [today]
-      )
+    agents = get_agents()
 
-    if length(rows) == 0 do
-      Logger.info("DailyReportWorker: no analyzed calls for #{today}")
+    if length(agents) == 0 do
+      Logger.info("DailyReportWorker: no agents found")
       :ok
     else
-      summaries = Enum.map(rows, fn [analysis_raw, duration, outcome, agent] ->
-        parsed = parse_analysis(analysis_raw)
-        "Agent: #{agent || "Okänd"}, Utfall: #{outcome || "?"}, Längd: #{duration || 0}s, " <>
-        "Betyg: #{dig(parsed, ["score", "overall"]) || "?"}/10, " <>
-        "Sammanfattning: #{parsed["summary"] || "?"}, " <>
-        "Feedback: #{dig(parsed, ["score", "top_feedback"]) || "?"}"
+      Logger.info("DailyReportWorker: generating reports for #{length(agents)} agents")
+
+      Enum.each(agents, fn {user_id, user_name} ->
+        generate_agent_report(user_id, user_name, today)
       end)
 
-      case generate_report(today, summaries) do
-        {:ok, report} ->
-          save_report(today, report)
-          Logger.info("DailyReportWorker: report generated for #{today}")
-          :ok
+      :ok
+    end
+  end
+
+  defp generate_agent_report(user_id, user_name, today) do
+    calls = get_agent_calls_today(user_id, today)
+    previous_reports = get_previous_agent_reports(user_id, today, 5)
+    playbook = get_playbook()
+
+    if length(calls) == 0 do
+      Logger.info("DailyReportWorker: no calls for agent #{user_name} on #{today}")
+      :ok
+    else
+      scores = calls
+        |> Enum.map(fn {_summary, _score_details, _feedback, overall} -> overall end)
+        |> Enum.filter(fn s -> s != nil and s > 0 end)
+
+      score_avg = if length(scores) > 0, do: Enum.sum(scores) / length(scores), else: nil
+      call_count = length(calls)
+
+      case send_to_claude(user_name, today, calls, previous_reports, playbook) do
+        {:ok, report_text} ->
+          save_agent_report(user_id, today, report_text, score_avg, call_count)
+          Logger.info("DailyReportWorker: report saved for #{user_name} on #{today}")
 
         {:error, reason} ->
-          Logger.warning("DailyReportWorker: failed for #{today}: #{inspect(reason)}")
-          {:error, reason}
+          Logger.warning("DailyReportWorker: failed for #{user_name}: #{inspect(reason)}")
       end
     end
   end
 
-  defp generate_report(date, summaries) do
+  defp get_agents do
+    case Saleflow.Repo.query("SELECT id, name FROM users WHERE role = 'agent' ORDER BY name") do
+      {:ok, %{rows: rows}} ->
+        Enum.map(rows, fn [id, name] -> {Ecto.UUID.load!(id), name} end)
+      _ -> []
+    end
+  end
+
+  defp get_agent_calls_today(user_id, today) do
+    case Saleflow.Repo.query(
+           """
+           SELECT pc.transcription_analysis, pc.duration, cl.outcome::text
+           FROM phone_calls pc
+           LEFT JOIN call_logs cl ON cl.id = pc.call_log_id
+           WHERE pc.user_id = $1
+             AND pc.received_at::date = $2
+             AND pc.transcription_analysis IS NOT NULL
+           ORDER BY pc.received_at ASC
+           """,
+           [Ecto.UUID.dump!(user_id), today]
+         ) do
+      {:ok, %{rows: rows}} ->
+        Enum.map(rows, fn [analysis_raw, _duration, _outcome] ->
+          parsed = parse_analysis(analysis_raw)
+          summary = parsed["summary"] || "Inget sammanfattning"
+          score = parsed["score"] || %{}
+          top_feedback = dig(score, ["top_feedback"])
+          overall = dig(score, ["overall"])
+
+          score_details = %{
+            opening: dig(score, ["opening", "score"]),
+            needs_discovery: dig(score, ["needs_discovery", "score"]),
+            pitch: dig(score, ["pitch", "score"]),
+            objection_handling: dig(score, ["objection_handling", "score"]),
+            closing: dig(score, ["closing", "score"]),
+            overall: overall
+          }
+
+          {summary, score_details, top_feedback, overall}
+        end)
+      _ -> []
+    end
+  end
+
+  defp get_previous_agent_reports(user_id, today, limit) do
+    case Saleflow.Repo.query(
+           "SELECT date, report FROM agent_daily_reports WHERE user_id = $1 AND date < $2 ORDER BY date DESC LIMIT $3",
+           [Ecto.UUID.dump!(user_id), today, limit]
+         ) do
+      {:ok, %{rows: rows}} ->
+        Enum.map(rows, fn [date, report] ->
+          "#{Date.to_iso8601(date)}:\n#{String.slice(report || "", 0..800)}"
+        end)
+      _ -> []
+    end
+  end
+
+  defp get_playbook do
+    case Saleflow.Repo.query("SELECT opening, pitch, objections, closing, guidelines FROM playbooks WHERE active = true LIMIT 1") do
+      {:ok, %{rows: [[o, p, obj, c, g]]}} ->
+        "Öppning: #{o}\nPitch: #{p}\nInvändningar: #{obj}\nAvslut: #{c}\nRiktlinjer: #{g}"
+      _ -> nil
+    end
+  end
+
+  defp send_to_claude(agent_name, date, calls, previous_reports, playbook) do
     api_key = Application.get_env(:saleflow, :anthropic_api_key, "")
     if api_key == "", do: throw({:error, "ANTHROPIC_API_KEY not set"})
 
-    playbook = get_playbook()
-    previous_reports = get_previous_reports(date, 5)
+    calls_text = calls
+      |> Enum.with_index(1)
+      |> Enum.map(fn {{summary, scores, feedback, _overall}, i} ->
+        """
+        Samtal #{i}:
+        Sammanfattning: #{summary}
+        Betyg: Öppning #{scores.opening || "?"}, Behov #{scores.needs_discovery || "?"}, Pitch #{scores.pitch || "?"}, Invändning #{scores.objection_handling || "?"}, Avslut #{scores.closing || "?"}, Totalt #{scores.overall || "?"}/10
+        Feedback: #{feedback || "Ingen feedback"}
+        """
+      end)
+      |> Enum.join("\n")
+
+    previous_text = if length(previous_reports) > 0 do
+      "DINA TIDIGARE COACHINGRAPPORTER TILL DENNA AGENT:\n#{Enum.join(previous_reports, "\n---\n")}"
+    else
+      "Du har inte coachat denna agent tidigare. Detta är din första rapport."
+    end
 
     prompt = """
-    Du är en säljchef som skriver en daglig rapport för ditt säljteam.
-    Datum: #{Date.to_iso8601(date)}
+    Du är en personlig säljcoach för #{agent_name}. Du följer denna agents utveckling dag för dag.
 
-    #{if playbook, do: "Teamets playbook/manus:\n#{playbook}\n", else: ""}
+    #{if playbook, do: "PLAYBOOK:\n#{playbook}\n", else: ""}
 
-    #{if length(previous_reports) > 0, do: "TIDIGARE RAPPORTER (använd för att se trender och progress):\n#{Enum.join(previous_reports, "\n---\n")}\n", else: ""}
+    AGENTENS SAMTALSANALYSER IDAG (#{Date.to_iso8601(date)}):
+    #{calls_text}
 
-    Här är alla AI-analyserade samtal idag:
-    #{Enum.join(summaries, "\n\n")}
+    #{previous_text}
 
-    Skriv en daglig rapport i JSON-format:
+    Skriv en personlig daglig rapport till #{agent_name}. Du tilltalar agenten med "du".
+
+    JSON-format:
     {
-      "headline": "En kort rubrik som sammanfattar dagen (max 10 ord)",
-      "summary": "2-3 meningar om hur dagen gick",
-      "wins": ["bra saker som hände idag"],
-      "improvements": ["saker att förbättra imorgon"],
-      "focus_tomorrow": "En specifik sak teamet ska fokusera på imorgon, baserat på dagens svagaste område",
-      "agent_shoutouts": [{"agent": "Namn", "reason": "Varför de förtjänar beröm"}],
-      "trend_note": "Notera om det finns mönster — t.ex. alla missar samma del av pitchen, eller en agent sticker ut"
+      "greeting": "Hej {förnamn}! Kort personlig hälsning baserad på dagens resultat",
+      "score_summary": "Ditt snittbetyg idag var X.X/10 (igår var det Y.Y) — kort kommentar",
+      "wins": ["Specifika saker agenten gjorde bra idag, citera från samtal"],
+      "focus_area": "Den sak agenten ska fokusera på imorgon — baserat på svagaste området OCH vad du sa igår",
+      "progress_note": "Hur agenten utvecklats sedan förra rapporten — har de lyssnat på dina tips?",
+      "tip_of_the_day": "Ett konkret, actionbart tips för imorgon kopplat till playbooken",
+      "motivation": "Avslutande motiverande mening"
     }
 
-    Var specifik och referera till faktiska samtal. Svara BARA med JSON.
+    Var specifik, referera till faktiska samtal. Om agenten förbättrat något du nämnde igår — beröm det! Om de inte förbättrat — var konstruktiv men tydlig.
+    Svara BARA med JSON.
     """
 
     body = Jason.encode!(%{
@@ -97,19 +187,19 @@ defmodule Saleflow.Workers.DailyReportWorker do
              {"anthropic-version", "2023-06-01"},
              {"content-type", "application/json"}
            ],
-           receive_timeout: 60_000
+           receive_timeout: 90_000
          ) do
       {:ok, %{status: 200, body: %{"content" => content}}} ->
-        # With extended thinking, content has thinking blocks + text blocks
         text = content
           |> Enum.filter(fn block -> block["type"] == "text" end)
           |> Enum.map(fn block -> block["text"] end)
           |> Enum.join("")
 
         cleaned = String.replace(text, ~r/```json\n?|\n?```/, "")
+        # Validate it's valid JSON before saving
         case Jason.decode(cleaned) do
-          {:ok, report} -> {:ok, report}
-          _ -> {:ok, %{"raw" => text}}
+          {:ok, _} -> {:ok, cleaned}
+          _ -> {:ok, text}
         end
 
       {:ok, %{status: s, body: b}} -> {:error, "Claude #{s}: #{inspect(b)}"}
@@ -117,30 +207,15 @@ defmodule Saleflow.Workers.DailyReportWorker do
     end
   end
 
-  defp save_report(date, report) do
-    json = Jason.encode!(report)
+  defp save_agent_report(user_id, date, report, score_avg, call_count) do
     Saleflow.Repo.query(
-      "INSERT INTO daily_reports (id, date, report, inserted_at) VALUES (gen_random_uuid(), $1, $2, NOW()) ON CONFLICT (date) DO UPDATE SET report = $2",
-      [date, json]
+      """
+      INSERT INTO agent_daily_reports (id, user_id, date, report, score_avg, call_count, inserted_at)
+      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW())
+      ON CONFLICT (user_id, date) DO UPDATE SET report = $3, score_avg = $4, call_count = $5
+      """,
+      [Ecto.UUID.dump!(user_id), date, report, score_avg, call_count]
     )
-  end
-
-  defp get_previous_reports(today, limit) do
-    case Saleflow.Repo.query(
-           "SELECT date, report FROM daily_reports WHERE date < $1 ORDER BY date DESC LIMIT $2",
-           [today, limit]
-         ) do
-      {:ok, %{rows: rows}} ->
-        Enum.map(rows, fn [date, report] -> "#{date}: #{String.slice(report || "", 0..500)}" end)
-      _ -> []
-    end
-  end
-
-  defp get_playbook do
-    case Saleflow.Repo.query("SELECT opening, pitch, objections, closing, guidelines FROM playbooks WHERE active = true LIMIT 1") do
-      {:ok, %{rows: [[o, p, obj, c, g]]}} -> "Öppning: #{o}\nPitch: #{p}\nInvändningar: #{obj}\nAvslut: #{c}\nRiktlinjer: #{g}"
-      _ -> nil
-    end
   end
 
   defp parse_analysis(raw) do

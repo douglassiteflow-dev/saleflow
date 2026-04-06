@@ -98,6 +98,7 @@ defmodule SaleflowWeb.Router do
     get "/calls/history", CallController, :history
     get "/calls/daily-summary", CallController, :daily_summary
     get "/calls/daily-report", CallController, :daily_report
+    get "/calls/agent-report", CallController, :agent_report
     get "/calls/:id/recording", CallController, :recording
 
     # Apps

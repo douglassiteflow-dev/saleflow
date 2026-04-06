@@ -265,6 +265,29 @@ defmodule SaleflowWeb.CallController do
     end
   end
 
+  @doc "Personal AI coaching report for the authenticated agent."
+  def agent_report(conn, params) do
+    user = conn.assigns.current_user
+    date = parse_date(params["date"]) || Date.utc_today()
+
+    case Saleflow.Repo.query(
+           "SELECT report, score_avg, call_count FROM agent_daily_reports WHERE user_id = $1 AND date = $2",
+           [Ecto.UUID.dump!(user.id), date]
+         ) do
+      {:ok, %{rows: [[report, score, calls]]}} ->
+        parsed =
+          case Jason.decode(report || "") do
+            {:ok, data} -> data
+            _ -> nil
+          end
+
+        json(conn, %{date: Date.to_iso8601(date), report: parsed, score_avg: score, call_count: calls})
+
+      _ ->
+        json(conn, %{date: Date.to_iso8601(date), report: nil, score_avg: nil, call_count: nil})
+    end
+  end
+
   defp get_lead_name(lead_id) do
     case Saleflow.Repo.query("SELECT företag FROM leads WHERE id = $1 LIMIT 1", [Ecto.UUID.dump!(lead_id)]) do
       {:ok, %{rows: [[name]]}} when is_binary(name) -> name

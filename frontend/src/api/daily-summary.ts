@@ -59,3 +59,32 @@ export function useDailyReport(date: string) {
     staleTime: 60_000,
   });
 }
+
+/* ------------------------------------------------------------------ */
+/*  Personal agent report (AI coach)                                   */
+/* ------------------------------------------------------------------ */
+
+export interface AgentReport {
+  greeting: string;
+  score_summary: string;
+  wins: string[];
+  focus_area: string;
+  progress_note: string;
+  tip_of_the_day: string;
+  motivation: string;
+}
+
+export interface AgentReportData {
+  date: string;
+  report: AgentReport | null;
+  score_avg: number | null;
+  call_count: number | null;
+}
+
+export function useAgentReport(date: string) {
+  return useQuery<AgentReportData>({
+    queryKey: ["agent-report", date],
+    queryFn: () => api<AgentReportData>(`/api/calls/agent-report?date=${date}`),
+    staleTime: 60_000,
+  });
+}

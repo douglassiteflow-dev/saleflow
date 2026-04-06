@@ -397,4 +397,96 @@ defmodule SaleflowWeb.CallControllerTest do
       assert json_response(conn, 401)
     end
   end
+
+  # -------------------------------------------------------------------------
+  # GET /api/calls/agent-report
+  # -------------------------------------------------------------------------
+
+  describe "GET /api/calls/agent-report" do
+    test "returns null report when no report exists for date", %{conn: conn} do
+      {conn, _user} = authenticated_conn(conn)
+
+      conn = get(conn, "/api/calls/agent-report?date=2026-04-01")
+
+      response = json_response(conn, 200)
+      assert response["date"] == "2026-04-01"
+      assert response["report"] == nil
+      assert response["score_avg"] == nil
+      assert response["call_count"] == nil
+    end
+
+    test "returns report when it exists for the user and date", %{conn: conn} do
+      {conn, user} = authenticated_conn(conn)
+      today = Date.utc_today()
+
+      report = %{
+        "greeting" => "Hej Test User!",
+        "score_summary" => "7.5/10",
+        "wins" => ["Bra pitch"],
+        "focus_area" => "Avslut",
+        "progress_note" => "Bra utveckling",
+        "tip_of_the_day" => "Var mer specifik",
+        "motivation" => "Du rockar!"
+      }
+
+      Saleflow.Repo.query!(
+        """
+        INSERT INTO agent_daily_reports (id, user_id, date, report, score_avg, call_count, inserted_at)
+        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW())
+        """,
+        [Ecto.UUID.dump!(user.id), today, Jason.encode!(report), 7.5, 4]
+      )
+
+      conn = get(conn, "/api/calls/agent-report?date=#{Date.to_iso8601(today)}")
+
+      response = json_response(conn, 200)
+      assert response["date"] == Date.to_iso8601(today)
+      assert response["report"]["greeting"] == "Hej Test User!"
+      assert response["report"]["wins"] == ["Bra pitch"]
+      assert response["score_avg"] == 7.5
+      assert response["call_count"] == 4
+    end
+
+    test "defaults to today when no date param", %{conn: conn} do
+      {conn, _user} = authenticated_conn(conn)
+
+      conn = get(conn, "/api/calls/agent-report")
+
+      response = json_response(conn, 200)
+      assert response["date"] == Date.to_iso8601(Date.utc_today())
+      assert response["report"] == nil
+    end
+
+    test "returns only the authenticated user's report", %{conn: conn} do
+      # Create a report for user A
+      {_conn_a, user_a} = authenticated_conn(conn)
+      today = Date.utc_today()
+
+      report_a = Jason.encode!(%{"greeting" => "Hej A!"})
+
+      Saleflow.Repo.query!(
+        """
+        INSERT INTO agent_daily_reports (id, user_id, date, report, score_avg, call_count, inserted_at)
+        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW())
+        """,
+        [Ecto.UUID.dump!(user_a.id), today, report_a, 8.0, 3]
+      )
+
+      # User B should NOT see User A's report
+      {conn_b, _user_b} = authenticated_conn(conn)
+      conn_b = get(conn_b, "/api/calls/agent-report?date=#{Date.to_iso8601(today)}")
+
+      response = json_response(conn_b, 200)
+      assert response["report"] == nil
+    end
+
+    test "requires authentication", %{conn: conn} do
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{})
+        |> get("/api/calls/agent-report")
+
+      assert json_response(conn, 401)
+    end
+  end
 end
