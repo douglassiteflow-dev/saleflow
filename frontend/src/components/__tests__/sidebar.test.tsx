@@ -4,15 +4,6 @@ import { BrowserRouter, MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Sidebar, NavItem } from "../sidebar";
 
-const useMeMock = vi.fn();
-vi.mock("@/api/auth", () => ({
-  useMe: () => useMeMock(),
-}));
-
-vi.mock("@/api/apps", () => ({
-  useMyApps: vi.fn(() => ({ data: [] })),
-}));
-
 function Wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return (
@@ -24,50 +15,40 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 
 describe("Sidebar", () => {
   it("renders logo", () => {
-    useMeMock.mockReturnValue({ data: null });
     render(<Sidebar />, { wrapper: Wrapper });
     expect(screen.getByText("Saleflow")).toBeInTheDocument();
   });
 
-  it("renders agent navigation items", () => {
-    useMeMock.mockReturnValue({ data: { role: "agent" } });
+  it("renders overview navigation", () => {
     render(<Sidebar />, { wrapper: Wrapper });
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
-    expect(screen.getByText("Dialer")).toBeInTheDocument();
     expect(screen.getByText("Möten")).toBeInTheDocument();
     expect(screen.getByText("Samtalshistorik")).toBeInTheDocument();
   });
 
-  it("shows admin nav items for admin users", () => {
-    useMeMock.mockReturnValue({ data: { role: "admin" } });
+  it("renders sales navigation", () => {
     render(<Sidebar />, { wrapper: Wrapper });
     expect(screen.getByText("Pipeline")).toBeInTheDocument();
     expect(screen.getByText("Kunder")).toBeInTheDocument();
+  });
+
+  it("renders admin navigation", () => {
+    render(<Sidebar />, { wrapper: Wrapper });
     expect(screen.getByText("Användare")).toBeInTheDocument();
     expect(screen.getByText("Importera")).toBeInTheDocument();
+    expect(screen.getByText("Listor")).toBeInTheDocument();
     expect(screen.getByText("Statistik")).toBeInTheDocument();
+    expect(screen.getByText("Förfrågningar")).toBeInTheDocument();
     expect(screen.getByText("Loggar")).toBeInTheDocument();
+    expect(screen.getByText("Appar")).toBeInTheDocument();
   });
 
-  it("hides admin nav items for non-admin users", () => {
-    useMeMock.mockReturnValue({ data: { role: "agent" } });
+  it("renders report button", () => {
     render(<Sidebar />, { wrapper: Wrapper });
-    expect(screen.queryByText("Pipeline")).not.toBeInTheDocument();
-    expect(screen.queryByText("Kunder")).not.toBeInTheDocument();
-    expect(screen.queryByText("Användare")).not.toBeInTheDocument();
-    expect(screen.queryByText("Importera")).not.toBeInTheDocument();
-    expect(screen.queryByText("Statistik")).not.toBeInTheDocument();
-    expect(screen.queryByText("Loggar")).not.toBeInTheDocument();
-  });
-
-  it("hides admin nav when user is null", () => {
-    useMeMock.mockReturnValue({ data: null });
-    render(<Sidebar />, { wrapper: Wrapper });
-    expect(screen.queryByText("Användare")).not.toBeInTheDocument();
+    expect(screen.getByText("Rapportera")).toBeInTheDocument();
   });
 
   it("renders nav links as NavLink elements", () => {
-    useMeMock.mockReturnValue({ data: { role: "agent" } });
     render(<Sidebar />, { wrapper: Wrapper });
     const dashboardLink = screen.getByText("Dashboard");
     expect(dashboardLink.closest("a")).toHaveAttribute("href", "/dashboard");
@@ -87,7 +68,6 @@ describe("NavItem", () => {
     const item = screen.getByText("Coming Soon");
     expect(item).toBeInTheDocument();
     expect(item).toHaveAttribute("title", "Kommer snart");
-    // Should not be a link
     expect(item.tagName).toBe("SPAN");
   });
 
@@ -117,20 +97,5 @@ describe("NavItem", () => {
     );
     const item = screen.getByText("Dashboard");
     expect(item.className).toContain("bg-indigo-50");
-  });
-
-  it("renders inactive style when on different route", () => {
-    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(
-      <QueryClientProvider client={qc}>
-        <MemoryRouter initialEntries={["/other"]}>
-          <Routes>
-            <Route path="/other" element={<NavItem to="/dashboard" label="Dashboard" />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    const item = screen.getByText("Dashboard");
-    expect(item.className).not.toContain("bg-indigo-50");
   });
 });

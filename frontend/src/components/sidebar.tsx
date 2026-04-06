@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { useMe } from "@/api/auth";
-import { useMyApps } from "@/api/apps";
 import { api } from "@/api/client";
 import { cn } from "@/lib/cn";
 import { ReportModal } from "@/components/report-modal";
@@ -71,10 +69,7 @@ export function NavItem({ to, label, disabled }: NavItemProps) {
 }
 
 export function Sidebar() {
-  const { data: user } = useMe();
-  const isAdmin = user?.role === "admin";
   const [showReport, setShowReport] = useState(false);
-  const { data: myApps } = useMyApps();
 
   return (
     <>
@@ -87,44 +82,30 @@ export function Sidebar() {
           <span className="text-lg font-semibold text-indigo-600">Saleflow</span>
         </div>
 
-        {/* Agent nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           <p className="px-3 mb-2 text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
-            Agent
+            Översikt
           </p>
           <NavItem to="/dashboard" label="Dashboard" />
-          <NavItem to="/dialer" label="Dialer" />
           <NavItem to="/meetings" label="Möten" />
           <NavItem to="/history" label="Samtalshistorik" />
-          <NavItem to="/profile" label="Profil" />
 
-          {myApps && myApps.length > 0 && (
-            <>
-              <p className="px-3 mt-5 mb-2 text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
-                Appar
-              </p>
-              {myApps.map((app) => (
-                <NavItem key={app.slug} to={`/apps/${app.slug}`} label={app.name} />
-              ))}
-            </>
-          )}
+          <p className="px-3 mt-5 mb-2 text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
+            Försäljning
+          </p>
+          <NavItem to="/pipeline" label="Pipeline" />
+          <NavItem to="/customers" label="Kunder" />
 
-          {isAdmin && (
-            <>
-              <p className="px-3 mt-5 mb-2 text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
-                Admin
-              </p>
-              <NavItem to="/pipeline" label="Pipeline" />
-              <NavItem to="/customers" label="Kunder" />
-              <NavItem to="/admin/users" label="Användare" />
-              <NavItem to="/admin/import" label="Importera" />
-              <NavItem to="/admin/lists" label="Listor" />
-              <NavItem to="/admin/stats" label="Statistik" />
-              <NavItem to="/admin/requests" label="Förfrågningar" />
-              <NavItem to="/admin/logs" label="Loggar" />
-              <NavItem to="/admin/apps" label="Appar" />
-            </>
-          )}
+          <p className="px-3 mt-5 mb-2 text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
+            Hantera
+          </p>
+          <NavItem to="/admin/users" label="Användare" />
+          <NavItem to="/admin/import" label="Importera" />
+          <NavItem to="/admin/lists" label="Listor" />
+          <NavItem to="/admin/stats" label="Statistik" />
+          <NavItem to="/admin/requests" label="Förfrågningar" />
+          <NavItem to="/admin/logs" label="Loggar" />
+          <NavItem to="/admin/apps" label="Appar" />
         </nav>
 
         {/* Report button at bottom */}

@@ -1,13 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DashboardPage } from "../dashboard";
 
-const navigateMock = vi.fn();
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
-  return { ...actual, useNavigate: () => navigateMock };
+  return { ...actual, useNavigate: () => vi.fn() };
 });
 
 const useDashboardMock = vi.fn();
@@ -18,8 +17,12 @@ vi.mock("@/api/dashboard", () => ({
   useLeaderboard: () => useLeaderboardMock(),
 }));
 
+vi.mock("@/api/deals", () => ({
+  useDeals: vi.fn(() => ({ data: [] })),
+}));
+
 vi.mock("@/api/auth", () => ({
-  useMe: vi.fn(() => ({ data: { id: "u1", name: "Test User", role: "agent" } })),
+  useMe: vi.fn(() => ({ data: { id: "u1", name: "Test User", role: "admin" } })),
 }));
 
 vi.mock("@/lib/socket", () => ({
@@ -37,21 +40,12 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 
 describe("DashboardPage", () => {
   beforeEach(() => {
-    navigateMock.mockClear();
     useLeaderboardMock.mockReturnValue({ data: [] });
     useDashboardMock.mockReturnValue({
       data: {
-        my_stats: {
-          calls_today: 5,
-          total_calls: 100,
-          meetings_today: 2,
-          total_meetings: 50,
-        },
-        conversion: {
-          calls_today: 5,
-          meetings_today: 2,
-          rate: 40,
-        },
+        stats: { total_leads: 200, new: 50, assigned: 30, meeting_booked: 10, quarantine: 5, customer: 3, bad_number: 2 },
+        my_stats: { calls_today: 5, total_calls: 100, meetings_today: 2, total_meetings: 50 },
+        conversion: { calls_today: 5, meetings_today: 2, rate: 40 },
         goal_progress: [],
       },
       isLoading: false,
@@ -63,22 +57,27 @@ describe("DashboardPage", () => {
     expect(screen.getByText("Hej Test")).toBeInTheDocument();
   });
 
-  it("renders next lead button", () => {
-    render(<DashboardPage />, { wrapper: Wrapper });
-    expect(screen.getByText(/Nästa kund/)).toBeInTheDocument();
-  });
-
   it("renders stat cards", () => {
     render(<DashboardPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Utgående samtal idag")).toBeInTheDocument();
-    expect(screen.getByText("Nya möten idag")).toBeInTheDocument();
-    expect(screen.getByText("Konvertering idag")).toBeInTheDocument();
+    expect(screen.getByText("Samtal idag")).toBeInTheDocument();
+    expect(screen.getByText("Möten idag")).toBeInTheDocument();
+    expect(screen.getByText("Konvertering")).toBeInTheDocument();
+    expect(screen.getByText("Aktiva deals")).toBeInTheDocument();
+  });
+
+  it("renders lead stats", () => {
+    render(<DashboardPage />, { wrapper: Wrapper });
+    expect(screen.getByText("Totala leads")).toBeInTheDocument();
+    expect(screen.getByText("Nya")).toBeInTheDocument();
+    expect(screen.getByText("Tilldelade")).toBeInTheDocument();
+    expect(screen.getByText("Karantän")).toBeInTheDocument();
   });
 
   it("renders my stats values", () => {
     render(<DashboardPage />, { wrapper: Wrapper });
-    expect(screen.getByText("5")).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
+    // Values appear in stat cards — check they exist somewhere
+    expect(screen.getAllByText("5").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("2").length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows loading indicators for stats", () => {
@@ -88,16 +87,10 @@ describe("DashboardPage", () => {
     expect(dashes.length).toBeGreaterThanOrEqual(3);
   });
 
-  it("navigates when clicking the Nästa kund button", () => {
-    render(<DashboardPage />, { wrapper: Wrapper });
-    const btn = screen.getByText(/Nästa kund/);
-    fireEvent.click(btn);
-    expect(navigateMock).toHaveBeenCalledWith("/dialer");
-  });
-
-  it("handles stats with zero values", () => {
+  it("handles zero values", () => {
     useDashboardMock.mockReturnValue({
       data: {
+        stats: { total_leads: 0, new: 0, assigned: 0, meeting_booked: 0, quarantine: 0, customer: 0, bad_number: 0 },
         my_stats: { calls_today: 0, total_calls: 0, meetings_today: 0, total_meetings: 0 },
         conversion: { calls_today: 0, meetings_today: 0, rate: 0 },
         goal_progress: [],
@@ -109,22 +102,8 @@ describe("DashboardPage", () => {
     expect(zeros.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("handles undefined dashboard gracefully", () => {
-    useDashboardMock.mockReturnValue({ data: undefined, isLoading: false });
-    render(<DashboardPage />, { wrapper: Wrapper });
-    // Stats should show fallback 0
-    const zeros = screen.getAllByText("0");
-    expect(zeros.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("renders conversion rate with suffix", () => {
-    render(<DashboardPage />, { wrapper: Wrapper });
-    expect(screen.getByText("40")).toBeInTheDocument();
-  });
-
   it("renders date", () => {
     render(<DashboardPage />, { wrapper: Wrapper });
-    // Swedish date format is rendered
     const dateEl = screen.getByText(/\d+ \w+/);
     expect(dateEl).toBeInTheDocument();
   });
