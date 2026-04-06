@@ -6,7 +6,7 @@ import type { UserRequest } from "@/api/types";
 import Loader from "@/components/kokonutui/loader";
 
 // ---------------------------------------------------------------------------
-// Status badge
+// Status
 // ---------------------------------------------------------------------------
 
 const statusStyles: Record<UserRequest["status"], string> = {
@@ -16,20 +16,31 @@ const statusStyles: Record<UserRequest["status"], string> = {
   rejected: "bg-slate-100 text-slate-600 border-slate-300",
 };
 
-const statusLabels: Record<UserRequest["status"], string> = {
-  new: "Ny",
-  in_progress: "Pågående",
-  done: "Klar",
-  rejected: "Avvisad",
-};
+function InlineStatusSelect({ request }: { request: UserRequest }) {
+  const updateRequest = useUpdateRequest();
 
-function StatusBadge({ status }: { status: UserRequest["status"] }) {
+  function handleChange(newStatus: UserRequest["status"]) {
+    if (newStatus === request.status) return;
+    updateRequest.mutate({ id: request.id, status: newStatus });
+  }
+
   return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusStyles[status]}`}
+    <select
+      value={request.status}
+      onChange={(e) => {
+        e.stopPropagation();
+        handleChange(e.target.value as UserRequest["status"]);
+      }}
+      onClick={(e) => e.stopPropagation()}
+      disabled={updateRequest.isPending}
+      className={`rounded-full border px-2.5 py-0.5 text-xs font-medium cursor-pointer appearance-none pr-5 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 ${statusStyles[request.status]} ${updateRequest.isPending ? "opacity-50" : ""}`}
+      style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 6px center" }}
     >
-      {statusLabels[status]}
-    </span>
+      <option value="new">Ny</option>
+      <option value="in_progress">Pågående</option>
+      <option value="done">Klar</option>
+      <option value="rejected">Avvisad</option>
+    </select>
   );
 }
 
@@ -295,7 +306,7 @@ export function AdminRequestsPage() {
                             : ""
                         }`}
                       >
-                        <StatusBadge status={request.status} />
+                        <InlineStatusSelect request={request} />
                       </td>
                     </tr>
                     {expandedId === request.id && (
