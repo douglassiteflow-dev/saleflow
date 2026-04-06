@@ -11,7 +11,6 @@ import { LeadDetailTab } from "@/components/dialer/lead-detail-tab";
 import { DealsTab } from "@/components/dialer/deals-tab";
 import { DealDetailTab } from "@/components/dialer/deal-detail-tab";
 import { CustomersTab } from "@/components/dialer/customers-tab";
-import { UpdateBanner } from "@/components/dialer/update-banner";
 import { useLeaderboard, useDashboard, type LeaderboardEntry } from "@/api/dashboard";
 import {
   useNextLead,
@@ -185,8 +184,6 @@ export function DialerPage() {
         onUpdateMeetingStatus={(id, status) => { updateMeeting.mutate({ id, status }); }}
         onRebookMeeting={(id) => { setSelectedMeetingId(id); setActiveTab("meeting-detail"); }}
       />
-
-      <UpdateBanner />
 
       {/* ---- Tabs ---- */}
       <DialerTabs
