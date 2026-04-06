@@ -18,6 +18,19 @@ export function AdminRoute() {
   const { data: user, isLoading } = useMe();
   if (isLoading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "admin") return <Navigate to="/dashboard" replace />;
+  if (user.role !== "admin") return <Navigate to="/download-app" replace />;
+  return <Outlet />;
+}
+
+export function AdminOnlyRoute() {
+  const { data: user, isLoading } = useMe();
+  if (isLoading)
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader size="md" title="Laddar Saleflow" subtitle="Verifierar din session" />
+      </div>
+    );
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "admin") return <Navigate to="/download-app" replace />;
   return <Outlet />;
 }

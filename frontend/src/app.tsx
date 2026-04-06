@@ -2,7 +2,7 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
-import { ProtectedRoute, AdminRoute } from "@/components/protected-route";
+import { ProtectedRoute, AdminRoute, AdminOnlyRoute } from "@/components/protected-route";
 import Loader from "@/components/kokonutui/loader";
 
 // Eager imports: login, dashboard, dialer, meetings (frequently used)
@@ -59,9 +59,12 @@ export function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/download-app" element={<DownloadAppPage />} />
+          {/* Desktop app route — dialer without sidebar/topbar (agents + admins) */}
           <Route element={<ProtectedRoute />}>
-            {/* Desktop app route — dialer without sidebar/topbar */}
             <Route path="/app" element={<DialerPage />} />
+          </Route>
+          {/* Web app — admin only (agents get redirected to /download-app) */}
+          <Route element={<AdminOnlyRoute />}>
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/dialer" element={<DialerPage />} />
@@ -73,23 +76,21 @@ export function App() {
               <Route path="/apps/microsoft-teams" element={<AppTeamsPage />} />
               <Route path="/apps/:slug/*" element={<AppPlaceholderPage />} />
               <Route path="/profile" element={<Suspense fallback={<LazyFallback />}><ProfilePage /></Suspense>} />
-              <Route element={<AdminRoute />}>
-                <Route path="/admin/users" element={<Suspense fallback={<LazyFallback />}><AdminUsersPage /></Suspense>} />
-                <Route path="/admin/import" element={<Suspense fallback={<LazyFallback />}><AdminImportPage /></Suspense>} />
-                <Route path="/admin/lists" element={<Suspense fallback={<LazyFallback />}><AdminListsPage /></Suspense>} />
-                <Route path="/admin/stats" element={<Suspense fallback={<LazyFallback />}><AdminStatsPage /></Suspense>} />
-                <Route path="/admin/requests" element={<Suspense fallback={<LazyFallback />}><AdminRequestsPage /></Suspense>} />
-                <Route path="/admin/logs" element={<Suspense fallback={<LazyFallback />}><AdminLogsPage /></Suspense>} />
-                <Route path="/admin/apps" element={<Suspense fallback={<LazyFallback />}><AdminAppsPage /></Suspense>} />
-                <Route path="/admin/apps/:slug" element={<Suspense fallback={<LazyFallback />}><AdminAppDetailPage /></Suspense>} />
-                <Route path="/pipeline" element={<Suspense fallback={<LazyFallback />}><PipelinePage /></Suspense>} />
-                <Route path="/pipeline/:id" element={<Suspense fallback={<LazyFallback />}><PipelineDetailPage /></Suspense>} />
-                <Route path="/customers" element={<Suspense fallback={<LazyFallback />}><CustomersPage /></Suspense>} />
-                <Route path="/customers/:id" element={<Suspense fallback={<LazyFallback />}><CustomerDetailPage /></Suspense>} />
-              </Route>
+              <Route path="/admin/users" element={<Suspense fallback={<LazyFallback />}><AdminUsersPage /></Suspense>} />
+              <Route path="/admin/import" element={<Suspense fallback={<LazyFallback />}><AdminImportPage /></Suspense>} />
+              <Route path="/admin/lists" element={<Suspense fallback={<LazyFallback />}><AdminListsPage /></Suspense>} />
+              <Route path="/admin/stats" element={<Suspense fallback={<LazyFallback />}><AdminStatsPage /></Suspense>} />
+              <Route path="/admin/requests" element={<Suspense fallback={<LazyFallback />}><AdminRequestsPage /></Suspense>} />
+              <Route path="/admin/logs" element={<Suspense fallback={<LazyFallback />}><AdminLogsPage /></Suspense>} />
+              <Route path="/admin/apps" element={<Suspense fallback={<LazyFallback />}><AdminAppsPage /></Suspense>} />
+              <Route path="/admin/apps/:slug" element={<Suspense fallback={<LazyFallback />}><AdminAppDetailPage /></Suspense>} />
+              <Route path="/pipeline" element={<Suspense fallback={<LazyFallback />}><PipelinePage /></Suspense>} />
+              <Route path="/pipeline/:id" element={<Suspense fallback={<LazyFallback />}><PipelineDetailPage /></Suspense>} />
+              <Route path="/customers" element={<Suspense fallback={<LazyFallback />}><CustomersPage /></Suspense>} />
+              <Route path="/customers/:id" element={<Suspense fallback={<LazyFallback />}><CustomerDetailPage /></Suspense>} />
             </Route>
           </Route>
-          <Route path="*" element={<Navigate to={(window as any).saleflowDesktop ? "/app" : "/dashboard"} replace />} />
+          <Route path="*" element={<Navigate to={(window as any).saleflowDesktop ? "/app" : "/login"} replace />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

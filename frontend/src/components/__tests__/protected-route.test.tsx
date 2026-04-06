@@ -100,7 +100,7 @@ describe("AdminRoute", () => {
     expect(screen.getByText("Login")).toBeInTheDocument();
   });
 
-  it("redirects to dashboard when not admin", () => {
+  it("redirects to download-app when not admin", () => {
     useMeMock.mockReturnValue({ data: { id: "1", role: "agent" }, isLoading: false });
     render(
       <Wrapper>
@@ -109,12 +109,12 @@ describe("AdminRoute", () => {
             <Route element={<AdminRoute />}>
               <Route path="/admin" element={<div>Admin</div>} />
             </Route>
-            <Route path="/dashboard" element={<div>Dashboard</div>} />
+            <Route path="/download-app" element={<div>Download App</div>} />
           </Routes>
         </MemoryRouter>
       </Wrapper>,
     );
-    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    expect(screen.getByText("Download App")).toBeInTheDocument();
   });
 
   it("renders outlet for admin users", () => {
