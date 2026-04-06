@@ -4,5 +4,5 @@ const { contextBridge } = require("electron");
 contextBridge.exposeInMainWorld("saleflowDesktop", {
   isDesktop: true,
   platform: process.platform,
-  version: "1.3.4",
+  version: "1.3.5",
 });
