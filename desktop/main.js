@@ -2,7 +2,7 @@ const { app, BrowserWindow, Tray, Menu, nativeImage, shell } = require("electron
 const path = require("path");
 
 // Production API URL
-const API_URL = "https://saleflow-staging.fly.dev";
+const API_URL = "https://sale.siteflow.se";
 
 let mainWindow = null;
 let tray = null;
