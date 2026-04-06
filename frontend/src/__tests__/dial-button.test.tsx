@@ -92,7 +92,7 @@ describe("DialButton", () => {
     dialMutateMock.mockImplementation((_id: string, opts: { onSuccess: () => void }) => {
       opts.onSuccess();
     });
-    hangupMutateMock.mockImplementation((_: undefined, opts: { onSuccess: () => void }) => {
+    hangupMutateMock.mockImplementation((_: Record<string, unknown>, opts: { onSuccess: () => void }) => {
       opts.onSuccess();
     });
     render(<DialButton leadId="l1" phone="+46701234567" />, { wrapper: Wrapper });

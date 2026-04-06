@@ -17,8 +17,8 @@ defmodule Saleflow.Application do
       {AshAuthentication.Supervisor, otp_app: :saleflow},
       Saleflow.Auth.GeoIP,
       {Oban, Application.fetch_env!(:saleflow, Oban)},
-      # Telavox live call polling (GenServer, every 5s)
-      Saleflow.Workers.TelavoxPollWorker,
+      # Active calls tracker (in-memory, frontend-driven)
+      Saleflow.Calls.ActiveCalls,
       # Start to serve requests, typically the last entry
       SaleflowWeb.Endpoint
     ]

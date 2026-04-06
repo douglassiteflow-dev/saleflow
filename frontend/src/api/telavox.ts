@@ -43,7 +43,8 @@ export function useDial() {
 
 export function useHangup() {
   return useMutation({
-    mutationFn: () => api("/api/calls/hangup", { method: "POST" }),
+    mutationFn: () =>
+      api("/api/calls/hangup", { method: "POST" }),
   });
 }
 

@@ -5,6 +5,7 @@ import type { Lead, CallLog } from "./types";
 export interface OutcomeParams {
   outcome: string;
   notes?: string;
+  duration?: number;
   title?: string;
   meeting_date?: string;
   meeting_time?: string;

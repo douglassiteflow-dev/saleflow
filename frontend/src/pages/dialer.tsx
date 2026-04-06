@@ -12,6 +12,7 @@ import { DealsTab } from "@/components/dialer/deals-tab";
 import { DealDetailTab } from "@/components/dialer/deal-detail-tab";
 import { CustomersTab } from "@/components/dialer/customers-tab";
 import { UpdateBanner } from "@/components/dialer/update-banner";
+import { CallModal } from "@/components/dialer/call-modal";
 import { useLeaderboard, useDashboard, type LeaderboardEntry } from "@/api/dashboard";
 import {
   useNextLead,
@@ -22,7 +23,7 @@ import {
 import { useCallHistory } from "@/api/calls";
 import { useMeetings, useCancelMeeting, useUpdateMeeting } from "@/api/meetings";
 import { useMe } from "@/api/auth";
-import { useDial, useTelavoxStatus, useHangup, useTelavoxConnect, useTelavoxDisconnect } from "@/api/telavox";
+import { useDial, useTelavoxStatus, useTelavoxConnect, useTelavoxDisconnect } from "@/api/telavox";
 import { useMicrosoftStatus, useMicrosoftAuthorize, useMicrosoftDisconnect } from "@/api/microsoft";
 import { useMySessions, useLogoutAll } from "@/api/sessions";
 import { formatPhone, formatDateTime, formatCurrency, formatDate, formatTime } from "@/lib/format";
@@ -106,11 +107,10 @@ export function DialerPage() {
   /* --- meeting update (for notification actions) --- */
   const updateMeeting = useUpdateMeeting();
 
-  /* --- dial / hangup (Telavox) --- */
+  /* --- dial (Telavox) --- */
   const { data: telavoxStatus } = useTelavoxStatus();
   const dial = useDial();
-  const hangup = useHangup();
-  const [calling, setCalling] = useState(false);
+  const [callModalOpen, setCallModalOpen] = useState(false);
 
   /* --- skip outcome --- */
   const skipOutcome = useSubmitOutcome(currentLeadId ?? "");
@@ -144,17 +144,19 @@ export function DialerPage() {
   }
 
   function handleOutcomeSubmitted() {
-    setCalling(false);
     handleNextLead();
   }
 
   function handleDial() {
     if (!currentLeadId) return;
-    dial.mutate(currentLeadId, { onSuccess: () => setCalling(true) });
+    dial.mutate(currentLeadId, {
+      onSuccess: () => setCallModalOpen(true),
+    });
   }
 
-  function handleHangup() {
-    hangup.mutate(undefined, { onSuccess: () => setCalling(false) });
+  function handleCallModalClose() {
+    setCallModalOpen(false);
+    handleNextLead();
   }
 
   function handleCallbackClick(lead: Lead) {
@@ -209,10 +211,8 @@ export function DialerPage() {
           calls={calls}
           leadLoading={leadLoading}
           displayPhone={displayPhone}
-          calling={calling}
           telavoxConnected={telavoxStatus?.connected ?? false}
           onDial={handleDial}
-          onHangup={handleHangup}
           isDialing={dial.isPending}
           onSkip={handleSkip}
           isSkipping={skipOutcome.isPending}
@@ -279,6 +279,15 @@ export function DialerPage() {
         telavoxConnected={telavoxStatus?.connected ?? false}
       />
       </div>
+
+      {/* Call modal */}
+      {callModalOpen && currentLeadId && lead && (
+        <CallModal
+          lead={lead}
+          leadId={currentLeadId}
+          onClose={handleCallModalClose}
+        />
+      )}
     </div>
   );
 }
@@ -293,10 +302,8 @@ interface DialerTabContentProps {
   calls: CallLog[];
   leadLoading: boolean;
   displayPhone: string;
-  calling: boolean;
   telavoxConnected: boolean;
   onDial: () => void;
-  onHangup: () => void;
   isDialing: boolean;
   onSkip: () => void;
   isSkipping: boolean;
@@ -315,6 +322,9 @@ function DialerTabContent({
   calls,
   leadLoading,
   displayPhone,
+  telavoxConnected,
+  onDial,
+  isDialing,
   onSkip,
   isSkipping,
   onNext,
@@ -322,6 +332,7 @@ function DialerTabContent({
   onOutcomeSubmitted,
   currentLeadId,
   nextLeadData,
+  nextLeadError,
 }: DialerTabContentProps) {
   /* Leaderboard */
   const showLeaderboard = leaderboard.length > 0;
@@ -334,7 +345,16 @@ function DialerTabContent({
           <MiniLeaderboard entries={leaderboard} currentUserId={user?.id} />
         )}
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          {nextLeadData === null ? (
+          {nextLeadError ? (
+            <>
+              <p className="text-sm text-red-600">
+                Kunde inte hämta nästa lead. Försök igen.
+              </p>
+              <Button variant="primary" size="default" onClick={onNext} disabled={isNexting}>
+                Försök igen
+              </Button>
+            </>
+          ) : nextLeadData === null ? (
             <>
               <p className="text-sm text-[var(--color-text-secondary)]">
                 Inga fler leads i kön.
@@ -425,6 +445,9 @@ function DialerTabContent({
       <ActionBar
         phone={displayPhone}
         rawPhone={lead?.telefon ?? ""}
+        telavoxConnected={telavoxConnected}
+        onDial={onDial}
+        isDialing={isDialing}
         onSkip={onSkip}
         onNext={onNext}
         isSkipping={isSkipping}

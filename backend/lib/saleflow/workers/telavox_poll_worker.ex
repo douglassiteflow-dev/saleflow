@@ -10,8 +10,6 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
 
   require Logger
 
-  alias Saleflow.Sales
-
   @poll_interval 5_000
 
   # --- Public API ---
@@ -86,40 +84,8 @@ defmodule Saleflow.Workers.TelavoxPollWorker do
 
   defp handle_call_ended(call) do
     Logger.info("TelavoxPollWorker: call ended — #{call.agent_name} (#{call.extension})")
-
-    direction =
-      case call.direction do
-        "out" -> :outgoing
-        "in" -> :incoming
-        _ -> :outgoing
-      end
-
-    # callerid during ringing may be agent's own number, not the customer's
-    # RecordingFetchWorker will enrich with real number + duration from /calls API
-    attrs = %{
-      caller: call.extension,
-      callee: call.callerid,
-      duration: 0,
-      user_id: call.user_id,
-      direction: direction
-    }
-
-    case Sales.create_phone_call(attrs) do
-      {:ok, phone_call} ->
-        Phoenix.PubSub.broadcast(
-          Saleflow.PubSub,
-          "dashboard:updates",
-          {:dashboard_update, %{event: "call_completed", user_id: call.user_id}}
-        )
-
-        # Always fetch duration + recording (user_id may be nil if extension not matched)
-        %{phone_call_id: phone_call.id, user_id: call.user_id || "unknown"}
-        |> Saleflow.Workers.RecordingFetchWorker.new(schedule_in: 30)
-        |> Oban.insert()
-
-      {:error, reason} ->
-        Logger.warning("TelavoxPollWorker: failed to create phone_call: #{inspect(reason)}")
-    end
+    # No PhoneCall creation here — the CallModal outcome flow handles all record creation.
+    # This worker only tracks live call status for the dashboard.
   end
 
   # --- Call diffing ---

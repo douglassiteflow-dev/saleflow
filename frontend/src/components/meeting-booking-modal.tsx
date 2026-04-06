@@ -13,6 +13,7 @@ interface MeetingBookingModalProps {
   lead: Lead;
   leadId: string;
   msConnected: boolean;
+  callDuration?: number;
 }
 
 export function MeetingBookingModal({
@@ -22,6 +23,7 @@ export function MeetingBookingModal({
   lead,
   leadId,
   msConnected,
+  callDuration,
 }: MeetingBookingModalProps) {
   const submitOutcome = useSubmitOutcome(leadId);
 
@@ -74,6 +76,7 @@ export function MeetingBookingModal({
       customer_email: customerEmail || undefined,
       customer_name: customerName || undefined,
       create_teams_meeting: sendTeams,
+      duration: callDuration,
     };
 
     console.log("[MeetingModal] Submitting:", params);

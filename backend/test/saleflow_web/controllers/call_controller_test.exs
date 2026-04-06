@@ -112,7 +112,7 @@ defmodule SaleflowWeb.CallControllerTest do
       lead = create_lead(%{telefon: "+46701234567"})
 
       MockClient
-      |> expect(:get_as, fn "valid-token", "/dial/+46701234567?autoanswer=false" ->
+      |> expect(:get_as, fn "valid-token", "/dial/+46701234567" ->
         {:ok, %{"status" => "dialing"}}
       end)
 
@@ -229,10 +229,7 @@ defmodule SaleflowWeb.CallControllerTest do
 
       conn = post(conn, "/api/calls/hangup")
 
-      assert json_response(conn, 200) == %{
-               "ok" => true,
-               "message" => "Inget samtal att lägga på"
-             }
+      assert json_response(conn, 200) == %{"ok" => true}
     end
 
     test "returns 401 and clears token when Telavox returns unauthorized", %{conn: conn} do

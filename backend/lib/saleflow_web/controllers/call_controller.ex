@@ -23,11 +23,14 @@ defmodule SaleflowWeb.CallController do
 
           phone ->
             Logger.info("CallController.dial: calling #{phone} with token=#{String.slice(token || "", 0..19)}...")
-            result = client().get_as(token, "/dial/#{phone}?autoanswer=false")
+            result = client().get_as(token, "/dial/#{phone}")
             Logger.info("CallController.dial: result=#{inspect(result)}")
 
             case result do
               {:ok, _body} ->
+                # Track active call for live dashboard
+                lead_name = get_lead_name(lead_id)
+                Saleflow.Calls.ActiveCalls.start_call(user.id, user.name, lead_name, phone)
                 json(conn, %{ok: true, number: phone})
 
               {:error, :unauthorized} ->
@@ -45,7 +48,7 @@ defmodule SaleflowWeb.CallController do
     conn |> put_status(422) |> json(%{error: "lead_id krävs"})
   end
 
-  @doc "Hang up the agent's current call."
+  @doc "Hang up the agent's current call via Telavox. No records are created here — the outcome endpoint handles PhoneCall/CallLog creation."
   def hangup(conn, _params) do
     user = conn.assigns.current_user
     token = user.telavox_token
@@ -53,15 +56,22 @@ defmodule SaleflowWeb.CallController do
     if is_nil(token) || token == "" do
       conn |> put_status(422) |> json(%{error: "Inte kopplad till Telavox"})
     else
-      case client().post_as(token, "/hangup") do
-        {:ok, _body} ->
+      hangup_result =
+        case client().post_as(token, "/hangup") do
+          {:ok, _body} -> :ok
+          {:error, {:bad_request, _}} -> :ok
+          {:error, :unauthorized} ->
+            Ash.update(user, %{telavox_token: nil}, action: :update_user)
+            :unauthorized
+          {:error, reason} -> {:error, reason}
+        end
+
+      case hangup_result do
+        :ok ->
+          Saleflow.Calls.ActiveCalls.end_call(user.id)
           json(conn, %{ok: true})
 
-        {:error, {:bad_request, _}} ->
-          json(conn, %{ok: true, message: "Inget samtal att lägga på"})
-
-        {:error, :unauthorized} ->
-          Ash.update(user, %{telavox_token: nil}, action: :update_user)
+        :unauthorized ->
           conn |> put_status(401) |> json(%{error: "Telavox-token har gått ut"})
 
         {:error, reason} ->
@@ -107,33 +117,32 @@ defmodule SaleflowWeb.CallController do
 
     query = """
     SELECT
-      cl.id, cl.called_at, cl.outcome::text, cl.notes,
-      cl.user_id, cl.lead_id,
+      COALESCE(cl.id, pc.id) as id,
+      COALESCE(cl.called_at, pc.received_at) as called_at,
+      cl.outcome::text,
+      cl.notes,
+      COALESCE(cl.user_id, pc.user_id) as user_id,
+      COALESCE(cl.lead_id, pc.lead_id) as lead_id,
       u.name as user_name,
       l.företag as lead_name, l.telefon as lead_phone,
-      COALESCE(pc_agg.total_duration, 0) as duration,
-      pc_agg.has_recording
-    FROM call_logs cl
-    JOIN users u ON u.id = cl.user_id
-    LEFT JOIN leads l ON l.id = cl.lead_id
-    LEFT JOIN LATERAL (
-      SELECT
-        SUM(duration) as total_duration,
-        bool_or(recording_key IS NOT NULL) as has_recording
-      FROM phone_calls
-      WHERE phone_calls.call_log_id = cl.id
-    ) pc_agg ON true
-    WHERE cl.called_at::date >= $1 AND cl.called_at::date <= $2
+      pc.duration as duration,
+      (pc.recording_key IS NOT NULL) as has_recording
+    FROM phone_calls pc
+    LEFT JOIN call_logs cl ON cl.id = pc.call_log_id
+    JOIN users u ON u.id = COALESCE(cl.user_id, pc.user_id)
+    LEFT JOIN leads l ON l.id = COALESCE(cl.lead_id, pc.lead_id)
+    WHERE pc.received_at::date >= $1 AND pc.received_at::date <= $2
+      AND pc.direction = 'outgoing'
     """
 
     {query, query_params} =
       case user.role do
         :admin ->
-          {query <> " ORDER BY cl.called_at DESC", [from_date, to_date]}
+          {query <> " ORDER BY called_at DESC", [from_date, to_date]}
 
         _ ->
           uid = Ecto.UUID.dump!(user.id)
-          {query <> " AND cl.user_id = $3 ORDER BY cl.called_at DESC", [from_date, to_date, uid]}
+          {query <> " AND pc.user_id = $3 ORDER BY called_at DESC", [from_date, to_date, uid]}
       end
 
     {:ok, %{rows: rows}} = Saleflow.Repo.query(query, query_params)
@@ -178,6 +187,13 @@ defmodule SaleflowWeb.CallController do
     case Saleflow.Repo.query(query, [Ecto.UUID.dump!(lead_id)]) do
       {:ok, %{rows: [[phone]]}} when is_binary(phone) and phone != "" -> phone
       _ -> nil
+    end
+  end
+
+  defp get_lead_name(lead_id) do
+    case Saleflow.Repo.query("SELECT företag FROM leads WHERE id = $1 LIMIT 1", [Ecto.UUID.dump!(lead_id)]) do
+      {:ok, %{rows: [[name]]}} when is_binary(name) -> name
+      _ -> "Okänt företag"
     end
   end
 end

@@ -148,8 +148,30 @@ defmodule SaleflowWeb.LeadController do
              notes: params["notes"]
            }),
          :ok <- Sales.link_phone_call_to_log(user.id, call_log.id),
+         {:ok, phone_call} <- create_outcome_phone_call(user, lead, call_log, params),
          :ok <- release_active(user),
          {:ok, _lead} <- apply_outcome(lead, outcome, user, params) do
+
+      # Broadcast dashboard update so stats refresh in real-time
+      Phoenix.PubSub.broadcast(
+        Saleflow.PubSub,
+        "dashboard:updates",
+        {:dashboard_update, %{event: "call_completed", user_id: user.id}}
+      )
+
+      # Schedule recording fetch in background (best-effort, never blocks the response)
+      if phone_call do
+        try do
+          %{phone_call_id: phone_call.id, user_id: user.id}
+          |> Saleflow.Workers.RecordingFetchWorker.new(schedule_in: 15)
+          |> Oban.insert()
+        rescue
+          _ -> :ok
+        catch
+          _, _ -> :ok
+        end
+      end
+
       json(conn, %{ok: true})
     else
       {:error, message} when is_binary(message) ->
@@ -179,6 +201,39 @@ defmodule SaleflowWeb.LeadController do
         :ok
     end
   end
+
+  defp create_outcome_phone_call(user, lead, call_log, params) do
+    duration = parse_call_duration(params["duration"])
+    caller = if is_binary(user.extension_number) and user.extension_number != "", do: user.extension_number, else: "unknown"
+    callee = if is_binary(lead.telefon) and lead.telefon != "", do: lead.telefon, else: "unknown"
+
+    case Sales.create_phone_call(%{
+      caller: caller,
+      callee: callee,
+      duration: duration,
+      user_id: user.id,
+      direction: :outgoing,
+      lead_id: lead.id,
+      call_log_id: call_log.id
+    }) do
+      {:ok, phone_call} -> {:ok, phone_call}
+      {:error, reason} ->
+        require Logger
+        Logger.warning("LeadController.outcome: failed to create phone_call: #{inspect(reason)}")
+        {:ok, nil}
+    end
+  end
+
+  defp parse_call_duration(nil), do: 0
+  defp parse_call_duration(val) when is_integer(val), do: val
+  defp parse_call_duration(val) when is_float(val), do: round(val)
+  defp parse_call_duration(val) when is_binary(val) do
+    case Integer.parse(val) do
+      {n, _} -> n
+      :error -> 0
+    end
+  end
+  defp parse_call_duration(_), do: 0
 
   defp apply_outcome(lead, "meeting_booked", user, params) do
     meeting_date = parse_date(params["meeting_date"])

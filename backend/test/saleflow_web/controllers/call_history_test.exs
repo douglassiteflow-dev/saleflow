@@ -10,12 +10,23 @@ defmodule SaleflowWeb.CallHistoryTest do
 
       {:ok, lead} = Sales.create_lead(%{företag: "Test AB", telefon: "+46700000001"})
 
-      {:ok, _} =
+      {:ok, call_log} =
         Sales.log_call(%{
           lead_id: lead.id,
           user_id: agent.id,
           outcome: :meeting_booked,
           notes: "Bokat demo"
+        })
+
+      {:ok, _phone_call} =
+        Sales.create_phone_call(%{
+          caller: "+46700000000",
+          callee: "+46700000001",
+          duration: 60,
+          user_id: agent.id,
+          lead_id: lead.id,
+          call_log_id: call_log.id,
+          direction: :outgoing
         })
 
       conn = get(conn, "/api/calls/history")
