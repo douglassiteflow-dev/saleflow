@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Siteflow Offertsystem</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#0b0d16}
+.app{display:flex;height:100vh;width:100vw;font-family:system-ui,-apple-system,sans-serif;background:#0b0d16;color:#e2e8f0}
+.app.locked{display:none}
+
+/* ACCESS CODE GATE */
+.gate-wrap{position:fixed;inset:0;background:#0b0d16;display:flex;align-items:center;justify-content:center;z-index:1000}
+.gate-wrap.hidden{display:none}
+.gate{background:#11131e;border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:40px;width:400px;max-width:90vw;text-align:center}
+.gate-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:28px}
+.gate-mark{width:38px;height:38px;background:#4f7ef7;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#fff}
+.gate-title{font-size:20px;font-weight:600;color:#fff}
+.gate h2{font-size:15px;font-weight:600;color:#e2e8f0;margin-bottom:8px}
+.gate p{font-size:12.5px;color:#94a3b8;line-height:1.6;margin-bottom:20px}
+.gate input{width:100%;background:#181b2a;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#e2e8f0;font-size:18px;padding:12px 16px;font-family:inherit;outline:none;text-align:center;letter-spacing:6px;transition:border-color 0.15s}
+.gate input:focus{border-color:rgba(79,126,247,0.6)}
+.gate-btn{width:100%;padding:12px;border-radius:9px;border:none;background:#4f7ef7;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s;margin-top:16px}
+.gate-btn:hover{background:#3a6de0}
+.gate-error{font-size:11.5px;color:#f87171;margin-top:10px;display:none}
+
+/* EDITOR */
+.editor{width:340px;min-width:340px;background:#11131e;border-right:1px solid rgba(255,255,255,0.07);display:flex;flex-direction:column;height:100%}
+.ed-head{padding:13px 15px;border-bottom:1px solid rgba(255,255,255,0.07);background:#0b0d16;flex-shrink:0;display:flex;align-items:center;gap:9px}
+.logo-mark{width:26px;height:26px;background:#4f7ef7;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.logo-text{font-size:13px;font-weight:600;color:#fff}
+.logo-text span{color:#4f7ef7}
+.logo-sub{font-size:9px;color:#6b7280;margin-top:1px}
+.ed-body{padding:12px;flex:1;overflow-y:auto}
+.sec{margin-bottom:14px}
+.sec-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:#4f7ef7;margin-bottom:8px}
+label{display:block;font-size:11px;color:#8899a8;margin-bottom:3px;margin-top:8px}
+label:first-of-type{margin-top:0}
+input[type=text],input[type=number],textarea,select{width:100%;background:#181b2a;border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#e2e8f0;font-size:11.5px;padding:6px 9px;font-family:inherit;outline:none;transition:border-color 0.15s}
+input:focus,textarea:focus,select:focus{border-color:rgba(79,126,247,0.55)}
+textarea{resize:vertical;min-height:62px;line-height:1.55}
+select{appearance:none;background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");background-repeat:no-repeat;background-position:right 7px center;background-size:13px;padding-right:26px}
+.row{display:flex;gap:6px}
+.row>div{flex:1}
+.svc-item{display:flex;gap:5px;margin-bottom:4px;align-items:center}
+.svc-item input{flex:1}
+.rm-btn{width:26px;height:26px;border-radius:5px;border:1px solid rgba(255,255,255,0.09);background:transparent;color:#6b7280;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;transition:all 0.15s;font-family:inherit}
+.rm-btn:hover{background:rgba(239,68,68,0.1);color:#f87171;border-color:rgba(239,68,68,0.25)}
+.add-btn{width:100%;padding:6px;border-radius:6px;border:1px dashed rgba(79,126,247,0.28);background:transparent;color:#4f7ef7;font-size:11px;cursor:pointer;transition:all 0.15s;font-family:inherit;margin-top:3px}
+.add-btn:hover{background:rgba(79,126,247,0.07)}
+.div-line{height:1px;background:rgba(255,255,255,0.05);margin:10px 0}
+.img-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.img-btn{position:relative;border-radius:6px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color 0.15s;height:44px}
+.img-btn img{width:100%;height:100%;object-fit:cover;display:block}
+.img-lbl{position:absolute;inset:0;background:rgba(5,10,25,0.58);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:500;color:#fff}
+.img-btn.sel{border-color:#4f7ef7}
+.clr-row{display:flex;gap:6px;flex-wrap:wrap}
+.clr-btn{width:22px;height:22px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:all 0.15s}
+.clr-btn.sel{border-color:rgba(255,255,255,0.75);transform:scale(1.12)}
+.dl-wrap{padding:10px 12px;border-top:1px solid rgba(255,255,255,0.07);background:#0b0d16;flex-shrink:0}
+.dl-btn{width:100%;padding:10px;border-radius:7px;border:none;background:#4f7ef7;color:#fff;font-size:12.5px;font-weight:600;cursor:pointer;transition:all 0.15s;font-family:inherit}
+.dl-btn:hover{background:#3a6de0}
+.dl-btn:disabled{opacity:0.55;cursor:not-allowed}
+
+/* AI CHAT */
+.ai-panel{width:320px;min-width:320px;background:#0e1018;border-right:1px solid rgba(255,255,255,0.07);display:flex;flex-direction:column;height:100%}
+.ai-head{padding:13px 15px;border-bottom:1px solid rgba(255,255,255,0.07);background:#0b0d16;flex-shrink:0}
+.ai-head-row{display:flex;align-items:center;gap:8px}
+.ai-badge{width:24px;height:24px;border-radius:6px;background:#4a1d96;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.ai-title{font-size:13px;font-weight:600;color:#fff}
+.ai-sub{font-size:9.5px;color:#6b7280;margin-top:2px}
+.model-selector{margin-top:9px;display:flex;gap:5px}
+.model-btn{flex:1;padding:5px 8px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:#94a3b8;cursor:pointer;font-size:10px;font-family:inherit;transition:all 0.15s;text-align:center}
+.model-btn.active{background:rgba(79,126,247,0.15);border-color:rgba(79,126,247,0.4);color:#7da8f8}
+.chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.msg{display:flex;flex-direction:column;gap:3px}
+.msg-role{font-size:9px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase}
+.msg.user .msg-role{color:#4f7ef7;text-align:right}
+.msg.ai .msg-role{color:#a855f7}
+.msg-bubble{padding:9px 12px;border-radius:10px;font-size:12px;line-height:1.6}
+.msg.user .msg-bubble{background:#1e2a48;color:#e2e8f0;border-bottom-right-radius:3px;align-self:flex-end;max-width:90%}
+.msg.ai .msg-bubble{background:#1a1428;color:#e2e8f0;border-bottom-left-radius:3px;align-self:flex-start;max-width:100%;border:1px solid rgba(168,85,247,0.15)}
+.applied-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);color:#34d399;font-size:10px;padding:3px 8px;border-radius:4px;margin-top:5px;font-weight:500}
+.chat-input-wrap{padding:10px 12px;border-top:1px solid rgba(255,255,255,0.06);background:#0b0d16;flex-shrink:0}
+.quick-prompts{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.qp-btn{font-size:10px;padding:4px 9px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:#94a3b8;cursor:pointer;transition:all 0.15s;font-family:inherit;white-space:nowrap}
+.qp-btn:hover{background:rgba(79,126,247,0.1);border-color:rgba(79,126,247,0.3);color:#7da8f8}
+.chat-row{display:flex;gap:6px;align-items:flex-end}
+.chat-input{flex:1;background:#181b2a;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#e2e8f0;font-size:12px;padding:8px 11px;font-family:inherit;outline:none;resize:none;min-height:38px;max-height:140px;line-height:1.5;transition:border-color 0.15s}
+.chat-input:focus{border-color:rgba(168,85,247,0.5)}
+.send-btn{width:34px;height:34px;border-radius:7px;border:none;background:#7c3aed;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;font-size:14px;font-family:inherit}
+.send-btn:hover{background:#6d28d9}
+.send-btn:disabled{opacity:0.45;cursor:not-allowed}
+
+/* PREVIEW */
+.prev-panel{flex:1;background:#e9ecf5;display:flex;flex-direction:column;height:100%;min-width:0;overflow:hidden}
+.prev-top{padding:9px 14px;background:#fff;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:7px;flex-shrink:0}
+.prev-dot{width:6px;height:6px;border-radius:50%;background:#4f7ef7}
+.prev-lbl{font-size:11px;color:#6b7280}
+.prev-scroll{flex:1;overflow-y:auto;padding:18px;display:flex;justify-content:center;align-items:flex-start}
+.pdf-card{background:#fff;width:100%;max-width:600px;min-height:800px;border-radius:3px;overflow:hidden;box-shadow:0 2px 24px rgba(0,0,0,0.13)}
+.pdf-hero{position:relative;height:200px;overflow:hidden;background:#080d1c}
+.pdf-hero img{width:100%;height:100%;object-fit:cover;display:block}
+.pdf-hero-ov{position:absolute;inset:0;background:rgba(4,8,22,0.66)}
+.pdf-badge{position:absolute;top:18px;left:18px;font-size:7.5px;font-weight:700;letter-spacing:1.5px;padding:3.5px 10px;border-radius:3px;color:#fff;font-family:system-ui}
+.pdf-co{position:absolute;top:20px;right:18px;font-size:10px;color:rgba(200,215,245,0.9);font-family:system-ui;font-weight:500}
+.pdf-h-content{position:absolute;bottom:0;left:0;right:0;padding:18px}
+.pdf-title{font-size:21px;font-weight:700;color:#fff;margin-bottom:4px;font-family:Georgia,serif;line-height:1.2}
+.pdf-sub{font-size:10.5px;color:rgba(175,198,238,0.9);font-family:system-ui}
+.pdf-date{position:absolute;bottom:16px;right:18px;font-size:8.5px;color:rgba(148,175,225,0.8);font-family:system-ui}
+.pdf-body{padding:24px}
+.pdf-intro{font-size:11.5px;line-height:1.78;color:#2d3748;margin-bottom:18px;font-family:system-ui}
+.pdf-sum{font-size:11px;line-height:1.78;color:#4b5563;margin-top:-10px;margin-bottom:18px;font-family:system-ui}
+.pdf-s-title{font-size:14px;font-weight:700;color:#0a1432;margin-bottom:4px;font-family:Georgia,serif}
+.pdf-rule{height:2px;width:44px;margin-bottom:12px;border-radius:1px}
+.pdf-svcs{margin-bottom:20px}
+.pdf-svc{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.055);font-family:system-ui;font-size:11.5px;color:#374151}
+.pdf-svc:last-child{border-bottom:none}
+.pdf-chk{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-size:8px;font-weight:700}
+.pdf-price-box{border-radius:8px;padding:20px 22px;display:flex;align-items:center;gap:16px;margin-bottom:22px;background:#080d1c}
+.pdf-price-bar{width:3.5px;height:52px;border-radius:2px;flex-shrink:0}
+.pdf-p-lbl{font-size:8px;color:rgba(185,205,240,0.65);font-family:system-ui;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.8px}
+.pdf-p-val{font-size:22px;font-weight:700;color:#fff;font-family:Georgia,serif;line-height:1;margin-bottom:7px}
+.pdf-p-orig{font-size:13px;color:rgba(200,200,220,0.5);text-decoration:line-through;margin-bottom:4px;font-family:system-ui}
+.pdf-free-badge{display:inline-block;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#34d399;font-size:9px;padding:2px 8px;border-radius:4px;margin-top:6px;font-weight:600;font-family:system-ui}
+.pdf-p-sub{font-size:9px;color:rgba(155,180,225,0.65);font-family:system-ui}
+.pdf-next-text{font-size:11px;line-height:1.78;color:#374151;font-family:system-ui}
+.pdf-note-box{margin-top:14px;padding:12px 14px;background:#f8f9fc;border-radius:6px;font-size:10px;color:#6b7280;font-family:system-ui;line-height:1.65;font-style:italic}
+.pdf-close{padding:18px 24px 20px;font-size:11px;color:#6b7280;font-family:system-ui;border-top:1px solid rgba(0,0,0,0.05);margin-top:6px;line-height:1.75}
+.pdf-footer{background:#080d1c;padding:14px 24px}
+.pdf-ft-line{height:1px;margin-bottom:12px}
+.pdf-ft-txt{font-size:9.5px;color:rgba(198,215,245,0.9);text-align:center;font-family:system-ui;margin-bottom:3px}
+.pdf-ft-sub{font-size:8px;color:rgba(128,158,208,0.65);text-align:center;font-family:system-ui}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.tdot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#a855f7;margin:0 1.5px;animation:blink 1.2s ease-in-out infinite}
+.tdot:nth-child(2){animation-delay:.2s}.tdot:nth-child(3){animation-delay:.4s}
+</style>
+</head>
+<body>
+
+<!-- ACCESS CODE GATE -->
+<div class="gate-wrap" id="gate">
+  <div class="gate">
+    <div class="gate-logo">
+      <div class="gate-mark">SF</div>
+      <div class="gate-title">Siteflow Offertsystem</div>
+    </div>
+    <h2>Ange åtkomstkod</h2>
+    <p>Systemet är skyddat. Ange din kod för att komma åt offertsystemet.</p>
+    <input type="password" id="gate-code" placeholder="------" autocomplete="off" maxlength="6"
+      onkeydown="if(event.key==='Enter')verifyCode()">
+    <button class="gate-btn" onclick="verifyCode()">Logga in</button>
+    <div class="gate-error" id="gate-error">Felaktig kod. Försök igen.</div>
+  </div>
+</div>
+
+<div class="app locked" id="main-app">
+  <!-- EDITOR -->
+  <div class="editor">
+    <div class="ed-head">
+      <div class="logo-mark">SF</div>
+      <div>
+        <div class="logo-text">Site<span>flow</span></div>
+        <div class="logo-sub">Offertsystem</div>
+      </div>
+    </div>
+    <div class="ed-body">
+      <div class="sec">
+        <div class="sec-label">Språk</div>
+        <div class="row">
+          <button class="add-btn" id="lang-sv" style="background:rgba(79,126,247,0.15);border-color:rgba(79,126,247,0.4);color:#7da8f8" onclick="setLang('sv')">Svenska</button>
+          <button class="add-btn" id="lang-en" onclick="setLang('en')">English</button>
+        </div>
+      </div>
+      <div class="div-line"></div>
+      <div class="sec">
+        <div class="sec-label">Kund</div>
+        <label>Namn</label><input type="text" id="f-name" value="Emy" oninput="r()">
+        <label>Företag / Verksamhet</label><input type="text" id="f-company" placeholder="t.ex. Emys Hair Studio" oninput="r()">
+        <label>Offertens rubrik</label><input type="text" id="f-title" value="Webbplats med bokningssystem" oninput="r()">
+      </div>
+      <div class="div-line"></div>
+      <div class="sec">
+        <div class="sec-label">Meddelande</div>
+        <label>Inledning</label><textarea id="f-intro" oninput="r()">Hej Emy, det var verkligen kul att prata med dig idag! Här är en snabb sammanfattning av det vi gick igenom.</textarea>
+        <label>Sammanfattning</label><textarea id="f-summary" oninput="r()">Vi skapar en säljdriven webbplats åt dig, fokuserad på att få besökare att faktiskt agera — dvs boka eller höra av sig. Webbplatsen kopplas till ditt bokningssystem via Bokadirekt.</textarea>
+      </div>
+      <div class="div-line"></div>
+      <div class="sec">
+        <div class="sec-label">Vad som ingår</div>
+        <div id="svc-list"></div>
+        <button class="add-btn" onclick="addSvc()">+ Lägg till punkt</button>
+      </div>
+      <div class="div-line"></div>
+      <div class="sec">
+        <div class="sec-label">Pris & Villkor</div>
+        <div class="row">
+          <div><label>Ordinarie pris (SEK)</label><input type="number" id="f-orgprice" value="" placeholder="Lämna tomt om ingen rabatt" oninput="r()"></div>
+          <div><label>Pris (SEK)</label><input type="number" id="f-price" value="995" oninput="r()"></div>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <div><label>Fakturering</label>
+            <select id="f-period" onchange="r()">
+              <option value="monthly">Per månad</option>
+              <option value="yearly">Per år</option>
+              <option value="onetime">Engångspris</option>
+            </select>
+          </div>
+          <div><label>Gratis månader</label><input type="number" id="f-free" value="0" min="0" oninput="r()"></div>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <div><label>Bindningstid</label><input type="number" id="f-contract" value="24" oninput="r()"></div>
+          <div><label>&nbsp;</label>
+            <select id="f-cunit" onchange="r()">
+              <option value="månader">Månader</option>
+              <option value="år">År</option>
+            </select>
+          </div>
+        </div>
+        <label>Prisetikett</label><input type="text" id="f-pricelabel" value="PRIS" oninput="r()">
+        <label>Valuta</label><input type="text" id="f-currency" value="SEK" oninput="r()">
+        <div class="row" style="margin-top:6px">
+          <div><label>Per månad</label><input type="text" id="f-permonth" value="/mån" oninput="r()"></div>
+          <div><label>Per år</label><input type="text" id="f-peryear" value="/år" oninput="r()"></div>
+        </div>
+        <label>Engångspris-text</label><input type="text" id="f-onetime" value="(engångspris)" oninput="r()">
+        <label>Bindningstid-text</label><input type="text" id="f-bindtext" value="Bindningstid:" oninput="r()">
+        <label>Gratis månader-text</label><input type="text" id="f-freetext" value="{n} gratis månad(er) inkluderat!" oninput="r()">
+      </div>
+      <div class="div-line"></div>
+      <div class="sec">
+        <div class="sec-label">Nästa steg</div>
+        <textarea id="f-next" oninput="r()">Nästa steg: Jag skickar ett frågeformulär för att bättre förstå din verksamhet och samla material som bilder osv. När jag fått det sätter jag igång direkt!</textarea>
+        <label>Ytterligare noteringar</label>
+        <textarea id="f-notes" rows="2" oninput="r()">Vi diskuterade även att potentiellt lägga till en webbutik för löshår i framtiden.</textarea>
+      </div>
+      <div class="div-line"></div>
+      <div class="sec">
+        <div class="sec-label">Design</div>
+        <label>Bildtema</label><div class="img-grid" id="img-grid"></div>
+        <label>Accentfärg</label><div class="clr-row" id="clr-row"></div>
+      </div>
+      <div class="div-line"></div>
+      <div class="sec">
+        <div class="sec-label">Offerttexter</div>
+        <label>Badge-text (överst på bilden)</label><input type="text" id="f-badge" value="OFFERT" oninput="r()">
+        <label>Rubrik-prefix</label><input type="text" id="f-titleprefix" value="Offert till" oninput="r()">
+        <label>Rubrik: Vad som ingår</label><input type="text" id="f-svctitle" value="Vad som ingår:" oninput="r()">
+        <label>Rubrik: Nästa steg</label><input type="text" id="f-nexttitle" value="Nästa steg:" oninput="r()">
+        <label>Avslutningsfras</label><input type="text" id="f-closing" value="Med vänliga hälsningar," oninput="r()">
+        <label>Footer-text</label><input type="text" id="f-footersub" value="Offert giltig i 30 dagar" oninput="r()">
+      </div>
+      <div class="div-line"></div>
+      <div class="sec">
+        <div class="sec-label">Avsändare</div>
+        <label>Namn</label><input type="text" id="f-sender" value="Siteflow Team" oninput="r()">
+        <label>Webbplats</label><input type="text" id="f-website" value="Siteflow.se" oninput="r()">
+        <div class="row">
+          <div><label>Telefon</label><input type="text" id="f-phone" value="076-945 08 57" oninput="r()"></div>
+          <div><label>E-post</label><input type="text" id="f-email" value="hello@siteflow.se" oninput="r()"></div>
+        </div>
+      </div>
+    </div>
+    <div class="dl-wrap">
+      <button class="dl-btn" id="dl-btn" onclick="dlPDF()">Ladda ner offert som PDF</button>
+    </div>
+  </div>
+
+  <!-- AI CHAT -->
+  <div class="ai-panel">
+    <div class="ai-head">
+      <div class="ai-head-row">
+        <div class="ai-badge">&#10022;</div>
+        <div>
+          <div class="ai-title">AI-assistent</div>
+          <div class="ai-sub">Klistra in transkribering eller beskriv kunden</div>
+        </div>
+      </div>
+      <div class="model-selector">
+        <button class="model-btn active" id="m-haiku" onclick="setModel('haiku')">Haiku &mdash; Snabb &amp; billig</button>
+        <button class="model-btn" id="m-sonnet" onclick="setModel('sonnet')">Sonnet &mdash; Mer avancerad</button>
+      </div>
+    </div>
+    <div class="chat-msgs" id="chat-msgs">
+      <div class="msg ai">
+        <div class="msg-role">Claude</div>
+        <div class="msg-bubble">Hej! Jag hjälper dig fylla i offerten automatiskt.<br><br>
+        Du kan till exempel:<br>
+        &bull; Klistra in en transkribering från ett kundsamtal<br>
+        &bull; Skriva "kunden heter Anna, vill ha webshop, 1495kr/mån"<br>
+        &bull; Be mig justera enskilda fält eller förbättra texten<br><br>
+        Jag tolkar det och fyller i formuläret direkt!</div>
+      </div>
+    </div>
+    <div class="chat-input-wrap">
+      <div class="quick-prompts">
+        <button class="qp-btn" onclick="qp('Skriv en mer säljande och personlig inledning')">Säljigare text</button>
+        <button class="qp-btn" onclick="qp('Justera priset till 1495 kr per månad med 12 månaders bindning')">Ändra pris</button>
+        <button class="qp-btn" onclick="qp('Lägg till webbutik och betalintegration i tjänstelistan')">Fler tjänster</button>
+        <button class="qp-btn" onclick="qp('Gör nästa steg mer konkret och inbjudande')">Nästa steg</button>
+      </div>
+      <div class="chat-row">
+        <textarea class="chat-input" id="chat-in"
+          placeholder="Klistra in transkribering eller beskriv ändringen..."
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"
+          oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,140)+'px'"></textarea>
+        <button class="send-btn" id="send-btn" onclick="send()">&#8593;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="prev-panel">
+    <div class="prev-top">
+      <div class="prev-dot"></div>
+      <span class="prev-lbl">Förhandsgranskning &middot; uppdateras automatiskt</span>
+    </div>
+    <div class="prev-scroll">
+      <div class="pdf-card" id="pdf-card"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── ACCESS CODE ────────────────────────────────────────────────────────────
+let verified = false;
+
+async function verifyCode() {
+  const code = document.getElementById('gate-code').value.trim();
+  if (!code) return;
+
+  try {
+    const resp = await fetch('/api/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      verified = true;
+      document.getElementById('gate').classList.add('hidden');
+      document.getElementById('main-app').classList.remove('locked');
+      initApp();
+    } else {
+      document.getElementById('gate-error').style.display = 'block';
+    }
+  } catch (err) {
+    document.getElementById('gate-error').textContent = 'Serverfel. Försök igen.';
+    document.getElementById('gate-error').style.display = 'block';
+  }
+}
+
+// ─── CONFIG ─────────────────────────────────────────────────────────────────
+const MODELS = {
+  haiku:  'claude-haiku-4-5-20251001',
+  sonnet: 'claude-sonnet-4-6'
+};
+
+const SYSTEM_PROMPT = `Du är ett expertverktyg inbyggt i Siteflows offertsystem. Din uppgift är att hjälpa säljare generera professionella offerttexter från kundsamtal, transkriberingar eller beskrivningar.
+
+KONTEXT OM SITEFLOW:
+- Bygger moderna webbplatser för svenska småföretag
+- Specialiserar sig på bokningssystem (Bokadirekt), webbutiker och säljdrivna landningssidor
+- Standardpris: 995 SEK/mån, 24 månaders bindningstid
+- Ton: varm, professionell, konkret — aldrig generisk eller stel
+
+DIN PROCESS:
+1. Analysera input noggrant (transkribering, mejl, anteckning eller fri text)
+2. Extrahera: kundnamn, bransch, specifika behov, diskuterade priser, nämnda tillägg
+3. Välj rätt bildtema: salon=skönhet/hälsa, shop=handel/e-handel, tech=tech/SaaS, biz=allt annat
+4. Skriv texter som låter skräddarsydda — referera till specifika saker kunden nämnde
+
+REGLER FÖR TEXTERNA:
+- Inledning: börja med kundens namn, referera till något specifikt från samtalet
+- Sammanfattning: lyft kundens faktiska problem → hur Siteflow löser det
+- Skriv "Du får" och "Vi skapar åt dig" — aldrig "Vi erbjuder" eller "Kunden önskar"
+- Nästa steg: alltid konkreta handlingar, inte vaga fraser
+- Noteringar: skriv eventuella framtida idéer eller diskuterade tillägg
+
+SVARSFORMAT — du MÅSTE alltid inkludera detta block:
+CHANGES:
+\`\`\`json
+{
+  "name": "Förnamn",
+  "company": "Företagsnamn eller tom sträng",
+  "title": "Kort beskrivande rubrik för offerten",
+  "intro": "Personlig inledning som refererar till samtalet",
+  "summary": "2-3 meningar som beskriver lösningen specifikt",
+  "services": ["Tjänst 1", "Tjänst 2", "..."],
+  "price": "995",
+  "period": "monthly",
+  "contract": "24",
+  "contractUnit": "månader",
+  "next": "Konkreta nästa steg",
+  "notes": "Eventuella tillägg eller framtida diskussioner, eller tom sträng",
+  "imageTheme": "salon",
+  "color": "blue"
+}
+\`\`\`
+
+Inkludera BARA fält du vill ändra. Utelämna oförändrade fält.
+Skriv ALLTID offerttexter på svenska.
+Förklara kort (1-2 meningar) vad du gjort efter JSON-blocket.`;
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const THEMES = [
+  {id:'tech',  lbl:'Webb & Tech',     url:'https://picsum.photos/seed/webdev88/1200/400'},
+  {id:'salon', lbl:'Salong & Skönhet',url:'https://picsum.photos/seed/beauty22/1200/400'},
+  {id:'biz',   lbl:'Kontor & Företag',url:'https://picsum.photos/seed/office55/1200/400'},
+  {id:'shop',  lbl:'E-handel',        url:'https://picsum.photos/seed/store77/1200/400'},
+];
+const COLORS = [
+  {id:'blue',   hex:'#4f7ef7'},{id:'indigo',hex:'#6366f1'},{id:'violet',hex:'#8b5cf6'},
+  {id:'teal',   hex:'#14b8a6'},{id:'emerald',hex:'#10b981'},{id:'rose',hex:'#f43f5e'},
+  {id:'amber',  hex:'#d97706'},
+];
+
+let st = {theme:'salon', color:'blue', model:'haiku',
+  svcs:['Webbplats + design','Eget domännamn','Grundläggande SEO',
+        'Löpande support','Obegränsade designändringar','Dedikerad kontaktperson']};
+let chatHistory = [];
+let isLoading = false;
+
+// ─── MODEL ───────────────────────────────────────────────────────────────────
+function setModel(m) {
+  st.model = m;
+  document.getElementById('m-haiku').classList.toggle('active', m === 'haiku');
+  document.getElementById('m-sonnet').classList.toggle('active', m === 'sonnet');
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function nl(s){return esc(s).replace(/\n/g,'<br>')}
+function pl(p,d){return p==='monthly'?(d?d.permonth:'/mån'):p==='yearly'?(d?d.peryear:'/år'):' '+(d?d.onetime:'(engångspris)')}
+function dateSv(){return new Date().toLocaleDateString('sv-SE',{year:'numeric',month:'long',day:'numeric'})}
+function gc(){return COLORS.find(c=>c.id===st.color)?.hex||'#4f7ef7'}
+function hexRgb(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]}
+
+// ─── LANGUAGE ────────────────────────────────────────────────────────────────
+const LANG = {
+  sv: {
+    badge:'OFFERT', titleprefix:'Offert till', svctitle:'Vad som ingår:',
+    nexttitle:'Nästa steg:', closing:'Med vänliga hälsningar,',
+    footersub:'Offert giltig i 30 dagar', pricelabel:'PRIS', currency:'SEK',
+    permonth:'/mån', peryear:'/år', onetime:'(engångspris)',
+    bindtext:'Bindningstid:', freetext:'{n} gratis månad(er) inkluderat!',
+    cunitOpts:['Månader','År'],
+    periodOpts:['Per månad','Per år','Engångspris'],
+  },
+  en: {
+    badge:'QUOTE', titleprefix:'Quote for', svctitle:'What\'s included:',
+    nexttitle:'Next steps:', closing:'Kind regards,',
+    footersub:'Quote valid for 30 days', pricelabel:'PRICE', currency:'SEK',
+    permonth:'/mo', peryear:'/yr', onetime:'(one-time)',
+    bindtext:'Contract period:', freetext:'{n} free month(s) included!',
+    cunitOpts:['Months','Years'],
+    periodOpts:['Per month','Per year','One-time'],
+  }
+};
+
+function setLang(lang) {
+  const L = LANG[lang];
+  if (!L) return;
+  st.lang = lang;
+  document.getElementById('lang-sv').style.background = lang==='sv'?'rgba(79,126,247,0.15)':'transparent';
+  document.getElementById('lang-sv').style.borderColor = lang==='sv'?'rgba(79,126,247,0.4)':'';
+  document.getElementById('lang-sv').style.color = lang==='sv'?'#7da8f8':'#4f7ef7';
+  document.getElementById('lang-en').style.background = lang==='en'?'rgba(79,126,247,0.15)':'transparent';
+  document.getElementById('lang-en').style.borderColor = lang==='en'?'rgba(79,126,247,0.4)':'';
+  document.getElementById('lang-en').style.color = lang==='en'?'#7da8f8':'#4f7ef7';
+  // Set all text fields
+  document.getElementById('f-badge').value = L.badge;
+  document.getElementById('f-titleprefix').value = L.titleprefix;
+  document.getElementById('f-svctitle').value = L.svctitle;
+  document.getElementById('f-nexttitle').value = L.nexttitle;
+  document.getElementById('f-closing').value = L.closing;
+  document.getElementById('f-footersub').value = L.footersub;
+  document.getElementById('f-pricelabel').value = L.pricelabel;
+  document.getElementById('f-currency').value = L.currency;
+  document.getElementById('f-permonth').value = L.permonth;
+  document.getElementById('f-peryear').value = L.peryear;
+  document.getElementById('f-onetime').value = L.onetime;
+  document.getElementById('f-bindtext').value = L.bindtext;
+  document.getElementById('f-freetext').value = L.freetext;
+  // Update select options
+  const periodEl = document.getElementById('f-period');
+  periodEl.options[0].text = L.periodOpts[0];
+  periodEl.options[1].text = L.periodOpts[1];
+  periodEl.options[2].text = L.periodOpts[2];
+  const cunitEl = document.getElementById('f-cunit');
+  cunitEl.options[0].text = L.cunitOpts[0];
+  cunitEl.options[0].value = L.cunitOpts[0].toLowerCase();
+  cunitEl.options[1].text = L.cunitOpts[1];
+  cunitEl.options[1].value = L.cunitOpts[1].toLowerCase();
+  r();
+}
+
+// ─── THEMES / COLORS ─────────────────────────────────────────────────────────
+function initThemes(){
+  document.getElementById('img-grid').innerHTML=THEMES.map(t=>`
+    <div class="img-btn${st.theme===t.id?' sel':''}" onclick="setTheme('${t.id}')">
+      <img src="${t.url}" crossorigin="anonymous" loading="lazy" alt="">
+      <div class="img-lbl">${t.lbl}</div>
+    </div>`).join('');
+}
+function initColors(){
+  document.getElementById('clr-row').innerHTML=COLORS.map(c=>`
+    <div class="clr-btn${st.color===c.id?' sel':''}" style="background:${c.hex}" onclick="setColor('${c.id}')"></div>`).join('');
+}
+function setTheme(id){st.theme=id;initThemes();r()}
+function setColor(id){st.color=id;initColors();r()}
+
+// ─── SERVICES ────────────────────────────────────────────────────────────────
+function renderSvcs(){
+  document.getElementById('svc-list').innerHTML=st.svcs.map((s,i)=>`
+    <div class="svc-item">
+      <input type="text" value="${esc(s)}" oninput="st.svcs[${i}]=this.value;r()">
+      <button class="rm-btn" onclick="rmSvc(${i})">&#10005;</button>
+    </div>`).join('');
+}
+function addSvc(){st.svcs.push('');renderSvcs();r();const ins=document.querySelectorAll('#svc-list input');if(ins.length)ins[ins.length-1].focus()}
+function rmSvc(i){st.svcs.splice(i,1);renderSvcs();r()}
+
+// ─── FORM DATA ───────────────────────────────────────────────────────────────
+function gd(){
+  return{
+    name:document.getElementById('f-name').value||'Kund',
+    company:document.getElementById('f-company').value,
+    title:document.getElementById('f-title').value,
+    intro:document.getElementById('f-intro').value,
+    summary:document.getElementById('f-summary').value,
+    svcs:[...st.svcs],
+    orgprice:document.getElementById('f-orgprice').value,
+    price:document.getElementById('f-price').value||'0',
+    period:document.getElementById('f-period').value,
+    free:document.getElementById('f-free').value||'0',
+    contract:document.getElementById('f-contract').value,
+    cunit:document.getElementById('f-cunit').value,
+    pricelabel:document.getElementById('f-pricelabel').value||'PRIS',
+    currency:document.getElementById('f-currency').value||'SEK',
+    permonth:document.getElementById('f-permonth').value||'/mån',
+    peryear:document.getElementById('f-peryear').value||'/år',
+    onetime:document.getElementById('f-onetime').value||'(engångspris)',
+    bindtext:document.getElementById('f-bindtext').value||'Bindningstid:',
+    freetext:document.getElementById('f-freetext').value||'{n} gratis månad(er) inkluderat!',
+    next:document.getElementById('f-next').value,
+    notes:document.getElementById('f-notes').value,
+    badge:document.getElementById('f-badge').value||'OFFERT',
+    titleprefix:document.getElementById('f-titleprefix').value||'Offert till',
+    svctitle:document.getElementById('f-svctitle').value||'Vad som ingår:',
+    nexttitle:document.getElementById('f-nexttitle').value||'Nästa steg:',
+    closing:document.getElementById('f-closing').value||'Med vänliga hälsningar,',
+    footersub:document.getElementById('f-footersub').value||'Offert giltig i 30 dagar',
+    sender:document.getElementById('f-sender').value,
+    website:document.getElementById('f-website').value||'Siteflow.se',
+    phone:document.getElementById('f-phone').value,
+    email:document.getElementById('f-email').value,
+    color:gc(),
+  };
+}
+
+function applyData(obj){
+  const set=(id,val)=>{if(val!==undefined&&val!==null&&val!==''){const el=document.getElementById(id);if(el)el.value=val;}};
+  if(obj.name)set('f-name',obj.name);
+  if(obj.company!==undefined)set('f-company',obj.company);
+  if(obj.title)set('f-title',obj.title);
+  if(obj.intro)set('f-intro',obj.intro);
+  if(obj.summary)set('f-summary',obj.summary);
+  if(obj.orgprice!==undefined)set('f-orgprice',obj.orgprice);
+  if(obj.price)set('f-price',obj.price);
+  if(obj.period){const el=document.getElementById('f-period');if(el)el.value=obj.period;}
+  if(obj.free!==undefined)set('f-free',obj.free);
+  if(obj.contract)set('f-contract',obj.contract);
+  if(obj.contractUnit){const el=document.getElementById('f-cunit');if(el)el.value=obj.contractUnit;}
+  if(obj.next)set('f-next',obj.next);
+  if(obj.notes!==undefined)set('f-notes',obj.notes);
+  if(obj.sender)set('f-sender',obj.sender);
+  if(obj.services&&Array.isArray(obj.services)&&obj.services.length){st.svcs=obj.services;renderSvcs();}
+  if(obj.imageTheme&&THEMES.find(t=>t.id===obj.imageTheme)){st.theme=obj.imageTheme;initThemes();}
+  if(obj.color&&COLORS.find(c=>c.id===obj.color)){st.color=obj.color;initColors();}
+  r();
+}
+
+// ─── PREVIEW ─────────────────────────────────────────────────────────────────
+function r(){
+  const d=gd();
+  const t=THEMES.find(x=>x.id===st.theme)||THEMES[0];
+  const ac=d.color;
+  const vs=d.svcs.filter(s=>s.trim());
+  const hasDiscount = d.orgprice && Number(d.orgprice) > 0;
+  const freeMonths = Number(d.free) || 0;
+  document.getElementById('pdf-card').innerHTML=`
+    <div class="pdf-hero">
+      <img src="${t.url}" crossorigin="anonymous" alt="" onerror="this.style.opacity=0">
+      <div class="pdf-hero-ov"></div>
+      <div class="pdf-badge" style="background:${ac}">${esc(d.badge)}</div>
+      <div class="pdf-co">${esc(d.website)}</div>
+      <div class="pdf-h-content">
+        <div class="pdf-title">${esc(d.titleprefix)} ${esc(d.name)}</div>
+        <div class="pdf-sub">${esc(d.title)}${d.company?' &nbsp;&middot;&nbsp; '+esc(d.company):''}</div>
+      </div>
+      <div class="pdf-date">${dateSv()}</div>
+    </div>
+    <div class="pdf-body">
+      <div class="pdf-intro">${nl(d.intro)}</div>
+      ${d.summary.trim()?`<div class="pdf-sum">${nl(d.summary)}</div>`:''}
+      ${vs.length?`
+        <div class="pdf-s-title">${esc(d.svctitle)}</div>
+        <div class="pdf-rule" style="background:${ac}"></div>
+        <div class="pdf-svcs">${vs.map(s=>`
+          <div class="pdf-svc"><div class="pdf-chk" style="background:${ac}">&#10003;</div>${esc(s)}</div>`).join('')}
+        </div>`:''}
+      <div class="pdf-price-box">
+        <div class="pdf-price-bar" style="background:${ac}"></div>
+        <div>
+          <div class="pdf-p-lbl">${esc(d.pricelabel)}</div>
+          ${hasDiscount?`<div class="pdf-p-orig">${Number(d.orgprice).toLocaleString('sv-SE')} ${esc(d.currency)}${pl(d.period,d)}</div>`:''}
+          <div class="pdf-p-val">${Number(d.price).toLocaleString('sv-SE')} ${esc(d.currency)}${pl(d.period,d)}</div>
+          <div class="pdf-p-sub">${esc(d.bindtext)} ${d.contract} ${d.cunit}</div>
+          ${freeMonths>0?`<div class="pdf-free-badge">${esc(d.freetext.replace('{n}',String(freeMonths)))}</div>`:''}
+        </div>
+      </div>
+      ${d.next.trim()?`<div class="pdf-s-title" style="margin-bottom:4px">${esc(d.nexttitle)}</div><div class="pdf-rule" style="background:${ac}"></div><div class="pdf-next-text">${nl(d.next)}</div>`:''}
+      ${d.notes.trim()?`<div class="pdf-note-box" style="border-left:3px solid ${ac}">${nl(d.notes)}</div>`:''}
+      <div class="pdf-close">${esc(d.closing)}<br><strong>${esc(d.sender)}</strong><br><span style="color:${ac}">${esc(d.website)}</span></div>
+    </div>
+    <div class="pdf-footer">
+      <div class="pdf-ft-line" style="background:${ac}"></div>
+      <div class="pdf-ft-txt">${esc(d.email)} &nbsp;&middot;&nbsp; ${esc(d.phone)} &nbsp;&middot;&nbsp; ${esc(d.website)}</div>
+      <div class="pdf-ft-sub">${esc(d.footersub)} fr&aring;n ${dateSv()}</div>
+    </div>`;
+}
+
+// ─── AI CHAT ─────────────────────────────────────────────────────────────────
+function addMsg(role, html, id){
+  const box=document.getElementById('chat-msgs');
+  const wrap=document.createElement('div');
+  wrap.className=`msg ${role}`;
+  if(id)wrap.id=id;
+  wrap.innerHTML=`<div class="msg-role">${role==='user'?'Du':'Claude'}</div><div class="msg-bubble">${html}</div>`;
+  box.appendChild(wrap);
+  box.scrollTop=box.scrollHeight;
+  return wrap;
+}
+
+function qp(text){document.getElementById('chat-in').value=text;send();}
+
+async function send(){
+  if(isLoading||!verified)return;
+  const inp=document.getElementById('chat-in');
+  const text=inp.value.trim();
+  if(!text)return;
+  inp.value='';inp.style.height='auto';
+  isLoading=true;
+  document.getElementById('send-btn').disabled=true;
+
+  addMsg('user',nl(text));
+  chatHistory.push({role:'user',content:text});
+
+  const loadId='load-'+Date.now();
+  addMsg('ai',`<span class="tdot"></span><span class="tdot"></span><span class="tdot"></span>`,loadId);
+
+  const currentData=gd();
+  const contextNote=`\nNuvarande offertdata:\n${JSON.stringify({...currentData,svcs:st.svcs,imageTheme:st.theme,color:st.color},null,2)}`;
+
+  try{
+    const resp=await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:MODELS[st.model],
+        max_tokens:1200,
+        system:SYSTEM_PROMPT+contextNote,
+        messages:chatHistory
+      })
+    });
+
+    if(!resp.ok){
+      const err=await resp.json().catch(()=>({}));
+      throw new Error(err.error?.message||`HTTP ${resp.status}`);
+    }
+
+    const data=await resp.json();
+    const reply=data.content?.find(b=>b.type==='text')?.text||'Inget svar.';
+    chatHistory.push({role:'assistant',content:reply});
+
+    let applied=false;
+    const jsonMatch=reply.match(/```json\s*([\s\S]*?)```/);
+    if(jsonMatch){
+      try{const changes=JSON.parse(jsonMatch[1]);applyData(changes);applied=true;}
+      catch(e){console.warn('JSON parse fel',e);}
+    }
+
+    const explanation=reply.replace(/CHANGES:\s*```json[\s\S]*?```/,'').trim();
+    const loadEl=document.getElementById(loadId);
+    if(loadEl)loadEl.querySelector('.msg-bubble').innerHTML=
+      (explanation||'Offerten har uppdaterats!')+
+      (applied?`<div class="applied-badge">&#10003; Offerten uppdaterad</div>`:'');
+
+  }catch(err){
+    const loadEl=document.getElementById(loadId);
+    if(loadEl)loadEl.querySelector('.msg-bubble').innerHTML=
+      `<span style="color:#f87171">Fel: ${esc(err.message)}</span><br><span style="font-size:10px;color:#9ca3af">Kontrollera att servern har en giltig API-nyckel.</span>`;
+    chatHistory.pop();
+  }finally{
+    isLoading=false;
+    document.getElementById('send-btn').disabled=false;
+    document.getElementById('chat-msgs').scrollTop=9999;
+  }
+}
+
+// ─── PDF EXPORT ───────────────────────────────────────────────────────────────
+async function imgB64(url){
+  return new Promise((res,rej)=>{
+    const img=new Image();img.crossOrigin='Anonymous';
+    img.onload=()=>{const c=document.createElement('canvas');c.width=img.naturalWidth||1200;c.height=img.naturalHeight||400;c.getContext('2d').drawImage(img,0,0);res(c.toDataURL('image/jpeg',0.88));};
+    img.onerror=()=>rej(new Error('img fail'));img.src=url;
+  });
+}
+
+async function dlPDF(){
+  const btn=document.getElementById('dl-btn');
+  btn.disabled=true;btn.textContent='Genererar PDF...';
+  try{
+    if(!window.jspdf)throw new Error('jsPDF laddades inte');
+    const{jsPDF}=window.jspdf;
+    const d=gd();const t=THEMES.find(x=>x.id===st.theme)||THEMES[0];
+    const ac=d.color;const[aR,aG,aB]=hexRgb(ac);
+    const doc=new jsPDF({unit:'mm',format:'a4'});const W=210,H=297,heroH=90;
+    try{const imgData=await imgB64(t.url);doc.addImage(imgData,'JPEG',0,0,W,heroH);}
+    catch(e){doc.setFillColor(8,13,28);doc.rect(0,0,W,heroH,'F');}
+    doc.setGState(new doc.GState({opacity:0.65}));doc.setFillColor(4,8,22);doc.rect(0,0,W,heroH,'F');doc.setGState(new doc.GState({opacity:1}));
+    doc.setFillColor(aR,aG,aB);doc.roundedRect(14,14,24,7,1.5,1.5,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.text(d.badge,26,19,{align:'center'});
+    doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(200,215,245);doc.text(d.website,W-14,19,{align:'right'});
+    doc.setFontSize(21);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);doc.text(`${d.titleprefix} ${d.name}`,14,heroH-20);
+    doc.setFontSize(10);doc.setFont('helvetica','normal');doc.setTextColor(170,195,240);doc.text(d.title+(d.company?` \u00b7 ${d.company}`:''),14,heroH-11);
+    doc.setFontSize(7.5);doc.setTextColor(145,175,225);doc.text(dateSv(),W-14,heroH-7,{align:'right'});
+    let y=heroH+13;
+    function cp(n=20){if(y+n>H-35){doc.addPage();y=18;}}
+    doc.setFontSize(10);doc.setFont('helvetica','normal');doc.setTextColor(45,55,72);
+    const iL=doc.splitTextToSize(d.intro,W-28);doc.text(iL,14,y);y+=iL.length*5.6+5;
+    if(d.summary.trim()){const sL=doc.splitTextToSize(d.summary,W-28);doc.setTextColor(75,85,99);doc.text(sL,14,y);y+=sL.length*5.6+8;}
+    const vs=d.svcs.filter(s=>s.trim());
+    if(vs.length){
+      cp(18+vs.length*7);
+      doc.setFontSize(13);doc.setFont('helvetica','bold');doc.setTextColor(10,20,50);doc.text(d.svctitle,14,y);y+=5;
+      doc.setFillColor(aR,aG,aB);doc.rect(14,y,42,0.9,'F');y+=6;
+      for(const s of vs){
+        doc.setFillColor(aR,aG,aB);doc.circle(19,y-1.4,1.9,'F');
+        doc.setTextColor(255,255,255);doc.setFontSize(5);doc.setFont('helvetica','bold');doc.text('v',19,y-0.4,{align:'center'});
+        doc.setFontSize(9.5);doc.setFont('helvetica','normal');doc.setTextColor(45,55,72);doc.text(s,25,y);y+=6.8;
+      }y+=5;
+    }
+    const hasDiscountPdf = d.orgprice && Number(d.orgprice) > 0;
+    const freeMonthsPdf = Number(d.free) || 0;
+    const boxH = 34 + (hasDiscountPdf?10:0) + (freeMonthsPdf>0?8:0);
+    cp(boxH+4);const bw=W-28;
+    doc.setFillColor(8,13,28);doc.roundedRect(14,y,bw,boxH,3,3,'F');
+    doc.setFillColor(aR,aG,aB);doc.roundedRect(14,y,4,boxH,2,2,'F');
+    const hasDiscount = d.orgprice && Number(d.orgprice) > 0;
+    const freeMonths = Number(d.free) || 0;
+    doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(175,200,240);doc.text(d.pricelabel,22,y+9);
+    let priceY=y+9;
+    if(hasDiscount){priceY+=5;doc.setFontSize(10);doc.setFont('helvetica','normal');doc.setTextColor(180,180,200);const orgTxt=`${Number(d.orgprice).toLocaleString('sv-SE')} ${d.currency}${pl(d.period,d)}`;doc.text(orgTxt,22,priceY);doc.line(22,priceY-1,22+doc.getTextWidth(orgTxt),priceY-1);priceY+=7;}
+    else{priceY+=12;}
+    doc.setFontSize(17);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);doc.text(`${Number(d.price).toLocaleString('sv-SE')} ${d.currency}${pl(d.period,d)}`,22,priceY);
+    doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(150,180,225);doc.text(`${d.bindtext} ${d.contract} ${d.cunit}`,22,priceY+8);
+    if(freeMonths>0){doc.setFontSize(8);doc.setTextColor(52,211,153);doc.text(d.freetext.replace('{n}',String(freeMonths)),22,priceY+15);}
+    y+=hasDiscount||freeMonths>0?52:42;
+    if(d.next.trim()){
+      cp(30);doc.setFontSize(13);doc.setFont('helvetica','bold');doc.setTextColor(10,20,50);doc.text(d.nexttitle,14,y);y+=5;
+      doc.setFillColor(aR,aG,aB);doc.rect(14,y,36,0.9,'F');y+=6;
+      doc.setFontSize(9.5);doc.setFont('helvetica','normal');doc.setTextColor(45,55,72);
+      const nL=doc.splitTextToSize(d.next,W-28);doc.text(nL,14,y);y+=nL.length*5.6+8;
+    }
+    if(d.notes.trim()){
+      cp(22);doc.setFillColor(248,249,252);doc.roundedRect(14,y,bw,20,2,2,'F');
+      doc.setFillColor(aR,aG,aB);doc.rect(14,y,2.5,20,'F');
+      doc.setFontSize(8.5);doc.setFont('helvetica','italic');doc.setTextColor(100,110,140);
+      const ntL=doc.splitTextToSize(d.notes,bw-14);doc.text(ntL,20,y+6);y+=ntL.length*5+16;
+    }
+    cp(18);
+    doc.setFontSize(9.5);doc.setFont('helvetica','normal');doc.setTextColor(80,95,115);doc.text(d.closing,14,y);y+=5.5;
+    doc.setFont('helvetica','bold');doc.setTextColor(25,40,75);doc.text(d.sender,14,y);y+=5;
+    doc.setFont('helvetica','normal');doc.setTextColor(aR,aG,aB);doc.text(d.website,14,y);
+    const fY=H-20;
+    doc.setFillColor(8,13,28);doc.rect(0,fY-8,W,30,'F');
+    doc.setFillColor(aR,aG,aB);doc.rect(0,fY-8,W,1,'F');
+    doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(198,218,248);doc.text(`${d.email}  \u00b7  ${d.phone}  \u00b7  ${d.website}`,W/2,fY,{align:'center'});
+    doc.setFontSize(7);doc.setTextColor(125,158,210);doc.text(`${d.footersub} fr\u00e5n ${dateSv()}`,W/2,fY+7,{align:'center'});
+    doc.save(`Offert_${d.name.replace(/\s+/g,'_')}_Siteflow.pdf`);
+  }catch(err){alert('PDF-fel: '+err.message);}
+  finally{btn.disabled=false;btn.textContent='Ladda ner offert som PDF';}
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+function initApp(){
+  renderSvcs();initThemes();initColors();r();
+}
+</script>
+</body>
+</html>
