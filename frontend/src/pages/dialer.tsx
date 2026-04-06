@@ -11,6 +11,7 @@ import { LeadDetailTab } from "@/components/dialer/lead-detail-tab";
 import { DealsTab } from "@/components/dialer/deals-tab";
 import { DealDetailTab } from "@/components/dialer/deal-detail-tab";
 import { CustomersTab } from "@/components/dialer/customers-tab";
+import { UpdateBanner } from "@/components/dialer/update-banner";
 import { useLeaderboard, useDashboard, type LeaderboardEntry } from "@/api/dashboard";
 import {
   useNextLead,
@@ -170,6 +171,7 @@ export function DialerPage() {
 
   return (
     <div className={`flex flex-col overflow-hidden ${window.location.pathname === "/app" ? "h-screen" : "h-[calc(100vh-64px)] p-5"}`}>
+      <UpdateBanner />
       <div className={`flex-1 flex flex-col bg-[var(--color-bg-primary)] overflow-hidden ${window.location.pathname === "/app" ? "" : "rounded-[14px] shadow-[0_1px_3px_rgba(0,0,0,0.04)]"}`}>
       {/* ---- Header ---- */}
       <DialerHeader
