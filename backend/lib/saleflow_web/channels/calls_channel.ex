@@ -3,6 +3,7 @@ defmodule SaleflowWeb.CallsChannel do
 
   @impl true
   def join("calls:live", _payload, socket) do
+    Phoenix.PubSub.subscribe(Saleflow.PubSub, "calls:live")
     {:ok, socket}
   end
 

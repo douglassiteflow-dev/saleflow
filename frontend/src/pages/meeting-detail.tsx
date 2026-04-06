@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useMeetingDetail, useUpdateMeeting, useCancelMeeting } from "@/api/meetings";
 import { useDial } from "@/api/telavox";
 import { useCreateTeamsMeeting } from "@/api/microsoft";
+import { CallModal } from "@/components/dialer/call-modal";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export function MeetingDetailPage() {
   const dial = useDial();
   const createTeamsMeeting = useCreateTeamsMeeting();
 
+  const [callModalOpen, setCallModalOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editDate, setEditDate] = useState("");
   const [editTime, setEditTime] = useState("");
@@ -120,7 +122,7 @@ export function MeetingDetailPage() {
           {meeting.status === "scheduled" && lead.id && (
             <button
               type="button"
-              onClick={() => dial.mutate(lead.id)}
+              onClick={() => dial.mutate(lead.id, { onSuccess: () => setCallModalOpen(true) })}
               disabled={dial.isPending}
               className="inline-flex items-center justify-center gap-1.5 h-10 rounded-md bg-emerald-600 text-white font-medium text-sm px-4 hover:bg-emerald-700 transition-colors disabled:opacity-50"
             >
@@ -273,12 +275,14 @@ export function MeetingDetailPage() {
             <InfoRow
               label="Telefon"
               value={
-                <a
-                  href={`tel:${lead.telefon}`}
-                  className="font-mono text-indigo-600 hover:text-indigo-700 transition-colors"
+                <button
+                  type="button"
+                  onClick={() => dial.mutate(lead.id, { onSuccess: () => setCallModalOpen(true) })}
+                  disabled={dial.isPending}
+                  className="font-mono text-indigo-600 hover:text-indigo-700 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {formatPhone(lead.telefon)}
-                </a>
+                </button>
               }
             />
             <InfoRow label="Adress" value={lead.adress} />
@@ -318,6 +322,14 @@ export function MeetingDetailPage() {
 
       {/* History timeline */}
       <HistoryTimeline callLogs={calls} />
+
+      {callModalOpen && (
+        <CallModal
+          lead={lead}
+          leadId={lead.id}
+          onClose={() => setCallModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

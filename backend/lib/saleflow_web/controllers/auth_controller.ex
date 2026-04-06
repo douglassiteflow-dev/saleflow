@@ -15,14 +15,8 @@ defmodule SaleflowWeb.AuthController do
   `%{otp_sent: true, user_id: id}`.
   """
   def sign_in(conn, %{"email" => email, "password" => password}) do
-    origin = Plug.Conn.get_req_header(conn, "origin") |> List.first("unknown")
-    ua = Plug.Conn.get_req_header(conn, "user-agent") |> List.first("unknown")
-    Logger.info("SIGN_IN attempt: email=#{email} origin=#{origin} ua=#{String.slice(ua, 0, 50)} pw_len=#{String.length(password)}")
-
     case Accounts.sign_in(%{email: email, password: password}) do
       {:ok, user} ->
-        Logger.info("SIGN_IN success: #{email}")
-
         if Application.get_env(:saleflow, :skip_otp, false) do
           # Skip OTP entirely (staging) — create session directly
           create_direct_session(conn, user)
@@ -43,8 +37,8 @@ defmodule SaleflowWeb.AuthController do
           end
         end
 
-      {:error, reason} ->
-        Logger.warning("SIGN_IN failed: email=#{email} reason=#{inspect(reason)}")
+      {:error, _reason} ->
+        Logger.warning("SIGN_IN failed: email=#{email}")
 
         conn
         |> put_status(:unauthorized)
@@ -118,7 +112,8 @@ defmodule SaleflowWeb.AuthController do
   """
   def me(conn, _params) do
     user = conn.assigns.current_user
-    json(conn, %{user: serialize_user(user)})
+    session = conn.assigns.current_session
+    json(conn, %{user: serialize_user(user), socket_token: session.session_token})
   end
 
   @doc """

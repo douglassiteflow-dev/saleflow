@@ -1,7 +1,9 @@
 import { useLeadDetail } from "@/api/leads";
 import { useLeadComments, useCreateComment } from "@/api/comments";
+import { useDial } from "@/api/telavox";
 import { Badge } from "@/components/ui/badge";
 import { HistoryTimeline } from "@/components/history-timeline";
+import { CallModal } from "@/components/dialer/call-modal";
 import { formatPhone } from "@/lib/format";
 import Loader from "@/components/kokonutui/loader";
 import { useState } from "react";
@@ -15,7 +17,9 @@ export function LeadDetailTab({ leadId, onBack }: LeadDetailTabProps) {
   const { data, isLoading } = useLeadDetail(leadId);
   const { data: comments } = useLeadComments(leadId);
   const createComment = useCreateComment();
+  const dial = useDial();
   const [commentText, setCommentText] = useState("");
+  const [callModalOpen, setCallModalOpen] = useState(false);
 
   if (isLoading || !data) {
     return (
@@ -49,10 +53,17 @@ export function LeadDetailTab({ leadId, onBack }: LeadDetailTabProps) {
           <span className="text-[13px] font-medium text-[var(--color-text-primary)]">{lead.företag}</span>
           <Badge status={lead.status} />
         </div>
-        <a href={`tel:${lead.telefon}`} className="rounded-md bg-[var(--color-success)] px-3 py-1 text-[11px] font-medium text-white hover:brightness-110 transition-all no-underline flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => {
+            dial.mutate(leadId, { onSuccess: () => setCallModalOpen(true) });
+          }}
+          disabled={dial.isPending}
+          className="rounded-md bg-[var(--color-success)] px-3 py-1 text-[11px] font-medium text-white hover:brightness-110 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+        >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
-          {formatPhone(lead.telefon)}
-        </a>
+          {dial.isPending ? "Ringer..." : formatPhone(lead.telefon)}
+        </button>
       </div>
 
       {/* Content */}
@@ -127,11 +138,19 @@ export function LeadDetailTab({ leadId, onBack }: LeadDetailTabProps) {
       <div className="border-t border-[var(--color-border)] p-5">
         <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">Samtalshistorik</p>
         {calls && calls.length > 0 ? (
-          <HistoryTimeline callLogs={calls} />
+          <HistoryTimeline callLogs={calls} bare />
         ) : (
           <p className="text-sm text-[var(--color-text-secondary)]">Inga samtal med denna kund.</p>
         )}
       </div>
+
+      {callModalOpen && (
+        <CallModal
+          lead={lead}
+          leadId={leadId}
+          onClose={() => setCallModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

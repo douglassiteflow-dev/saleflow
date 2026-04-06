@@ -7,6 +7,16 @@ import { ProtectedRoute, AdminRoute } from "../protected-route";
 const useMeMock = vi.fn();
 vi.mock("@/api/auth", () => ({
   useMe: () => useMeMock(),
+  getSocketToken: () => "test-token",
+}));
+
+vi.mock("@/lib/socket", () => ({
+  connectSocket: vi.fn(),
+  disconnectSocket: vi.fn(),
+}));
+
+vi.mock("@/lib/use-dashboard-sync", () => ({
+  useDashboardSync: vi.fn(),
 }));
 
 function Wrapper({ children }: { children: React.ReactNode }) {

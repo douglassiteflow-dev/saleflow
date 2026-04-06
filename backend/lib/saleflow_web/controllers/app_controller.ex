@@ -110,6 +110,14 @@ defmodule SaleflowWeb.AppController do
           |> Ash.Changeset.for_update(:toggle, %{active: !app.active})
           |> Ash.update()
 
+        Saleflow.Audit.create_log(%{
+          user_id: conn.assigns.current_user.id,
+          action: "admin.app_toggled",
+          resource_type: "App",
+          resource_id: updated.id,
+          changes: %{active: updated.active}
+        })
+
         json(conn, %{app: serialize_app(updated)})
     end
   end
@@ -129,6 +137,14 @@ defmodule SaleflowWeb.AppController do
              |> Ash.Changeset.for_create(:create, %{app_id: app.id, user_id: user_id})
              |> Ash.create() do
           {:ok, _permission} ->
+            Saleflow.Audit.create_log(%{
+              user_id: conn.assigns.current_user.id,
+              action: "admin.app_permission_granted",
+              resource_type: "App",
+              resource_id: app.id,
+              metadata: %{target_user_id: user_id}
+            })
+
             conn |> put_status(:created) |> json(%{ok: true})
 
           {:error, _} ->
@@ -148,10 +164,20 @@ defmodule SaleflowWeb.AppController do
         conn |> put_status(:not_found) |> json(%{error: "App not found"})
 
       {:ok, app} ->
-        Saleflow.Repo.query!("DELETE FROM app_permissions WHERE app_id = $1 AND user_id = $2", [
-          dump_uuid(app.id),
-          dump_uuid(user_id)
-        ])
+        {:ok, permissions} =
+          Saleflow.Apps.AppPermission
+          |> Ash.Query.for_read(:for_app_and_user, %{app_id: app.id, user_id: user_id})
+          |> Ash.read()
+
+        Enum.each(permissions, &Ash.destroy!/1)
+
+        Saleflow.Audit.create_log(%{
+          user_id: conn.assigns.current_user.id,
+          action: "admin.app_permission_revoked",
+          resource_type: "App",
+          resource_id: app.id,
+          metadata: %{target_user_id: user_id}
+        })
 
         json(conn, %{ok: true})
     end
@@ -173,8 +199,4 @@ defmodule SaleflowWeb.AppController do
     }
   end
 
-  defp dump_uuid(id) when is_binary(id) do
-    {:ok, dumped} = Ecto.UUID.dump(id)
-    dumped
-  end
 end

@@ -192,7 +192,7 @@ export function MeetingDetailTab({ meetingId, onBack }: MeetingDetailTabProps) {
       <div className="border-t border-[var(--color-border)] p-5">
         <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">Samtalshistorik</p>
         {calls && calls.length > 0 ? (
-          <HistoryTimeline callLogs={calls} />
+          <HistoryTimeline callLogs={calls} bare />
         ) : (
           <p className="text-sm text-[var(--color-text-secondary)]">Inga samtal med denna kund.</p>
         )}

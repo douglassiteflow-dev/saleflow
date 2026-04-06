@@ -13,6 +13,14 @@ defmodule SaleflowWeb.TelavoxController do
 
         case Ash.update(user, %{telavox_token: token, extension_number: ext}, action: :update_user) do
           {:ok, _user} ->
+            Saleflow.Audit.create_log(%{
+              user_id: user.id,
+              action: "telavox.connected",
+              resource_type: "User",
+              resource_id: user.id,
+              metadata: %{extension: ext}
+            })
+
             json(conn, %{ok: true, extension: ext, name: name})
 
           {:error, _} ->
@@ -36,8 +44,18 @@ defmodule SaleflowWeb.TelavoxController do
     user = conn.assigns.current_user
 
     case Ash.update(user, %{telavox_token: nil, extension_number: nil}, action: :update_user) do
-      {:ok, _user} -> json(conn, %{ok: true})
-      {:error, _} -> conn |> put_status(500) |> json(%{error: "Kunde inte koppla bort"})
+      {:ok, _user} ->
+        Saleflow.Audit.create_log(%{
+          user_id: user.id,
+          action: "telavox.disconnected",
+          resource_type: "User",
+          resource_id: user.id
+        })
+
+        json(conn, %{ok: true})
+
+      {:error, _} ->
+        conn |> put_status(500) |> json(%{error: "Kunde inte koppla bort"})
     end
   end
 

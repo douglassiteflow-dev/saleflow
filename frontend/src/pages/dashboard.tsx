@@ -4,7 +4,7 @@ import { useMe } from "@/api/auth";
 import { Leaderboard } from "@/components/leaderboard";
 import { StatCard } from "@/components/stat-card";
 import { LiveCalls } from "@/components/live-calls";
-import type { DealStage } from "@/api/types";
+import { PIPELINE_STAGES } from "@/lib/constants";
 
 function formatDate(): string {
   return new Date().toLocaleDateString("sv-SE", {
@@ -13,18 +13,6 @@ function formatDate(): string {
     month: "long",
   });
 }
-
-const PIPELINE_STAGES: { key: DealStage; label: string }[] = [
-  { key: "meeting_booked", label: "Möte bokat" },
-  { key: "needs_website", label: "Behöver hemsida" },
-  { key: "generating_website", label: "Genereras" },
-  { key: "reviewing", label: "Granskning" },
-  { key: "deployed", label: "Deployad" },
-  { key: "demo_followup", label: "Demo" },
-  { key: "contract_sent", label: "Avtal skickat" },
-  { key: "signed", label: "Signerat" },
-  { key: "dns_launch", label: "DNS" },
-];
 
 export function DashboardPage() {
   const { data: user } = useMe();

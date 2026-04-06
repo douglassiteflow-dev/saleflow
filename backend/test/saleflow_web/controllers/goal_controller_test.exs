@@ -140,6 +140,23 @@ defmodule SaleflowWeb.GoalControllerTest do
       })
       |> json_response(403)
     end
+
+    test "agent cannot set user_id for another user", %{conn: conn, agent: agent, agent2: agent2} do
+      resp =
+        conn
+        |> log_in_user(agent)
+        |> post("/api/goals", %{
+          scope: "personal",
+          metric: "calls_per_day",
+          target_value: 30,
+          period: "daily",
+          user_id: agent2.id
+        })
+        |> json_response(201)
+
+      # user_id should be forced to the agent's own id, not agent2
+      assert resp["goal"]["user_id"] == agent.id
+    end
   end
 
   # ---------------------------------------------------------------------------

@@ -9,7 +9,7 @@ export function useDashboard() {
       const data = await api<DashboardData>("/api/dashboard");
       return data;
     },
-    staleTime: 10_000,
+    staleTime: 5_000,
     refetchInterval: 30_000,
   });
 }
@@ -31,6 +31,6 @@ export function useLeaderboard() {
       return data.leaderboard;
     },
     refetchInterval: 30_000,
-    staleTime: 10_000,
+    staleTime: 5_000,
   });
 }

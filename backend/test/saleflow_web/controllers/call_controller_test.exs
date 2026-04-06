@@ -295,15 +295,16 @@ defmodule SaleflowWeb.CallControllerTest do
   # -------------------------------------------------------------------------
 
   describe "GET /api/calls/:id/recording" do
-    test "returns 200 with url when recording exists", %{conn: conn} do
-      {conn, _user} = authenticated_conn(conn)
+    test "returns 200 with url when recording exists and user owns the call", %{conn: conn} do
+      {conn, user} = authenticated_conn(conn)
 
-      # Create a phone call and set recording_key
+      # Create a phone call owned by this user and set recording_key
       {:ok, phone_call} =
         Saleflow.Sales.create_phone_call(%{
           caller: "+46701111111",
           callee: "+46812345678",
-          duration: 30
+          duration: 30,
+          user_id: user.id
         })
 
       Saleflow.Repo.query!(
@@ -317,14 +318,60 @@ defmodule SaleflowWeb.CallControllerTest do
       assert response["url"] =~ "recordings/2026/04/#{phone_call.id}.mp3"
     end
 
-    test "returns 404 when phone_call has no recording", %{conn: conn} do
-      {conn, _user} = authenticated_conn(conn)
+    test "returns 200 when admin accesses another user's recording", %{conn: conn} do
+      {_conn, agent} = authenticated_conn(conn)
 
       {:ok, phone_call} =
         Saleflow.Sales.create_phone_call(%{
           caller: "+46701111111",
           callee: "+46812345678",
-          duration: 30
+          duration: 30,
+          user_id: agent.id
+        })
+
+      Saleflow.Repo.query!(
+        "UPDATE phone_calls SET recording_key = $1 WHERE id = $2",
+        ["recordings/2026/04/#{phone_call.id}.mp3", Ecto.UUID.dump!(phone_call.id)]
+      )
+
+      {admin_conn, _admin} = authenticated_conn(conn, %{role: :admin})
+      admin_conn = get(admin_conn, "/api/calls/#{phone_call.id}/recording")
+
+      response = json_response(admin_conn, 200)
+      assert response["url"] =~ "recordings/2026/04/#{phone_call.id}.mp3"
+    end
+
+    test "returns 403 when user does not own the recording", %{conn: conn} do
+      {_conn, other_user} = authenticated_conn(conn)
+
+      {:ok, phone_call} =
+        Saleflow.Sales.create_phone_call(%{
+          caller: "+46701111111",
+          callee: "+46812345678",
+          duration: 30,
+          user_id: other_user.id
+        })
+
+      Saleflow.Repo.query!(
+        "UPDATE phone_calls SET recording_key = $1 WHERE id = $2",
+        ["recordings/2026/04/#{phone_call.id}.mp3", Ecto.UUID.dump!(phone_call.id)]
+      )
+
+      {requester_conn, _requester} = authenticated_conn(conn)
+      requester_conn = get(requester_conn, "/api/calls/#{phone_call.id}/recording")
+
+      assert json_response(requester_conn, 403) == %{"error" => "Access denied"}
+    end
+
+    test "returns 404 when phone_call has no recording", %{conn: conn} do
+      {conn, user} = authenticated_conn(conn)
+
+      {:ok, phone_call} =
+        Saleflow.Sales.create_phone_call(%{
+          caller: "+46701111111",
+          callee: "+46812345678",
+          duration: 30,
+          user_id: user.id
         })
 
       conn = get(conn, "/api/calls/#{phone_call.id}/recording")

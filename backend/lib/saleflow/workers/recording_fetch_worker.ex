@@ -89,24 +89,15 @@ defmodule Saleflow.Workers.RecordingFetchWorker do
   end
 
   defp enrich_from_call(phone_call_id, call_data) do
-    number = call_data["number"] || ""
-    duration = call_data["duration"] || 0
     recording_id = call_data["recordingId"]
     telavox_call_id = call_data["callId"]
 
-    Logger.info("RecordingFetchWorker: #{phone_call_id} → number=#{number}, duration=#{duration}s, callId=#{telavox_call_id || "none"}, recording=#{recording_id || "none"}")
+    Logger.info("RecordingFetchWorker: #{phone_call_id} → callId=#{telavox_call_id || "none"}, recording=#{recording_id || "none"}")
 
-    lead_id = find_lead_id(number)
-
+    # Only store telavox_call_id for recording lookup — don't overwrite duration/callee/lead_id (set by our app)
     Saleflow.Repo.query(
-      "UPDATE phone_calls SET callee = $1, duration = $2, lead_id = $3, telavox_call_id = $4 WHERE id = $5",
-      [number, duration, lead_id && Ecto.UUID.dump!(lead_id), telavox_call_id, Ecto.UUID.dump!(phone_call_id)]
-    )
-
-    Phoenix.PubSub.broadcast(
-      Saleflow.PubSub,
-      "dashboard:updates",
-      {:dashboard_update, %{event: "call_enriched", phone_call_id: phone_call_id}}
+      "UPDATE phone_calls SET telavox_call_id = $1 WHERE id = $2 AND telavox_call_id IS NULL",
+      [telavox_call_id, Ecto.UUID.dump!(phone_call_id)]
     )
 
     case recording_id do
@@ -114,8 +105,6 @@ defmodule Saleflow.Workers.RecordingFetchWorker do
       id -> download_and_store(phone_call_id, id)
     end
   end
-
-  defp find_lead_id(number), do: Saleflow.Telavox.UserLookup.find_lead_id(number)
 
   defp download_and_store(phone_call_id, recording_id) do
     case client().get_binary("/recordings/#{recording_id}") do

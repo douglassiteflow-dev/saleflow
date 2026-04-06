@@ -73,7 +73,7 @@ describe("DealsTab", () => {
     expect(screen.getByText("Testföretag AB")).toBeInTheDocument();
     expect(screen.getByText("Annat Företag")).toBeInTheDocument();
     expect(screen.getByText("Möte bokat")).toBeInTheDocument();
-    expect(screen.getByText("Demo-länk redo")).toBeInTheDocument();
+    expect(screen.getByText("Deployad")).toBeInTheDocument();
   });
 
   it("shows empty state", () => {

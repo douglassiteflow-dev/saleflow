@@ -3,6 +3,7 @@ defmodule SaleflowWeb.DashboardChannel do
 
   @impl true
   def join("dashboard:updates", _payload, socket) do
+    Phoenix.PubSub.subscribe(Saleflow.PubSub, "dashboard:updates")
     {:ok, socket}
   end
 

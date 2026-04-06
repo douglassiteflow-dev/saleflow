@@ -69,12 +69,12 @@ export function LeadInfo({ lead }: LeadInfoProps) {
         <InfoRow
           label="Telefon"
           value={
-            <a
-              href={`tel:${lead.telefon}`}
-              className="font-mono text-indigo-600 hover:text-indigo-700 transition-colors"
+            <button
+              onClick={() => navigator.clipboard.writeText(lead.telefon)}
+              className="font-mono text-indigo-600 hover:text-indigo-700 cursor-pointer"
             >
               {formatPhone(lead.telefon)}
-            </a>
+            </button>
           }
         />
         <div className="flex flex-col gap-0.5 py-2 border-b border-[var(--color-border)]">
@@ -109,12 +109,12 @@ export function LeadInfo({ lead }: LeadInfoProps) {
           ) : (
             <div className="flex items-center gap-2">
               {lead.telefon_2 ? (
-                <a
-                  href={`tel:${lead.telefon_2}`}
-                  className="font-mono text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
+                <button
+                  onClick={() => navigator.clipboard.writeText(lead.telefon_2!)}
+                  className="font-mono text-sm text-indigo-600 hover:text-indigo-700 cursor-pointer"
                 >
                   {formatPhone(lead.telefon_2)}
-                </a>
+                </button>
               ) : (
                 <span className="text-sm text-[var(--color-text-secondary)]">—</span>
               )}

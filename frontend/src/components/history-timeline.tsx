@@ -1,101 +1,88 @@
 import type { CallLog } from "@/api/types";
 import { Card, CardTitle } from "@/components/ui/card";
-import { formatDateTime } from "@/lib/format";
+import { RecordingPlayer } from "@/components/recording-player";
+import { formatDateTime, formatDuration } from "@/lib/format";
+import { OUTCOME_LABELS, OUTCOME_COLORS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
-
-const OUTCOME_LABELS: Record<string, string> = {
-  meeting_booked: "Möte bokat",
-  callback: "Återuppringning",
-  not_interested: "Ej intresserad",
-  no_answer: "Ej svar",
-  call_later: "Ring senare",
-  bad_number: "Fel nummer",
-  customer: "Kund",
-  other: "Övrigt",
-};
-
-function formatDuration(seconds: number): string {
-  if (!seconds || seconds === 0) return "";
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
-}
-
-function dotColor(outcome: string): string {
-  if (outcome === "meeting_booked") return "bg-emerald-500";
-  if (outcome === "not_interested") return "bg-rose-500";
-  if (outcome === "customer") return "bg-indigo-500";
-  if (outcome === "callback") return "bg-amber-500";
-  if (outcome === "bad_number") return "bg-red-500";
-  return "bg-indigo-400";
-}
 
 interface HistoryTimelineProps {
   callLogs?: CallLog[];
+  /** When true, skip the Card + CardTitle wrapper (used when parent already provides its own section heading). */
+  bare?: boolean;
 }
 
-export function HistoryTimeline({ callLogs = [] }: HistoryTimelineProps) {
+export function HistoryTimeline({ callLogs = [], bare = false }: HistoryTimelineProps) {
   const sorted = [...callLogs].sort(
     (a, b) => new Date(b.called_at).getTime() - new Date(a.called_at).getTime()
   );
 
+  const showAgent = sorted.some((c) => c.user_name);
+
+  const table = sorted.length === 0 ? (
+    <p className="text-sm text-[var(--color-text-secondary)]">
+      Inga samtal ännu.
+    </p>
+  ) : (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-[var(--color-bg-panel)]">
+            <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">Datum</th>
+            {showAgent && (
+              <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">Agent</th>
+            )}
+            <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">Längd</th>
+            <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">Utfall</th>
+            <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">Anteckningar</th>
+            <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">Inspelning</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((call, idx) => (
+            <tr key={call.id} className={idx < sorted.length - 1 ? "border-b border-[var(--color-border)]" : ""}>
+              <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-[var(--color-text-secondary)]">
+                {formatDateTime(call.called_at)}
+              </td>
+              {showAgent && (
+                <td className="px-4 py-3 text-[var(--color-text-primary)] font-medium">
+                  {call.user_name ?? "—"}
+                </td>
+              )}
+              <td className="px-4 py-3 text-[var(--color-text-secondary)]">
+                {call.duration > 0 ? formatDuration(call.duration) : "—"}
+              </td>
+              <td className="px-4 py-3">
+                {call.outcome ? (
+                  <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold", OUTCOME_COLORS[call.outcome] ?? "bg-slate-100 text-slate-600")}>
+                    {OUTCOME_LABELS[call.outcome] ?? call.outcome}
+                  </span>
+                ) : (
+                  <span className="text-[var(--color-text-secondary)]">—</span>
+                )}
+              </td>
+              <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)] max-w-xs truncate">
+                {call.notes ?? "—"}
+              </td>
+              <td className="px-4 py-3">
+                {call.has_recording && call.id ? (
+                  <RecordingPlayer phoneCallId={call.id} />
+                ) : (
+                  <span className="text-[var(--color-text-secondary)]">—</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  if (bare) return table;
+
   return (
     <Card>
       <CardTitle className="mb-4">Samtalshistorik</CardTitle>
-
-      {sorted.length === 0 ? (
-        <p className="text-sm text-[var(--color-text-secondary)]">
-          Inga samtal ännu.
-        </p>
-      ) : (
-        <ol className="relative ml-3 space-y-0">
-          {sorted.map((call, idx) => (
-            <li key={call.id} className="relative pl-6 pb-5 last:pb-0">
-              {idx < sorted.length - 1 && (
-                <span
-                  className="absolute left-[7px] top-3 bottom-0 w-px bg-[var(--color-border)]"
-                  aria-hidden
-                />
-              )}
-
-              <span
-                className={cn(
-                  "absolute left-0 top-1.5 w-3.5 h-3.5 rounded-full border-2 border-white",
-                  dotColor(call.outcome ?? ""),
-                )}
-                aria-hidden
-              />
-
-              <div>
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-[var(--color-text-primary)]">
-                    {OUTCOME_LABELS[call.outcome ?? ""] ?? "Samtal"}
-                  </span>
-                  {call.user_name && (
-                    <span className="text-[11px] font-semibold text-[var(--color-text-primary)]">
-                      — {call.user_name}
-                    </span>
-                  )}
-                  {call.duration > 0 && (
-                    <span className="text-[11px] text-[var(--color-text-secondary)]">
-                      {formatDuration(call.duration)}
-                    </span>
-                  )}
-                  <span className="text-[11px] font-mono text-[var(--color-text-secondary)]">
-                    {formatDateTime(call.called_at)}
-                  </span>
-                </div>
-
-                {call.notes && (
-                  <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                    {call.notes}
-                  </p>
-                )}
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
+      {table}
     </Card>
   );
 }

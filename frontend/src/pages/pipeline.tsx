@@ -2,20 +2,9 @@ import { useNavigate } from "react-router-dom";
 import { useDeals } from "@/api/deals";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { STAGE_LABELS } from "@/lib/constants";
 import type { DealStage } from "@/api/types";
 import Loader from "@/components/kokonutui/loader";
-
-const STAGE_LABELS: Record<Exclude<DealStage, "won" | "cancelled">, string> = {
-  meeting_booked: "Möte bokat",
-  needs_website: "Behöver hemsida",
-  generating_website: "Genereras",
-  reviewing: "Granskning",
-  deployed: "Deployad",
-  demo_followup: "Demo & uppföljning",
-  contract_sent: "Avtal skickat",
-  signed: "Signerat",
-  dns_launch: "DNS & Lansering",
-};
 
 const STAGE_ORDER: Exclude<DealStage, "won" | "cancelled">[] = [
   "meeting_booked",
@@ -74,7 +63,7 @@ export function PipelinePage() {
         Object.entries(grouped).map(([stage, stageDeals]) => (
           <div key={stage} className="space-y-2">
             <h2 className="text-[14px] font-medium uppercase tracking-[0.05em] text-[var(--color-text-secondary)]">
-              {STAGE_LABELS[stage as Exclude<DealStage, "won" | "cancelled">]} ({stageDeals.length})
+              {STAGE_LABELS[stage] ?? stage} ({stageDeals.length})
             </h2>
             <Card>
               <div className="overflow-x-auto">

@@ -125,6 +125,15 @@ defmodule SaleflowWeb.NotificationControllerTest do
       assert read_notif["read_at"] != nil
     end
 
+    test "returns 403 when marking another user's notification as read", %{conn: conn, user: user, other: other} do
+      notif = create_notification!(%{user_id: other.id, type: "meeting_soon", title: "Not mine"})
+
+      conn
+      |> log_in_user(user)
+      |> post("/api/notifications/#{notif.id}/read")
+      |> json_response(403)
+    end
+
     test "returns 404 for non-existent notification", %{conn: conn, user: user} do
       conn
       |> log_in_user(user)

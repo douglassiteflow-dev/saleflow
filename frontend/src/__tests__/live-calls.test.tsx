@@ -21,31 +21,28 @@ describe("LiveCalls", () => {
         {
           user_id: "u1",
           agent_name: "Anna",
-          extension: "100",
-          callerid: "+46701234567",
-          direction: "out",
-          linestatus: "up",
+          lead_name: "Acme AB",
+          phone: "+46701234567",
+          started_at: Math.floor(Date.now() / 1000),
         },
       ]);
       return { leave: vi.fn() };
     });
     render(<LiveCalls />);
-    expect(screen.getByText("Pågående samtal")).toBeInTheDocument();
+    expect(screen.getByText(/Pågående samtal/)).toBeInTheDocument();
     expect(screen.getByText("Anna")).toBeInTheDocument();
-    expect(screen.getByText(/\+46701234567/)).toBeInTheDocument();
-    expect(screen.getByText("Medlyssna")).toBeInTheDocument();
+    expect(screen.getByText(/Acme AB/)).toBeInTheDocument();
   });
 
-  it("renders timer with initial 00:00", () => {
+  it("renders timer", () => {
     joinCallsChannelMock.mockImplementation((callback: (calls: unknown[]) => void) => {
       callback([
         {
           user_id: "u1",
           agent_name: "Erik",
-          extension: "200",
-          callerid: "+46709999999",
-          direction: "in",
-          linestatus: "ringing",
+          lead_name: "Test AB",
+          phone: "+46709999999",
+          started_at: Math.floor(Date.now() / 1000),
         },
       ]);
       return { leave: vi.fn() };
@@ -54,40 +51,21 @@ describe("LiveCalls", () => {
     expect(screen.getByText("00:00")).toBeInTheDocument();
   });
 
-  it("renders direction arrow for outbound call", () => {
+  it("renders direction arrow and phone", () => {
     joinCallsChannelMock.mockImplementation((callback: (calls: unknown[]) => void) => {
       callback([
         {
           user_id: "u1",
           agent_name: "Test",
-          extension: "100",
-          callerid: "0701234567",
-          direction: "out",
-          linestatus: "up",
+          lead_name: "Company",
+          phone: "0701234567",
+          started_at: Math.floor(Date.now() / 1000),
         },
       ]);
       return { leave: vi.fn() };
     });
     render(<LiveCalls />);
-    expect(screen.getByText(/→/)).toBeInTheDocument();
-  });
-
-  it("renders direction arrow for inbound call", () => {
-    joinCallsChannelMock.mockImplementation((callback: (calls: unknown[]) => void) => {
-      callback([
-        {
-          user_id: "u1",
-          agent_name: "Test",
-          extension: "100",
-          callerid: "0701234567",
-          direction: "in",
-          linestatus: "up",
-        },
-      ]);
-      return { leave: vi.fn() };
-    });
-    render(<LiveCalls />);
-    expect(screen.getByText(/←/)).toBeInTheDocument();
+    expect(screen.getByText(/→.*Company/)).toBeInTheDocument();
   });
 
   it("calls leave on channel when unmounting", () => {
@@ -98,31 +76,11 @@ describe("LiveCalls", () => {
     expect(leaveMock).toHaveBeenCalled();
   });
 
-  it("renders Medlyssna link pointing to Telavox", () => {
-    joinCallsChannelMock.mockImplementation((callback: (calls: unknown[]) => void) => {
-      callback([
-        {
-          user_id: "u1",
-          agent_name: "Test",
-          extension: "100",
-          callerid: "0701234567",
-          direction: "out",
-          linestatus: "up",
-        },
-      ]);
-      return { leave: vi.fn() };
-    });
-    render(<LiveCalls />);
-    const link = screen.getByText("Medlyssna");
-    expect(link).toHaveAttribute("href", "https://home.telavox.se/");
-    expect(link).toHaveAttribute("target", "_blank");
-  });
-
   it("renders multiple calls", () => {
     joinCallsChannelMock.mockImplementation((callback: (calls: unknown[]) => void) => {
       callback([
-        { user_id: "u1", agent_name: "Anna", extension: "100", callerid: "+46701111111", direction: "out", linestatus: "up" },
-        { user_id: "u2", agent_name: "Erik", extension: "200", callerid: "+46702222222", direction: "in", linestatus: "ringing" },
+        { user_id: "u1", agent_name: "Anna", lead_name: "Acme", phone: "+46701111111", started_at: Math.floor(Date.now() / 1000) },
+        { user_id: "u2", agent_name: "Erik", lead_name: "Beta", phone: "+46702222222", started_at: Math.floor(Date.now() / 1000) },
       ]);
       return { leave: vi.fn() };
     });

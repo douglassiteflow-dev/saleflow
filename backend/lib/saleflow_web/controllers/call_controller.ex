@@ -22,7 +22,7 @@ defmodule SaleflowWeb.CallController do
             conn |> put_status(404) |> json(%{error: "Lead saknar telefonnummer"})
 
           phone ->
-            Logger.info("CallController.dial: calling #{phone} with token=#{String.slice(token || "", 0..19)}...")
+            Logger.info("CallController.dial: calling #{phone}")
             result = client().get_as(token, "/dial/#{phone}")
             Logger.info("CallController.dial: result=#{inspect(result)}")
 
@@ -81,13 +81,21 @@ defmodule SaleflowWeb.CallController do
   end
 
   def recording(conn, %{"id" => phone_call_id}) do
+    user = conn.assigns.current_user
+
     case Saleflow.Repo.query(
-           "SELECT recording_key FROM phone_calls WHERE id = $1",
+           "SELECT recording_key, user_id FROM phone_calls WHERE id = $1",
            [Ecto.UUID.dump!(phone_call_id)]
          ) do
-      {:ok, %{rows: [[key]]}} when is_binary(key) ->
-        {:ok, url} = Saleflow.Storage.presigned_url(key)
-        json(conn, %{url: url})
+      {:ok, %{rows: [[key, uid]]}} when is_binary(key) ->
+        owner_id = if uid, do: Ecto.UUID.load!(uid), else: nil
+
+        if user.role == :admin || owner_id == user.id do
+          {:ok, url} = Saleflow.Storage.presigned_url(key)
+          json(conn, %{url: url})
+        else
+          conn |> put_status(:forbidden) |> json(%{error: "Access denied"})
+        end
 
       _ ->
         conn |> put_status(404) |> json(%{error: "Ingen inspelning"})

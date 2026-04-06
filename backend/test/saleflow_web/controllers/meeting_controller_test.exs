@@ -349,7 +349,7 @@ defmodule SaleflowWeb.MeetingControllerTest do
   # -------------------------------------------------------------------------
 
   describe "POST /api/meetings/:id/cancel" do
-    test "cancels a meeting", %{conn: conn, user: user, lead: lead} do
+    test "cancels own meeting", %{conn: conn, user: user, lead: lead} do
       tomorrow = Date.utc_today() |> Date.add(1)
 
       {:ok, meeting} =
@@ -362,6 +362,43 @@ defmodule SaleflowWeb.MeetingControllerTest do
         })
 
       conn = post(conn, "/api/meetings/#{meeting.id}/cancel")
+      assert %{"meeting" => cancelled} = json_response(conn, 200)
+      assert cancelled["status"] == "cancelled"
+    end
+
+    test "agent cannot cancel another agent's meeting", %{conn: conn, agent2: agent2, lead: lead} do
+      tomorrow = Date.utc_today() |> Date.add(1)
+
+      {:ok, meeting} =
+        Sales.create_meeting(%{
+          lead_id: lead.id,
+          user_id: agent2.id,
+          title: "Agent2 Meeting",
+          meeting_date: tomorrow,
+          meeting_time: ~T[10:00:00]
+        })
+
+      conn = post(conn, "/api/meetings/#{meeting.id}/cancel")
+      assert json_response(conn, 403)
+    end
+
+    test "admin can cancel any meeting", %{conn: conn, admin: admin, user: user, lead: lead} do
+      tomorrow = Date.utc_today() |> Date.add(1)
+
+      {:ok, meeting} =
+        Sales.create_meeting(%{
+          lead_id: lead.id,
+          user_id: user.id,
+          title: "Agent Meeting",
+          meeting_date: tomorrow,
+          meeting_time: ~T[10:00:00]
+        })
+
+      conn =
+        conn
+        |> log_in_user(admin)
+        |> post("/api/meetings/#{meeting.id}/cancel")
+
       assert %{"meeting" => cancelled} = json_response(conn, 200)
       assert cancelled["status"] == "cancelled"
     end

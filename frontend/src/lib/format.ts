@@ -58,6 +58,17 @@ export function formatCurrency(value: number): string {
 }
 
 /**
+ * Format a duration in seconds to a human-readable string.
+ * E.g. 0 → "—", 45 → "45s", 125 → "2m 5s"
+ */
+export function formatDuration(seconds: number): string {
+  if (!seconds || seconds === 0) return "—";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+/**
  * Ensure an ISO datetime string is treated as UTC.
  * Backend sends NaiveDateTime without timezone suffix — append Z if missing.
  */

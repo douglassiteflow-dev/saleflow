@@ -66,6 +66,14 @@ defmodule SaleflowWeb.RequestController do
 
         case Sales.update_request(request, update_params) do
           {:ok, updated} ->
+            Saleflow.Audit.create_log(%{
+              user_id: conn.assigns.current_user.id,
+              action: "admin.request_updated",
+              resource_type: "Request",
+              resource_id: updated.id,
+              changes: update_params
+            })
+
             user_name = get_user_name(updated.user_id)
             json(conn, %{request: serialize_request(updated, user_name)})
 

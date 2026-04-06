@@ -2,6 +2,7 @@ defmodule SaleflowWeb.AdminController do
   use SaleflowWeb, :controller
 
   alias Saleflow.Accounts
+  alias Saleflow.Audit
 
   @doc """
   List all users (admin only).
@@ -32,6 +33,14 @@ defmodule SaleflowWeb.AdminController do
           )
 
         Saleflow.Notifications.Mailer.send_email_async(to_string(user.email), subject, html)
+
+        Audit.create_log(%{
+          user_id: conn.assigns.current_user.id,
+          action: "admin.user_created",
+          resource_type: "User",
+          resource_id: user.id,
+          changes: %{email: to_string(user.email), name: user.name, role: to_string(user.role)}
+        })
 
         conn
         |> put_status(:created)
@@ -65,6 +74,13 @@ defmodule SaleflowWeb.AdminController do
 
         Saleflow.Notifications.Mailer.send_email_async(to_string(user.email), subject, html)
 
+        Audit.create_log(%{
+          user_id: conn.assigns.current_user.id,
+          action: "admin.force_logout_all",
+          resource_type: "User",
+          resource_id: user.id
+        })
+
         json(conn, %{ok: true})
 
       _ ->
@@ -89,6 +105,14 @@ defmodule SaleflowWeb.AdminController do
 
           Saleflow.Notifications.Mailer.send_email_async(to_string(user.email), subject, html)
         end
+
+        Audit.create_log(%{
+          user_id: conn.assigns.current_user.id,
+          action: "admin.force_logout_session",
+          resource_type: "LoginSession",
+          resource_id: session.id,
+          metadata: %{target_user_id: session.user_id}
+        })
 
         json(conn, %{ok: true})
 
@@ -157,6 +181,14 @@ defmodule SaleflowWeb.AdminController do
 
       case user |> Ash.Changeset.for_update(:update_user, update_params) |> Ash.update() do
         {:ok, updated} ->
+          Audit.create_log(%{
+            user_id: conn.assigns.current_user.id,
+            action: "admin.user_updated",
+            resource_type: "User",
+            resource_id: updated.id,
+            changes: update_params
+          })
+
           json(conn, %{user: serialize_user(updated)})
 
         {:error, error} ->

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { phoneMatches } from "@/lib/phone";
 import { DialerTabs, type DialerTab } from "@/components/dialer/dialer-tabs";
 import { DialerHeader } from "@/components/dialer/dialer-header";
 import { DialerFooter } from "@/components/dialer/dialer-footer";
@@ -13,6 +14,7 @@ import { DealDetailTab } from "@/components/dialer/deal-detail-tab";
 import { CustomersTab } from "@/components/dialer/customers-tab";
 import { UpdateBanner } from "@/components/dialer/update-banner";
 import { CallModal } from "@/components/dialer/call-modal";
+import { RecordingPlayer } from "@/components/recording-player";
 import { useLeaderboard, useDashboard, type LeaderboardEntry } from "@/api/dashboard";
 import {
   useNextLead,
@@ -26,43 +28,15 @@ import { useMe } from "@/api/auth";
 import { useDial, useTelavoxStatus, useTelavoxConnect, useTelavoxDisconnect } from "@/api/telavox";
 import { useMicrosoftStatus, useMicrosoftAuthorize, useMicrosoftDisconnect } from "@/api/microsoft";
 import { useMySessions, useLogoutAll } from "@/api/sessions";
-import { formatPhone, formatDateTime, formatCurrency, formatDate, formatTime } from "@/lib/format";
+import { formatPhone, formatDateTime, formatCurrency, formatDate, formatTime, formatDuration } from "@/lib/format";
 import { todayISO } from "@/lib/date";
+import { OUTCOME_LABELS, OUTCOME_COLORS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Loader from "@/components/kokonutui/loader";
 import { TabToolbar, usePagination, type DateRange } from "@/components/dialer/tab-toolbar";
 import type { Lead, CallLog } from "@/api/types";
-
-/* ---------- shared outcome maps (DRY: used in history table + call log) ---------- */
-
-const OUTCOME_LABELS: Record<string, string> = {
-  meeting_booked: "Möte bokat",
-  callback: "Återuppringning",
-  not_interested: "Ej intresserad",
-  no_answer: "Ej svar",
-  call_later: "Ring senare",
-  bad_number: "Fel nummer",
-  customer: "Kund",
-};
-
-const OUTCOME_COLORS: Record<string, string> = {
-  meeting_booked: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  callback: "bg-amber-50 text-amber-700 border-amber-200",
-  not_interested: "bg-rose-50 text-rose-700 border-rose-200",
-  no_answer: "bg-[var(--color-bg-panel)] text-[var(--color-text-secondary)] border-[var(--color-border)]",
-  call_later: "bg-blue-50 text-blue-700 border-blue-200",
-  bad_number: "bg-red-50 text-red-700 border-red-200",
-  customer: "bg-indigo-50 text-indigo-700 border-indigo-200",
-};
-
-function formatDuration(seconds: number): string {
-  if (seconds === 0) return "—";
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
-}
 
 type Tab = DialerTab | "profile" | "meeting-detail" | "lead-detail" | "deal-detail";
 
@@ -629,7 +603,7 @@ function CallbacksTabContent({
   const [page, setPage] = useState(1);
 
   const { totalPages, totalCount, paginate } = usePagination(callbacks, search, (cb, q) =>
-    cb.företag.toLowerCase().includes(q) || cb.telefon.includes(q),
+    cb.företag.toLowerCase().includes(q) || phoneMatches(cb.telefon, q),
   );
   const visible = paginate(page);
 
@@ -693,10 +667,10 @@ function HistoryTabContent({ dateRange, onDateRangeChange, activePreset, onPrese
     : (calls ?? []);
 
   const { totalPages, totalCount, paginate } = usePagination(outcomeFiltered, search, (call, q) =>
-    (call.lead_name ?? "").toLowerCase().includes(q) || (call.lead_phone ?? "").includes(q),
+    (call.lead_name ?? "").toLowerCase().includes(q) || phoneMatches(call.lead_phone, q),
   );
   const visible = paginate(page);
-  const headers = ["Tid", "Företag", "Telefon", ...(isAdmin ? ["Agent"] : []), "Längd", "Utfall"];
+  const headers = ["Tid", "Företag", "Telefon", ...(isAdmin ? ["Agent"] : []), "Längd", "Utfall", "Inspelning"];
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -768,6 +742,13 @@ function HistoryTabContent({ dateRange, onDateRangeChange, activePreset, onPrese
                     {call.outcome ? (
                       <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px]", OUTCOME_COLORS[call.outcome] ?? "bg-[var(--color-bg-panel)] text-[var(--color-text-secondary)] border-[var(--color-border)]")}>{OUTCOME_LABELS[call.outcome] ?? call.outcome}</span>
                     ) : <span className="text-[var(--color-text-secondary)]">—</span>}
+                  </td>
+                  <td className="px-5 py-2.5" onClick={(e) => e.stopPropagation()}>
+                    {call.has_recording && call.id ? (
+                      <RecordingPlayer phoneCallId={call.id} />
+                    ) : (
+                      <span className="text-[var(--color-text-secondary)]">—</span>
+                    )}
                   </td>
                 </tr>
               ))}

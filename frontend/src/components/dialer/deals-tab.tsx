@@ -1,18 +1,7 @@
 import { useDeals } from "@/api/deals";
 import { cn } from "@/lib/cn";
+import { STAGE_LABELS } from "@/lib/constants";
 import type { Deal } from "@/api/types";
-
-const STAGE_LABELS: Record<string, string> = {
-  meeting_booked: "Möte bokat",
-  needs_website: "Väntar på hemsida",
-  generating_website: "Hemsida genereras",
-  reviewing: "Granskning",
-  deployed: "Demo-länk redo",
-  demo_followup: "Demo & uppföljning",
-  contract_sent: "Avtal skickat",
-  signed: "Signerat",
-  dns_launch: "DNS & Lansering",
-};
 
 const STAGE_COLORS: Record<string, string> = {
   meeting_booked: "bg-blue-50 text-blue-700 border-blue-200",

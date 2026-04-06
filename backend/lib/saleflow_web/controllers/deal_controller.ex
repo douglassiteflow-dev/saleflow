@@ -65,6 +65,7 @@ defmodule SaleflowWeb.DealController do
     with {:ok, deal} <- get_deal(id),
          :ok <- check_ownership(deal, user),
          {:ok, advanced} <- Sales.advance_deal(deal) do
+      broadcast_dashboard_update("deal_advanced")
       json(conn, %{deal: serialize_deal_simple(advanced)})
     else
       {:error, :not_found} ->
@@ -97,6 +98,7 @@ defmodule SaleflowWeb.DealController do
 
       case Sales.update_deal(deal, update_params) do
         {:ok, updated} ->
+          broadcast_dashboard_update("deal_updated")
           json(conn, %{deal: serialize_deal_simple(updated)})
 
         {:error, _} ->
@@ -295,6 +297,14 @@ defmodule SaleflowWeb.DealController do
       metadata: log.metadata,
       inserted_at: log.inserted_at
     }
+  end
+
+  defp broadcast_dashboard_update(event) do
+    Phoenix.PubSub.broadcast(
+      Saleflow.PubSub,
+      "dashboard:updates",
+      {:dashboard_update, %{event: event}}
+    )
   end
 
   defp authorize_admin(%{role: :admin}), do: :ok

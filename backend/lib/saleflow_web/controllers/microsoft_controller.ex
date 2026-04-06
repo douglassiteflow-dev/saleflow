@@ -131,6 +131,14 @@ defmodule SaleflowWeb.MicrosoftController do
     case get_connection_for_user(user.id) do
       {:ok, connection} ->
         Ash.destroy!(connection)
+
+        Saleflow.Audit.create_log(%{
+          user_id: user.id,
+          action: "microsoft.disconnected",
+          resource_type: "User",
+          resource_id: user.id
+        })
+
         json(conn, %{ok: true})
 
       _ ->

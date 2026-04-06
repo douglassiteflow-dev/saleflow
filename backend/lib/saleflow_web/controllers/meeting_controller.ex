@@ -83,6 +83,8 @@ defmodule SaleflowWeb.MeetingController do
 
     case Sales.create_meeting(meeting_params) do
       {:ok, meeting} ->
+        broadcast_dashboard_update("meeting_created")
+
         conn
         |> put_status(:created)
         |> json(%{meeting: serialize_meeting(meeting)})
@@ -112,6 +114,7 @@ defmodule SaleflowWeb.MeetingController do
 
       case Sales.update_meeting(meeting, update_params) do
         {:ok, updated} ->
+          broadcast_dashboard_update("meeting_updated")
           json(conn, %{meeting: serialize_meeting(updated)})
 
         {:error, _} ->
@@ -132,15 +135,22 @@ defmodule SaleflowWeb.MeetingController do
   Cancel a meeting by ID.
   """
   def cancel(conn, %{"id" => id}) do
+    user = conn.assigns.current_user
+
     with {:ok, meeting} <- get_meeting(id),
+         :ok <- check_ownership(meeting, user),
          {:ok, cancelled} <- Sales.cancel_meeting(meeting) do
       # If all meetings for this deal are cancelled, cancel the deal too
       if cancelled.deal_id, do: maybe_cancel_deal(cancelled.deal_id)
 
+      broadcast_dashboard_update("meeting_cancelled")
       json(conn, %{meeting: serialize_meeting(cancelled)})
     else
       {:error, :not_found} ->
         conn |> put_status(:not_found) |> json(%{error: "Meeting not found"})
+
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "Access denied"})
     end
   end
 
@@ -326,6 +336,14 @@ defmodule SaleflowWeb.MeetingController do
       metadata: log.metadata,
       inserted_at: log.inserted_at
     }
+  end
+
+  defp broadcast_dashboard_update(event) do
+    Phoenix.PubSub.broadcast(
+      Saleflow.PubSub,
+      "dashboard:updates",
+      {:dashboard_update, %{event: event}}
+    )
   end
 
   defp maybe_put(map, _key, nil), do: map

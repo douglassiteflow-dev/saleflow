@@ -108,8 +108,16 @@ defmodule SaleflowWeb.GoalController do
 
   defp put_user_id(params, conn_params, user) do
     case conn_params["user_id"] do
-      nil -> Map.put(params, :user_id, user.id)
-      uid -> Map.put(params, :user_id, uid)
+      nil ->
+        Map.put(params, :user_id, user.id)
+
+      uid ->
+        if user.role == :admin do
+          Map.put(params, :user_id, uid)
+        else
+          # Non-admins cannot set user_id for other users
+          Map.put(params, :user_id, user.id)
+        end
     end
   end
 

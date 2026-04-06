@@ -9,15 +9,23 @@ import type {
   ResetPasswordResponse,
 } from "./types";
 
+// Cached socket token from the last successful /api/auth/me call
+let _socketToken: string | null = null;
+export function getSocketToken() {
+  return _socketToken;
+}
+
 export function useMe() {
   return useQuery<User | null>({
     queryKey: ["auth", "me"],
     queryFn: async () => {
       try {
-        const data = await api<{ user: User }>("/api/auth/me");
+        const data = await api<{ user: User; socket_token: string }>("/api/auth/me");
+        _socketToken = data.socket_token;
         return data.user;
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
+          _socketToken = null;
           return null;
         }
         throw err;

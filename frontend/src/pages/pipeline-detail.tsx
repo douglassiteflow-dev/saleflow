@@ -194,12 +194,12 @@ export function PipelineDetailPage() {
               <InfoRow
                 label="Telefon"
                 value={
-                  <a
-                    href={`tel:${lead.telefon}`}
-                    className="font-mono text-indigo-600 hover:text-indigo-700 transition-colors"
+                  <button
+                    onClick={() => navigator.clipboard.writeText(lead.telefon)}
+                    className="font-mono text-indigo-600 hover:text-indigo-700 cursor-pointer"
                   >
                     {formatPhone(lead.telefon)}
-                  </a>
+                  </button>
                 }
               />
               <InfoRow label="E-post" value={lead.epost} />

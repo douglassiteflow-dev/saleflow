@@ -1,6 +1,26 @@
+import { useEffect } from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { useMe } from "@/api/auth";
+import { useMe, getSocketToken } from "@/api/auth";
+import { connectSocket, disconnectSocket } from "@/lib/socket";
+import { useDashboardSync } from "@/lib/use-dashboard-sync";
 import Loader from "@/components/kokonutui/loader";
+
+function SocketProvider({ children }: { children: React.ReactNode }) {
+  const token = getSocketToken();
+
+  useEffect(() => {
+    if (token) {
+      connectSocket(token);
+    }
+    return () => {
+      disconnectSocket();
+    };
+  }, [token]);
+
+  useDashboardSync();
+
+  return <>{children}</>;
+}
 
 export function ProtectedRoute() {
   const { data: user, isLoading } = useMe();
@@ -11,7 +31,11 @@ export function ProtectedRoute() {
       </div>
     );
   if (!user) return <Navigate to="/login" replace />;
-  return <Outlet />;
+  return (
+    <SocketProvider>
+      <Outlet />
+    </SocketProvider>
+  );
 }
 
 export function AdminRoute() {
@@ -32,5 +56,9 @@ export function AdminOnlyRoute() {
     );
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "admin") return <Navigate to="/download-app" replace />;
-  return <Outlet />;
+  return (
+    <SocketProvider>
+      <Outlet />
+    </SocketProvider>
+  );
 }

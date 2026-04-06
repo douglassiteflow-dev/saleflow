@@ -2,39 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCallHistory } from "@/api/calls";
 import { useMe } from "@/api/auth";
-import { formatDateTime } from "@/lib/format";
+import { RecordingPlayer } from "@/components/recording-player";
+import { formatDateTime, formatDuration } from "@/lib/format";
 import { todayISO, yesterdayISO, daysAgoISO, type DateRange } from "@/lib/date";
+import { OUTCOME_LABELS, OUTCOME_COLORS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
 import Loader from "@/components/kokonutui/loader";
-
-const OUTCOME_LABELS: Record<string, string> = {
-  meeting_booked: "Möte bokat",
-  callback: "Återuppringning",
-  not_interested: "Ej intresserad",
-  no_answer: "Ej svar",
-  call_later: "Ring senare",
-  bad_number: "Fel nummer",
-  customer: "Kund",
-  other: "Övrigt",
-};
-
-const OUTCOME_COLORS: Record<string, string> = {
-  meeting_booked: "bg-emerald-100 text-emerald-700",
-  callback: "bg-amber-100 text-amber-700",
-  not_interested: "bg-rose-100 text-rose-700",
-  no_answer: "bg-slate-100 text-slate-600",
-  call_later: "bg-blue-100 text-blue-700",
-  bad_number: "bg-red-100 text-red-700",
-  customer: "bg-indigo-100 text-indigo-700",
-  other: "bg-slate-100 text-slate-600",
-};
-
-function formatDuration(seconds: number): string {
-  if (seconds === 0) return "—";
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
-}
 
 const PRESETS: { label: string; get: () => DateRange }[] = [
   { label: "Idag", get: () => ({ from: todayISO(), to: todayISO() }) },
@@ -140,6 +113,9 @@ export function HistoryPage() {
                   <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
                     Utfall
                   </th>
+                  <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
+                    Inspelning
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -174,6 +150,13 @@ export function HistoryPage() {
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${OUTCOME_COLORS[call.outcome] ?? "bg-slate-100 text-slate-600"}`}>
                           {OUTCOME_LABELS[call.outcome] ?? call.outcome}
                         </span>
+                      ) : (
+                        <span className="text-[var(--color-text-secondary)]">—</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
+                      {call.has_recording && call.id ? (
+                        <RecordingPlayer phoneCallId={call.id} />
                       ) : (
                         <span className="text-[var(--color-text-secondary)]">—</span>
                       )}

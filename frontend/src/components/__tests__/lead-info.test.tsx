@@ -46,10 +46,10 @@ describe("LeadInfo", () => {
     expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent("Test AB");
   });
 
-  it("renders phone link", () => {
+  it("renders phone as copy-to-clipboard button", () => {
     render(<LeadInfo lead={baseLead} />, { wrapper: Wrapper });
-    const link = screen.getByRole("link", { name: /070-123 45 67/ });
-    expect(link).toHaveAttribute("href", "tel:+46701234567");
+    const btn = screen.getByRole("button", { name: /070-123 45 67/ });
+    expect(btn).toBeInTheDocument();
   });
 
   it("renders email link when present", () => {

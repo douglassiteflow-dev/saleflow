@@ -17,10 +17,16 @@ defmodule SaleflowWeb.NotificationController do
   end
 
   def mark_read(conn, %{"id" => id}) do
+    user = conn.assigns.current_user
+
     case Ash.get(Notification, id) do
       {:ok, notification} when not is_nil(notification) ->
-        {:ok, _} = notification |> Ash.Changeset.for_update(:mark_read) |> Ash.update()
-        json(conn, %{ok: true})
+        if notification.user_id == user.id do
+          {:ok, _} = notification |> Ash.Changeset.for_update(:mark_read) |> Ash.update()
+          json(conn, %{ok: true})
+        else
+          conn |> put_status(:forbidden) |> json(%{error: "Access denied"})
+        end
 
       _ ->
         conn |> put_status(404) |> json(%{error: "Notis hittades inte"})
