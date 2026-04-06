@@ -7,7 +7,7 @@ const DOWNLOAD_URL = "https://sale.siteflow.se/download-app";
 export function UpdateBanner() {
   const [dismissed, setDismissed] = useState(false);
 
-  const desktop = (window as Record<string, unknown>).saleflowDesktop as
+  const desktop = (window as unknown as Record<string, unknown>).saleflowDesktop as
     | { version?: string }
     | undefined;
 
@@ -21,7 +21,7 @@ export function UpdateBanner() {
       <div className="flex items-center gap-2 text-[13px]">
         <Download className="h-4 w-4" />
         <span>
-          Ny version tillgänglig (v{LATEST_DESKTOP_VERSION}). Du har v{currentVersion}.
+          Ny appversion tillgänglig (v{LATEST_DESKTOP_VERSION}). Du har v{currentVersion}.
         </span>
       </div>
       <div className="flex items-center gap-2">
