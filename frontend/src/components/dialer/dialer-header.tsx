@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NotificationDropdown } from "./notification-dropdown";
+import { ReportModal } from "@/components/report-modal";
 import { useUnreadCount } from "@/api/notifications";
 
 interface DialerHeaderProps {
@@ -27,11 +28,13 @@ export function DialerHeader({
   onRebookMeeting,
 }: DialerHeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const unreadCount = useUnreadCount();
   const isDesktop = window.location.pathname === "/app" || !!(window as any).saleflowDesktop;
+  const isWindows = navigator.platform?.includes("Win") || navigator.userAgent?.includes("Windows");
 
   return (
-    <div className={`relative flex items-center py-3 ${isDesktop ? "pl-[85px] pr-5" : "px-5 rounded-t-[14px]"}`} style={{ background: "linear-gradient(135deg, #312E81, #4F46E5, #6366F1)", WebkitAppRegion: isDesktop ? "drag" : undefined } as React.CSSProperties}>
+    <div className={`relative flex items-center py-3 ${isDesktop ? (isWindows ? "pl-5" : "pl-[85px]") + " pr-5" : "px-5 rounded-t-[14px]"}`} style={{ background: "linear-gradient(135deg, #312E81, #4F46E5, #6366F1)", WebkitAppRegion: isDesktop ? "drag" : undefined } as React.CSSProperties}>
       <div className="flex items-center gap-2">
         <img src="/app-icons/saleflow.png" alt="Saleflow" className="h-7 w-7 rounded" />
         <span className="text-[15px] font-semibold tracking-[-0.3px] text-white">
@@ -96,6 +99,19 @@ export function DialerHeader({
           }}
         />
 
+        {/* Report button */}
+        <button
+          type="button"
+          onClick={() => setReportOpen(true)}
+          className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[11px] text-white/70 hover:bg-white/20 hover:text-white transition-colors cursor-pointer"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M10 6v4M10 14h.01" />
+            <circle cx="10" cy="10" r="9" />
+          </svg>
+          Rapportera
+        </button>
+
         {/* Profile */}
         <button
           type="button"
@@ -108,6 +124,9 @@ export function DialerHeader({
           <span className="text-[12px] text-white/80">{userName ?? ""}</span>
         </button>
       </div>
+
+      {/* Report modal */}
+      {reportOpen && <ReportModal onClose={() => setReportOpen(false)} />}
     </div>
   );
 }
