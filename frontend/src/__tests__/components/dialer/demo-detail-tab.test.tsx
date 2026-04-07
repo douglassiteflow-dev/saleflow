@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DemoDetailTab } from "@/components/dialer/demo-detail-tab";
 import type { DemoConfigDetail } from "@/api/types";
@@ -291,5 +291,145 @@ describe("DemoDetailTab", () => {
 
     expect(constructorSpy).not.toHaveBeenCalled();
     constructorSpy.mockRestore();
+  });
+
+  it("renders log lines when SSE onmessage fires", () => {
+    let capturedES: MockEventSource | null = null;
+    const OrigES = globalThis.EventSource;
+    // Capture EventSource instances to trigger onmessage
+    vi.stubGlobal("EventSource", class extends MockEventSource {
+      constructor(url: string) {
+        super(url);
+        capturedES = this;
+      }
+    });
+
+    mockUseDemoConfigDetail.mockReturnValue({
+      data: makeDetail({ stage: "generating" }),
+      isLoading: false,
+    } as ReturnType<typeof useDemoConfigDetail>);
+
+    render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
+
+    // Simulate SSE messages
+    expect(capturedES).not.toBeNull();
+    act(() => {
+      capturedES!.onmessage!({ data: JSON.stringify({ type: "log", text: "Step 1 complete" }) } as MessageEvent);
+    });
+    act(() => {
+      capturedES!.onmessage!({ data: JSON.stringify({ type: "log", text: "Step 2 complete" }) } as MessageEvent);
+    });
+
+    expect(screen.getByText("Step 1 complete")).toBeInTheDocument();
+    expect(screen.getByText("Step 2 complete")).toBeInTheDocument();
+
+    vi.stubGlobal("EventSource", OrigES);
+  });
+
+  it("ignores SSE messages that are not of type log", () => {
+    let capturedES: MockEventSource | null = null;
+    const OrigES = globalThis.EventSource;
+    vi.stubGlobal("EventSource", class extends MockEventSource {
+      constructor(url: string) {
+        super(url);
+        capturedES = this;
+      }
+    });
+
+    mockUseDemoConfigDetail.mockReturnValue({
+      data: makeDetail({ stage: "generating" }),
+      isLoading: false,
+    } as ReturnType<typeof useDemoConfigDetail>);
+
+    render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
+
+    // Fire a non-log message
+    act(() => {
+      capturedES!.onmessage!({ data: JSON.stringify({ type: "status", text: "should not appear" }) } as MessageEvent);
+    });
+
+    const logContainer = screen.getByTestId("log-container");
+    expect(logContainer.children).toHaveLength(0);
+
+    vi.stubGlobal("EventSource", OrigES);
+  });
+
+  it("does not render iframe or link when demo_ready has no preview_url", () => {
+    mockUseDemoConfigDetail.mockReturnValue({
+      data: makeDetail({ stage: "demo_ready", preview_url: null }),
+      isLoading: false,
+    } as ReturnType<typeof useDemoConfigDetail>);
+
+    render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
+
+    expect(screen.queryByTitle("Demo preview")).not.toBeInTheDocument();
+    expect(screen.queryByText("Öppna i ny flik")).not.toBeInTheDocument();
+    // Buttons should still render
+    expect(screen.getByText("Gå till uppföljning →")).toBeInTheDocument();
+    expect(screen.getByText("Generera om")).toBeInTheDocument();
+  });
+
+  it("shows advancing text when advance isPending", () => {
+    mockUseAdvanceDemoConfig.mockReturnValue({
+      mutate: vi.fn(),
+      isPending: true,
+    } as unknown as ReturnType<typeof useAdvanceDemoConfig>);
+
+    mockUseDemoConfigDetail.mockReturnValue({
+      data: makeDetail({ stage: "demo_ready", preview_url: "https://preview.example.com/dc-1" }),
+      isLoading: false,
+    } as ReturnType<typeof useDemoConfigDetail>);
+
+    render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
+
+    expect(screen.getByText("Avancerar...")).toBeInTheDocument();
+    expect(screen.getByText("Avancerar...").closest("button")).toBeDisabled();
+  });
+
+  it("shows retrying text when retry isPending", () => {
+    mockUseRetryDemoConfig.mockReturnValue({
+      mutate: vi.fn(),
+      isPending: true,
+    } as unknown as ReturnType<typeof useRetryDemoConfig>);
+
+    mockUseDemoConfigDetail.mockReturnValue({
+      data: makeDetail({ stage: "demo_ready", preview_url: "https://preview.example.com/dc-1" }),
+      isLoading: false,
+    } as ReturnType<typeof useDemoConfigDetail>);
+
+    render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
+
+    expect(screen.getByText("Genererar om...")).toBeInTheDocument();
+    expect(screen.getByText("Genererar om...").closest("button")).toBeDisabled();
+  });
+
+  it("does not show demo link in followup when preview_url is null", () => {
+    mockUseDemoConfigDetail.mockReturnValue({
+      data: makeDetail({ stage: "followup", preview_url: null, meetings: [] }),
+      isLoading: false,
+    } as ReturnType<typeof useDemoConfigDetail>);
+
+    render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
+
+    expect(screen.queryByText("Demo-länk")).not.toBeInTheDocument();
+    expect(screen.getByText("Inga möten.")).toBeInTheDocument();
+  });
+
+  it("does not show phone and email when lead lacks them in followup", () => {
+    mockUseDemoConfigDetail.mockReturnValue({
+      data: makeDetail({
+        stage: "followup",
+        preview_url: null,
+        lead: { id: "l-1", company_name: "NoContact Inc", phone: null, email: null },
+        meetings: [],
+      }),
+      isLoading: false,
+    } as ReturnType<typeof useDemoConfigDetail>);
+
+    render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
+
+    expect(screen.getByText("NoContact Inc")).toBeInTheDocument();
+    expect(screen.queryByText("Telefon")).not.toBeInTheDocument();
+    expect(screen.queryByText("E-post")).not.toBeInTheDocument();
   });
 });
