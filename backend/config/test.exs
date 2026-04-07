@@ -50,3 +50,12 @@ config :saleflow, :telavox_client, Saleflow.Telavox.MockClient
 # R2 storage disabled in tests
 config :saleflow, :r2_bucket, "test-bucket"
 config :saleflow, :storage_enabled, false
+
+# Use mock AssemblyAI client in tests
+config :saleflow, :assemblyai_client, Saleflow.AssemblyAI.MockClient
+
+# Route real AssemblyAI HTTP calls through Req.Test stub (for client_test.exs)
+config :saleflow, :assemblyai_req_options, [plug: {Req.Test, Saleflow.AssemblyAI.Client}]
+
+# Speed up poll loop in tests — 0ms between retries
+config :saleflow, :assemblyai_poll_interval_ms, 0
