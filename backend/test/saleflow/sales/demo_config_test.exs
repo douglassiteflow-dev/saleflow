@@ -248,6 +248,26 @@ defmodule Saleflow.Sales.DemoConfigTest do
     end
   end
 
+  describe "creates meeting with demo_config_id" do
+    test "creates meeting with demo_config_id" do
+      lead = create_lead!()
+      user = create_user!()
+      {:ok, dc} = Sales.create_demo_config(%{lead_id: lead.id, user_id: user.id})
+
+      {:ok, meeting} =
+        Sales.create_meeting(%{
+          lead_id: lead.id,
+          user_id: user.id,
+          title: "Demo-möte",
+          meeting_date: Date.utc_today() |> Date.add(1) |> Date.to_iso8601(),
+          meeting_time: "10:00:00",
+          demo_config_id: dc.id
+        })
+
+      assert meeting.demo_config_id == dc.id
+    end
+  end
+
   describe "list_demo_configs_for_user/1" do
     test "returns configs for user, excluding cancelled, sorted by inserted_at desc" do
       lead = create_lead!()

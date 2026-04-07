@@ -85,7 +85,9 @@ defmodule Saleflow.Sales.DemoConfig do
       destination_attribute :id
     end
 
-    # has_many :meetings added in Task 3 when Meeting gets demo_config_id
+    has_many :meetings, Saleflow.Sales.Meeting do
+      destination_attribute :demo_config_id
+    end
   end
 
   actions do

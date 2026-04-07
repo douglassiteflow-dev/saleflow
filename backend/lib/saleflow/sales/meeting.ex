@@ -102,8 +102,22 @@ defmodule Saleflow.Sales.Meeting do
       public? true
     end
 
+    attribute :demo_config_id, :uuid do
+      allow_nil? true
+      public? true
+    end
+
     create_timestamp :inserted_at
     update_timestamp :updated_at
+  end
+
+  relationships do
+    belongs_to :demo_config, Saleflow.Sales.DemoConfig do
+      define_attribute? false
+      source_attribute :demo_config_id
+      destination_attribute :id
+      allow_nil? true
+    end
   end
 
   actions do
@@ -111,7 +125,7 @@ defmodule Saleflow.Sales.Meeting do
 
     create :create do
       description "Create a new meeting for a lead"
-      accept [:lead_id, :user_id, :title, :meeting_date, :meeting_time, :notes, :duration_minutes, :attendee_email, :attendee_name, :deal_id]
+      accept [:lead_id, :user_id, :title, :meeting_date, :meeting_time, :notes, :duration_minutes, :attendee_email, :attendee_name, :deal_id, :demo_config_id]
 
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "meeting.created"}
     end
@@ -150,7 +164,7 @@ defmodule Saleflow.Sales.Meeting do
     update :update do
       description "Update meeting fields (date, time, notes, status)"
       require_atomic? false
-      accept [:meeting_date, :meeting_time, :notes, :status, :deal_id]
+      accept [:meeting_date, :meeting_time, :notes, :status, :deal_id, :demo_config_id]
 
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "meeting.updated"}
     end
