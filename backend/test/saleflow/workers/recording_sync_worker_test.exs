@@ -129,11 +129,7 @@ defmodule Saleflow.Workers.RecordingSyncWorkerTest do
         {:ok, "fake-mp3-data"}
       end)
 
-      Application.put_env(:saleflow, :telavox_client, Saleflow.Telavox.MockClient)
-
       assert :ok = RecordingSyncWorker.perform(%Oban.Job{args: %{}})
-
-      Application.delete_env(:saleflow, :telavox_client)
     end
 
     test "handles Telavox API error gracefully" do
@@ -145,9 +141,7 @@ defmodule Saleflow.Workers.RecordingSyncWorkerTest do
         {:error, :timeout}
       end)
 
-      Application.put_env(:saleflow, :telavox_client, Saleflow.Telavox.MockClient)
       assert :ok = RecordingSyncWorker.perform(%Oban.Job{args: %{}})
-      Application.delete_env(:saleflow, :telavox_client)
     end
 
     test "skips calls with no matching telavox record" do
@@ -159,9 +153,7 @@ defmodule Saleflow.Workers.RecordingSyncWorkerTest do
         {:ok, %{"outgoing" => []}}
       end)
 
-      Application.put_env(:saleflow, :telavox_client, Saleflow.Telavox.MockClient)
       assert :ok = RecordingSyncWorker.perform(%Oban.Job{args: %{}})
-      Application.delete_env(:saleflow, :telavox_client)
     end
   end
 end
