@@ -377,3 +377,40 @@ export interface DealDetailData {
   meetings: Meeting[];
   audit_logs: AuditLog[];
 }
+
+export type DemoStage =
+  | "meeting_booked"
+  | "generating"
+  | "demo_ready"
+  | "followup"
+  | "cancelled";
+
+export interface DemoConfig {
+  id: string;
+  lead_id: string;
+  user_id: string;
+  lead_name: string | null;
+  stage: DemoStage;
+  source_url: string | null;
+  preview_url: string | null;
+  notes: string | null;
+  error: string | null;
+  inserted_at: string;
+  updated_at: string;
+}
+
+export interface DemoConfigDetail extends DemoConfig {
+  lead: {
+    id: string;
+    company_name: string;
+    phone: string | null;
+    email: string | null;
+  };
+  meetings: {
+    id: string;
+    title: string;
+    meeting_date: string;
+    meeting_time: string;
+    status: string;
+  }[];
+}
