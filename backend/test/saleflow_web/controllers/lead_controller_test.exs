@@ -117,6 +117,28 @@ defmodule SaleflowWeb.LeadControllerTest do
   end
 
   # -------------------------------------------------------------------------
+  # PATCH /api/leads/:id (update_fields)
+  # -------------------------------------------------------------------------
+
+  describe "PATCH /api/leads/:id" do
+    test "updates epost on a lead", %{conn: conn} do
+      {:ok, lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
+
+      conn = patch(conn, "/api/leads/#{lead.id}", %{epost: "info@acme.se"})
+      assert %{"lead" => lead_json} = json_response(conn, 200)
+      assert lead_json["epost"] == "info@acme.se"
+    end
+
+    test "updates hemsida on a lead", %{conn: conn} do
+      {:ok, lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
+
+      conn = patch(conn, "/api/leads/#{lead.id}", %{hemsida: "https://acme.se"})
+      assert %{"lead" => lead_json} = json_response(conn, 200)
+      assert lead_json["hemsida"] == "https://acme.se"
+    end
+  end
+
+  # -------------------------------------------------------------------------
   # POST /api/leads/next
   # -------------------------------------------------------------------------
 

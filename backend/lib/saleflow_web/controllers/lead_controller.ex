@@ -118,14 +118,23 @@ defmodule SaleflowWeb.LeadController do
   Update editable fields on a lead (e.g. telefon_2).
   """
   def update(conn, %{"id" => id} = params) do
+    fields =
+      %{}
+      |> maybe_put(:telefon_2, params["telefon_2"])
+      |> maybe_put(:epost, params["epost"])
+      |> maybe_put(:hemsida, params["hemsida"])
+
     with {:ok, lead} <- Sales.get_lead(id),
-         {:ok, updated} <- Sales.update_lead_fields(lead, %{telefon_2: params["telefon_2"]}) do
+         {:ok, updated} <- Sales.update_lead_fields(lead, fields) do
       json(conn, %{lead: serialize_lead(updated)})
     else
       {:error, _} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: "Failed to update lead"})
     end
   end
+
+  defp maybe_put(map, _key, nil), do: map
+  defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
   @doc """
   Submit an outcome for a lead: logs the call, releases the assignment,

@@ -228,7 +228,7 @@ defmodule Saleflow.Sales.Lead do
       description "Update editable fields on a lead (e.g. telefon_2)"
       require_atomic? false
 
-      accept [:telefon_2]
+      accept [:telefon_2, :epost, :hemsida]
 
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "lead.updated"}
     end
