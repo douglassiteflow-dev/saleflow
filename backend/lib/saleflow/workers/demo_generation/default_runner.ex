@@ -7,7 +7,11 @@ defmodule Saleflow.Workers.DemoGeneration.DefaultRunner do
 
   require Logger
 
-  @timeout_ms 15 * 60 * 1_000
+  @default_timeout_ms 15 * 60 * 1_000
+
+  defp timeout_ms do
+    Application.get_env(:saleflow, :demo_generation_timeout_ms, @default_timeout_ms)
+  end
 
   @impl true
   def run(brief_path, id) do
@@ -34,29 +38,22 @@ defmodule Saleflow.Workers.DemoGeneration.DefaultRunner do
   end
 
   defp collect_output(port, id, acc, start_time) do
-    elapsed = System.monotonic_time(:millisecond) - start_time
+    remaining = max(timeout_ms() - (System.monotonic_time(:millisecond) - start_time), 0)
 
-    if elapsed > @timeout_ms do
-      Port.close(port)
-      {:error, "Timeout after 15 minutes"}
-    else
-      remaining = @timeout_ms - elapsed
+    receive do
+      {^port, {:data, data}} ->
+        broadcast_stream(id, data)
+        collect_output(port, id, acc <> data, start_time)
 
-      receive do
-        {^port, {:data, data}} ->
-          broadcast_stream(id, data)
-          collect_output(port, id, acc <> data, start_time)
+      {^port, {:exit_status, 0}} ->
+        {:ok, acc}
 
-        {^port, {:exit_status, 0}} ->
-          {:ok, acc}
-
-        {^port, {:exit_status, code}} ->
-          {:error, "exit code #{code}"}
-      after
-        remaining ->
-          Port.close(port)
-          {:error, "Timeout after 15 minutes"}
-      end
+      {^port, {:exit_status, code}} ->
+        {:error, "exit code #{code}"}
+    after
+      remaining ->
+        Port.close(port)
+        {:error, "Timeout after 15 minutes"}
     end
   end
 

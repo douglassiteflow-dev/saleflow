@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>7/7</span>
+                <span class='fraction'>0/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>10/10</span>
+                <span class='fraction'>0/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>3/3</span>
+                <span class='fraction'>0/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>7/7</span>
+                <span class='fraction'>0/7</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -146,21 +146,21 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-yes">14x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -220,26 +220,26 @@ import { useMySessions, useLogoutAll, useForceLogoutSession } from "@/api/sessio
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SessionList } from "@/components/session-list";
+import Loader from "@/components/kokonutui/loader";
 &nbsp;
-export function ProfilePage() {
-  const { data: user } = useMe();
-  const { data: sessions, isLoading: sessionsLoading } = useMySessions();
-  const logoutAll = useLogoutAll();
-  const forceLogoutSession = useForceLogoutSession();
+export function <span class="fstat-no" title="function not covered" >ProfilePage() {</span>
+  const { data: <span class="cstat-no" title="statement not covered" >user } = useMe();</span>
+  const { data: sessions, isLoading: <span class="cstat-no" title="statement not covered" >sessionsLoading } = useMySessions();</span>
+  const <span class="cstat-no" title="statement not covered" >logoutAll = useLogoutAll();</span>
+  const <span class="cstat-no" title="statement not covered" >forceLogoutSession = useForceLogoutSession();</span>
 &nbsp;
-  function handleSessionLogout(sessionId: string) {
-    forceLogoutSession.mutate(sessionId);
+  function <span class="fstat-no" title="function not covered" >handleSessionLogout(s</span>essionId: string) {
+<span class="cstat-no" title="statement not covered" >    forceLogoutSession.mutate(sessionId);</span>
   }
 &nbsp;
-  function handleLogoutAll() {
-    logoutAll.mutate();
+  function <span class="fstat-no" title="function not covered" >handleLogoutAll() {</span>
+<span class="cstat-no" title="statement not covered" >    logoutAll.mutate();</span>
   }
 &nbsp;
-  return (
+<span class="cstat-no" title="statement not covered" >  return (</span>
     &lt;div className="space-y-6"&gt;
       &lt;h1
-        className="font-semibold text-[var(--color-text-primary)]"
-        style={{ fontSize: "24px" }}
+        className="text-[22px] font-light tracking-[-0.5px] text-[var(--color-text-primary)]"
       &gt;
         Profil
       &lt;/h1&gt;
@@ -247,7 +247,7 @@ export function ProfilePage() {
       {/* User info card */}
       &lt;Card&gt;
         &lt;div className="space-y-3"&gt;
-          &lt;p className="font-medium text-[var(--color-text-primary)]" style={{ fontSize: "18px" }}&gt;
+          &lt;p className="text-lg font-medium text-[var(--color-text-primary)]"&gt;
             {user?.name}
           &lt;/p&gt;
           &lt;p className="text-sm text-[var(--color-text-secondary)]"&gt;{user?.email}&lt;/p&gt;
@@ -279,7 +279,7 @@ export function ProfilePage() {
           &lt;/div&gt;
 &nbsp;
           {sessionsLoading ? (
-            &lt;p className="text-sm text-[var(--color-text-secondary)]"&gt;Laddar sessioner...&lt;/p&gt;
+            &lt;Loader size="sm" title="Laddar profil" /&gt;
           ) : (
             &lt;SessionList
               sessions={sessions ?? []}
@@ -298,7 +298,7 @@ export function ProfilePage() {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-01T20:19:28.313Z
+                at 2026-04-07T10:30:44.840Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

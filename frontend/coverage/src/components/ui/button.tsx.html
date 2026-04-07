@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>5/5</span>
+                <span class='fraction'>0/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>2/2</span>
+                <span class='fraction'>0/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/1</span>
+                <span class='fraction'>0/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>5/5</span>
+                <span class='fraction'>0/5</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -127,7 +127,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -138,22 +138,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">455x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -168,7 +163,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 &nbsp;
@@ -180,7 +180,7 @@ export interface ButtonProps extends ButtonHTMLAttributes&lt;HTMLButtonElement&g
   size?: ButtonSize;
 }
 &nbsp;
-const variantClasses: Record&lt;ButtonVariant, string&gt; = {
+const variantClasses: Record&lt;ButtonVariant, string&gt; = <span class="cstat-no" title="statement not covered" >{</span>
   primary:
     "bg-indigo-600 text-white hover:bg-indigo-700 focus-visible:ring-indigo-500 border-transparent",
   secondary:
@@ -191,17 +191,17 @@ const variantClasses: Record&lt;ButtonVariant, string&gt; = {
     "bg-white text-[var(--color-text-primary)] border-2 border-[var(--color-border-input)] hover:bg-[var(--color-bg-panel)] focus-visible:ring-[var(--color-accent)]",
 };
 &nbsp;
-const sizeClasses: Record&lt;ButtonSize, string&gt; = {
+const sizeClasses: Record&lt;ButtonSize, string&gt; = <span class="cstat-no" title="statement not covered" >{</span>
   default: "h-9 px-[var(--spacing-button-x)] py-[var(--spacing-button-y)] text-sm",
   lg: "h-12 px-[var(--spacing-button-x)] py-[var(--spacing-button-y)] text-base",
 };
 &nbsp;
-export const Button = forwardRef&lt;HTMLButtonElement, ButtonProps&gt;(
+export const <span class="cstat-no" title="statement not covered" >Button = <span class="fstat-no" title="function not covered" >forwardRef&lt;HTMLButtonElement, ButtonProps&gt;(</span></span>
   (
-    { variant = "primary", size = "default", className, children, ...props },
+    { variant = <span class="branch-0 cbranch-no" title="branch not covered" >"primary", s</span>ize = <span class="branch-0 cbranch-no" title="branch not covered" >"default", c</span>lassName, children, ...props },
     ref,
   ) =&gt; {
-    return (
+<span class="cstat-no" title="statement not covered" >    return (</span>
       &lt;button
         ref={ref}
         className={cn(
@@ -221,7 +221,7 @@ export const Button = forwardRef&lt;HTMLButtonElement, ButtonProps&gt;(
   },
 );
 &nbsp;
-Button.displayName = "Button";
+<span class="cstat-no" title="statement not covered" >Button.displayName = "Button";</span>
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -229,7 +229,7 @@ Button.displayName = "Button";
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-01T20:19:28.313Z
+                at 2026-04-07T10:30:44.840Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

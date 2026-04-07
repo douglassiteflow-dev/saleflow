@@ -1,0 +1,12 @@
+node_modules/
+ui/node_modules/
+ui/dist/
+output/*/bilder/
+output/*/site/
+data/genflow.json
+.claude/
+*.pyc
+__pycache__/
+.DS_Store
+dist-electron/
+out/

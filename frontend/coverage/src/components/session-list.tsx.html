@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>10/10</span>
+                <span class='fraction'>0/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>22/22</span>
+                <span class='fraction'>0/22</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>4/4</span>
+                <span class='fraction'>0/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>10/10</span>
+                <span class='fraction'>0/10</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -188,27 +188,27 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">61x</span>
-<span class="cline-any cline-yes">61x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">23x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">26x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">32x</span>
-<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">26x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -247,7 +247,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">61x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -274,7 +274,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -300,28 +300,28 @@ interface SessionListProps {
   showForceLogout?: boolean;
 }
 &nbsp;
-function DeviceIcon({ deviceType }: { deviceType: string }) {
-  const className = "w-5 h-5 text-[var(--color-text-secondary)]";
-  switch (deviceType) {
+function <span class="fstat-no" title="function not covered" >DeviceIcon({</span> deviceType }: { deviceType: string }) {
+  const className = <span class="cstat-no" title="statement not covered" >"w-5 h-5 text-[var(--color-text-secondary)]";</span>
+<span class="cstat-no" title="statement not covered" >  switch (deviceType) {</span>
     case "smartphone":
-      return &lt;Smartphone className={className} aria-label="Mobil" /&gt;;
+<span class="cstat-no" title="statement not covered" >      return &lt;Smartphone className={className} aria-label="Mobil" /&gt;;</span>
     case "tablet":
-      return &lt;Tablet className={className} aria-label="Surfplatta" /&gt;;
+<span class="cstat-no" title="statement not covered" >      return &lt;Tablet className={className} aria-label="Surfplatta" /&gt;;</span>
     default:
-      return &lt;Monitor className={className} aria-label="Dator" /&gt;;
+<span class="cstat-no" title="statement not covered" >      return &lt;Monitor className={className} aria-label="Dator" /&gt;;</span>
   }
 }
 &nbsp;
-export function SessionList({ sessions, onLogout, showForceLogout }: SessionListProps) {
-  if (sessions.length === 0) {
-    return (
+export function <span class="fstat-no" title="function not covered" >SessionList({</span> sessions, onLogout, showForceLogout }: SessionListProps) {
+<span class="cstat-no" title="statement not covered" >  if (sessions.length === 0) {</span>
+<span class="cstat-no" title="statement not covered" >    return (</span>
       &lt;p className="text-sm text-[var(--color-text-secondary)]"&gt;
         Inga aktiva sessioner.
       &lt;/p&gt;
     );
   }
 &nbsp;
-  return (
+<span class="cstat-no" title="statement not covered" >  return (</span>
     &lt;div className="overflow-x-auto"&gt;
       &lt;table className="w-full text-sm"&gt;
         &lt;thead&gt;
@@ -359,8 +359,8 @@ export function SessionList({ sessions, onLogout, showForceLogout }: SessionList
           &lt;/tr&gt;
         &lt;/thead&gt;
         &lt;tbody&gt;
-          {sessions.map((session, i) =&gt; (
-            &lt;tr
+          {sessions.<span class="fstat-no" title="function not covered" >map((s</span>ession, i) =&gt; (
+<span class="cstat-no" title="statement not covered" >            &lt;tr</span>
               key={session.id}
               className={i !== sessions.length - 1 ? "border-b border-slate-200" : ""}
             &gt;
@@ -387,7 +387,7 @@ export function SessionList({ sessions, onLogout, showForceLogout }: SessionList
                   &lt;Button
                     variant="danger"
                     size="default"
-                    onClick={() =&gt; onLogout(session.id)}
+<span class="fstat-no" title="function not covered" >                    onClick={() =&gt; <span class="cstat-no" title="statement not covered" >o</span>nLogout(session.id)}</span>
                   &gt;
                     Logga ut
                   &lt;/Button&gt;
@@ -409,7 +409,7 @@ export function SessionList({ sessions, onLogout, showForceLogout }: SessionList
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-01T20:19:28.313Z
+                at 2026-04-07T10:30:44.840Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
