@@ -220,6 +220,34 @@ defmodule Saleflow.Sales.DemoConfigTest do
     end
   end
 
+  describe "update_notes" do
+    test "updates notes on a demo config" do
+      lead = create_lead!()
+      user = create_user!()
+      {:ok, dc} = Sales.create_demo_config(%{lead_id: lead.id, user_id: user.id})
+
+      assert {:ok, updated} =
+               dc
+               |> Ash.Changeset.for_update(:update_notes, %{notes: "Bra möte, kunden intresserad"})
+               |> Ash.update()
+
+      assert updated.notes == "Bra möte, kunden intresserad"
+    end
+
+    test "clears notes with nil" do
+      lead = create_lead!()
+      user = create_user!()
+      {:ok, dc} = Sales.create_demo_config(%{lead_id: lead.id, user_id: user.id, notes: "Initial"})
+
+      assert {:ok, updated} =
+               dc
+               |> Ash.Changeset.for_update(:update_notes, %{notes: nil})
+               |> Ash.update()
+
+      assert is_nil(updated.notes)
+    end
+  end
+
   describe "list_demo_configs_for_user/1" do
     test "returns configs for user, excluding cancelled, sorted by inserted_at desc" do
       lead = create_lead!()
