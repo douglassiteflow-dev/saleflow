@@ -80,6 +80,7 @@ export interface AgentReport {
 
 export interface AgentReportData {
   date: string;
+  html: string | null;
   report: AgentReport | null;
   score_avg: number | null;
   call_count: number | null;

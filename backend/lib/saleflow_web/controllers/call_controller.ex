@@ -274,17 +274,25 @@ defmodule SaleflowWeb.CallController do
            "SELECT report, score_avg, call_count FROM agent_daily_reports WHERE user_id = $1 AND date = $2",
            [Ecto.UUID.dump!(user.id), date]
          ) do
-      {:ok, %{rows: [[report, score, calls]]}} ->
-        parsed =
-          case Jason.decode(report || "") do
-            {:ok, data} -> data
-            _ -> nil
-          end
+      {:ok, %{rows: [[report, score, calls]]}} when is_binary(report) ->
+        trimmed = String.trim(report)
 
-        json(conn, %{date: Date.to_iso8601(date), report: parsed, score_avg: score, call_count: calls})
+        if String.starts_with?(trimmed, "<!DOCTYPE") || String.starts_with?(trimmed, "<html") do
+          # HTML report (new format)
+          json(conn, %{date: Date.to_iso8601(date), html: report, report: nil, score_avg: score, call_count: calls})
+        else
+          # JSON report (legacy format)
+          parsed =
+            case Jason.decode(report) do
+              {:ok, data} -> data
+              _ -> nil
+            end
+
+          json(conn, %{date: Date.to_iso8601(date), html: nil, report: parsed, score_avg: score, call_count: calls})
+        end
 
       _ ->
-        json(conn, %{date: Date.to_iso8601(date), report: nil, score_avg: nil, call_count: nil})
+        json(conn, %{date: Date.to_iso8601(date), html: nil, report: nil, score_avg: nil, call_count: nil})
     end
   end
 

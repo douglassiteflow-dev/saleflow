@@ -1,219 +1,75 @@
-import { useState } from "react";
-import { useDailySummary, useAgentReport } from "@/api/daily-summary";
+import { useState, useRef, useEffect } from "react";
+import { useAgentReport } from "@/api/daily-summary";
 import { todayISO } from "@/lib/date";
-import { ChevronLeft, ChevronRight, CheckCircle2, Circle, TrendingUp, Eye, Quote } from "lucide-react";
-import {
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  PieChart, Pie, Cell, ResponsiveContainer,
-} from "recharts";
-
-const PIE_COLORS = ["#10B981", "#F59E0B", "#EF4444", "#6366F1", "#64748B", "#8B5CF6"];
-const OUTCOME_LABELS: Record<string, string> = {
-  meeting_booked: "Möte", callback: "Callback", not_interested: "Ej intresserad",
-  no_answer: "Ej svar", call_later: "Ring senare", bad_number: "Fel nr",
-};
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 function fmtDate(iso: string) {
   return new Date(iso + "T12:00:00").toLocaleDateString("sv-SE", { weekday: "long", day: "numeric", month: "long" });
 }
 
-const HIGHLIGHT_ICON = {
-  win: <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />,
-  improve: <TrendingUp className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />,
-  observe: <Eye className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />,
-};
-
 export function ReportTab() {
   const [date, setDate] = useState(todayISO());
-  const { data } = useDailySummary(date);
-  const { data: rd } = useAgentReport(date);
-  const report = rd?.report as any;
+  const { data: rd, isLoading } = useAgentReport(date);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const prev = () => { const d = new Date(date + "T12:00:00"); d.setDate(d.getDate() - 1); setDate(d.toISOString().slice(0, 10)); };
   const next = () => { const d = new Date(date + "T12:00:00"); d.setDate(d.getDate() + 1); if (d.toISOString().slice(0, 10) <= todayISO()) setDate(d.toISOString().slice(0, 10)); };
   const isToday = date === todayISO();
 
-  const calls = (data?.calls ?? []).filter(c => !c.analysis?.voicemail);
-  const avg = (a: number[]) => a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0;
+  // Auto-adjust iframe height
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe || !rd?.html) return;
 
-  const radar = [
-    { cat: "Öppning", v: avg(calls.map(c => c.analysis?.score?.opening?.score ?? 0).filter(Boolean)) },
-    { cat: "Behov", v: avg(calls.map(c => c.analysis?.score?.needs_discovery?.score ?? 0).filter(Boolean)) },
-    { cat: "Pitch", v: avg(calls.map(c => c.analysis?.score?.pitch?.score ?? 0).filter(Boolean)) },
-    { cat: "Invändning", v: avg(calls.map(c => c.analysis?.score?.objection_handling?.score ?? 0).filter(Boolean)) },
-    { cat: "Avslut", v: avg(calls.map(c => c.analysis?.score?.closing?.score ?? 0).filter(Boolean)) },
-  ];
+    const adjustHeight = () => {
+      try {
+        const doc = iframe.contentDocument;
+        if (doc?.body) {
+          iframe.style.height = doc.body.scrollHeight + 32 + "px";
+        }
+      } catch { /* cross-origin safety */ }
+    };
 
-  const outcomes = new Map<string, number>();
-  calls.forEach(c => { const o = c.outcome ?? "?"; outcomes.set(o, (outcomes.get(o) ?? 0) + 1); });
-  const pie = [...outcomes.entries()].map(([k, v]) => ({ name: OUTCOME_LABELS[k] ?? k, value: v }));
-
-  const score = rd?.score_avg;
-  const meetings = calls.filter(c => c.outcome === "meeting_booked").length;
+    iframe.addEventListener("load", adjustHeight);
+    return () => iframe.removeEventListener("load", adjustHeight);
+  }, [rd?.html]);
 
   return (
     <div className="flex-1 overflow-auto bg-[#FAFAFA]">
       {/* Nav */}
       <div className="flex items-center justify-between px-6 py-4">
-        <button onClick={prev} className="p-1.5 rounded-full hover:bg-black/5 cursor-pointer transition"><ChevronLeft className="h-4 w-4 text-[#86868B]" /></button>
+        <button onClick={prev} className="p-1.5 rounded-full hover:bg-black/5 cursor-pointer transition">
+          <ChevronLeft className="h-4 w-4 text-[#86868B]" />
+        </button>
         <div className="text-center">
           <p className="text-[15px] font-semibold text-[#1D1D1F] capitalize">{fmtDate(date)}</p>
           {isToday && <p className="text-[11px] text-[#0071E3]">Idag</p>}
         </div>
-        <button onClick={next} disabled={isToday} className="p-1.5 rounded-full hover:bg-black/5 cursor-pointer transition disabled:opacity-20"><ChevronRight className="h-4 w-4 text-[#86868B]" /></button>
+        <button onClick={next} disabled={isToday} className="p-1.5 rounded-full hover:bg-black/5 cursor-pointer transition disabled:opacity-20">
+          <ChevronRight className="h-4 w-4 text-[#86868B]" />
+        </button>
       </div>
 
-      {calls.length === 0 && !report ? (
+      {isLoading ? (
         <div className="px-6 py-16 text-center">
-          <p className="text-[15px] text-[#86868B]">Inga analyserade samtal</p>
-          <button onClick={prev} className="mt-3 text-[13px] text-[#0071E3] hover:underline cursor-pointer">← Föregående dag</button>
+          <p className="text-[13px] text-[#86868B]">Laddar rapport...</p>
         </div>
+      ) : rd?.html ? (
+        <iframe
+          ref={iframeRef}
+          srcDoc={rd.html}
+          sandbox="allow-same-origin"
+          className="w-full border-0"
+          style={{ minHeight: "400px" }}
+          title="Daglig rapport"
+        />
       ) : (
-        <div className="px-6 pb-8 space-y-4">
-
-          {/* AI Report — TEXT FIRST */}
-          {report ? (
-            <>
-              {/* Greeting + Score */}
-              <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                <p className="text-[15px] text-[#1D1D1F] leading-relaxed">{report.greeting}</p>
-                {report.score_summary && (
-                  <p className="text-[13px] text-[#86868B] mt-1.5">{report.score_summary}</p>
-                )}
-              </div>
-
-              {/* Highlights */}
-              {report.highlights?.length > 0 && (
-                <div className="bg-white rounded-2xl p-5 space-y-3" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                  {report.highlights.map((h: any, i: number) => (
-                    <div key={i} className="flex items-start gap-2.5">
-                      {HIGHLIGHT_ICON[h.type as keyof typeof HIGHLIGHT_ICON] ?? HIGHLIGHT_ICON.observe}
-                      <p className="text-[13px] text-[#1D1D1F] leading-relaxed">{h.text}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Quote */}
-              {report.quote_of_the_day && (
-                <div className="bg-white rounded-2xl p-5 flex items-start gap-3" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                  <Quote className="h-5 w-5 text-[#0071E3] shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-[13px] text-[#1D1D1F] italic leading-relaxed">&ldquo;{report.quote_of_the_day}&rdquo;</p>
-                    <p className="text-[10px] text-[#86868B] mt-1">Bästa citatet idag</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Checklist */}
-              {report.checklist?.length > 0 && (
-                <div className="bg-[#0071E3] rounded-2xl p-5">
-                  <p className="text-[11px] font-medium text-white/50 uppercase tracking-wider mb-3">Checklista för imorgon</p>
-                  <div className="space-y-2.5">
-                    {report.checklist.map((item: any, i: number) => (
-                      <div key={i} className="flex items-start gap-2.5">
-                        <Circle className="h-4 w-4 text-white/40 shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-[13px] text-white leading-relaxed">{item.task}</p>
-                          {item.source && (
-                            <p className="text-[10px] text-white/40 mt-0.5">{item.source}</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Progress */}
-              {report.progress_note && (
-                <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                  <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider mb-2">Din utveckling</p>
-                  <p className="text-[13px] text-[#1D1D1F] leading-relaxed">{report.progress_note}</p>
-                </div>
-              )}
-
-              {/* Fallback for old format */}
-              {!report.highlights && report.wins?.length > 0 && (
-                <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                  <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider mb-2">Bra idag</p>
-                  {report.wins.map((w: string, i: number) => (
-                    <p key={i} className="text-[13px] text-[#1D1D1F] mb-1.5 leading-relaxed">{w}</p>
-                  ))}
-                </div>
-              )}
-              {!report.checklist && report.focus_area && (
-                <div className="bg-[#0071E3] rounded-2xl p-5">
-                  <p className="text-[11px] font-medium text-white/50 uppercase tracking-wider mb-1">Fokus imorgon</p>
-                  <p className="text-[14px] text-white leading-relaxed">{report.focus_area}</p>
-                </div>
-              )}
-
-              {report.motivation && (
-                <p className="text-[13px] text-[#86868B] text-center italic px-4 pt-1">{report.motivation}</p>
-              )}
-            </>
-          ) : (
-            <div className="bg-white rounded-2xl p-8 text-center" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-              <p className="text-[15px] text-[#1D1D1F]">Dagens rapport uppdateras kl 16:10 varje vardag</p>
-              <p className="text-[12px] text-[#86868B] mt-1">Bläddra bakåt för att se tidigare rapporter</p>
-            </div>
-          )}
-
-          {/* STATS + CHARTS AT BOTTOM */}
-          {calls.length > 0 && (
-            <>
-              <div className="pt-2">
-                <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider mb-3">Statistik</p>
-              </div>
-
-              {/* KPIs */}
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { label: "Samtal", value: rd?.call_count ?? calls.length },
-                  { label: "Snitt", value: score != null ? score.toFixed(1) : avg(calls.map(c => c.analysis?.score?.overall ?? 0).filter(Boolean)).toFixed(1) },
-                  { label: "Möten", value: meetings },
-                ].map(k => (
-                  <div key={k.label} className="bg-white rounded-2xl p-4 text-center" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                    <p className="text-[28px] font-light tracking-tight text-[#1D1D1F]">{k.value}</p>
-                    <p className="text-[11px] text-[#86868B] mt-0.5">{k.label}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Charts side by side */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white rounded-2xl p-4" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                  <p className="text-[11px] text-[#86868B] mb-1">Kompetenser</p>
-                  <ResponsiveContainer width="100%" height={160}>
-                    <RadarChart data={radar}>
-                      <PolarGrid stroke="#F1F1F1" />
-                      <PolarAngleAxis dataKey="cat" tick={{ fontSize: 9, fill: "#86868B" }} />
-                      <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
-                      <Radar dataKey="v" stroke="#0071E3" fill="#0071E3" fillOpacity={0.12} strokeWidth={1.5} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="bg-white rounded-2xl p-4" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                  <p className="text-[11px] text-[#86868B] mb-1">Utfall</p>
-                  <ResponsiveContainer width="100%" height={120}>
-                    <PieChart>
-                      <Pie data={pie} dataKey="value" cx="50%" cy="50%" outerRadius={45} innerRadius={25} paddingAngle={3} strokeWidth={0}>
-                        {pie.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="flex flex-wrap justify-center gap-x-3 gap-y-0.5">
-                    {pie.map((d, i) => (
-                      <span key={d.name} className="flex items-center gap-1 text-[10px] text-[#86868B]">
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />{d.name} ({d.value})
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+        <div className="px-6 py-16 text-center">
+          <div className="bg-white rounded-2xl p-8 max-w-md mx-auto" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+            <p className="text-[15px] text-[#1D1D1F]">Dagens rapport uppdateras kl 16:10 varje vardag</p>
+            <p className="text-[12px] text-[#86868B] mt-1">Bläddra bakåt för att se tidigare rapporter</p>
+          </div>
+          <button onClick={prev} className="mt-4 text-[13px] text-[#0071E3] hover:underline cursor-pointer">&#8592; Föregående dag</button>
         </div>
       )}
     </div>

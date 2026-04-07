@@ -146,39 +146,50 @@ defmodule Saleflow.Workers.DailyReportWorker do
     first_name = agent_name |> String.split(" ") |> List.first()
 
     prompt = """
-    Du är #{first_name}s personliga säljcoach. Tänk på dig själv som en mentor som verkligen bryr sig om denna persons utveckling — inte en AI som spottar ut generiska tips.
+    Du är #{first_name}s personliga säljcoach. Generera en komplett HTML-rapport.
 
-    #{if playbook, do: "FÖRETAGETS SÄLJMANUS:\n#{playbook}\n\nDu ska bedöma mot detta manus MEN du får också resonera fritt. Om du ser att agenten gör något smart som INTE står i manuset — lyft det. Om manuset missar något — säg det.", else: ""}
+    #{if playbook, do: "SÄLJMANUS:\n#{playbook}\n", else: ""}
 
-    IDAG (#{Date.to_iso8601(date)}) — #{first_name}s samtal:
+    SAMTALSDATA IDAG (#{Date.to_iso8601(date)}):
     #{calls_text}
 
     #{previous_text}
 
-    REGLER:
-    - Kort och rakt på sak. Citera specifika saker som sades.
-    - Om du coachade igår — kolla om #{first_name} lyssnade. Var ärlig.
-    - Resonera fritt utanför manuset om du ser mönster. Ange källan: "(Playbook: Invändningshantering → Inte intresserad)" eller "(Egen observation)".
-    - Varje punkt ska ha ett syfte.
+    GENERERA EN KOMPLETT HTML-RAPPORT. Följ dessa regler EXAKT:
 
-    JSON (inget annat):
-    {
-      "greeting": "Kort personlig hälsning, en mening",
-      "score_summary": "Snittbetyg med jämförelse mot igår",
-      "highlights": [
-        {"type": "win", "text": "Specifik sak som gick bra, med citat"},
-        {"type": "win", "text": "Ytterligare en bra sak"},
-        {"type": "improve", "text": "Något att förbättra, med konkret förslag"},
-        {"type": "observe", "text": "Mönster du noterat — t.ex. samma invändning i 3 samtal"}
-      ],
-      "checklist": [
-        {"task": "Konkret sak att göra imorgon", "source": "Playbook: Avslut" eller "Egen observation"},
-        {"task": "Ytterligare en sak", "source": "Källa"}
-      ],
-      "progress_note": "Hur #{first_name} utvecklats sedan förra rapporten",
-      "quote_of_the_day": "Ett specifikt citat från dagens bästa samtal som visar vad #{first_name} gör rätt",
-      "motivation": "En mening"
-    }
+    DESIGN:
+    - Börja med <!DOCTYPE html><html lang="sv"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body>
+    - Body: background #FAFAFA, font-family -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif, margin 0, padding 24px
+    - Kort: background white, border-radius 16px, box-shadow 0 1px 3px rgba(0,0,0,0.06), padding 20px 24px, margin-bottom 16px
+    - Max-width: 600px, margin 0 auto
+    - Accent: #0071E3, Success: #10B981, Warning: #F59E0B, Danger: #EF4444
+    - Text: #1D1D1F (primary), #86868B (secondary)
+    - ALL CSS INLINE på varje element. Inga <style> block. Inga klasser.
+    - Inga JavaScript. Inga externa resurser.
+
+    INNEHÅLL (i denna ordning):
+    1. HEADER — Namn, datum, stort snittbetyg (cirkel med siffra)
+    2. COACHING — Varje highlight i eget kort med ikon (✅ bra, ⚡ förbättra, 👁 observation). Citera specifika saker från samtalen. Ange källa: "(Playbook: X)" eller "(Egen observation)".
+    3. BÄSTA CITAT — Ett citat från dagens bästa samtal i ett kort med vänsterrand
+    4. CHECKLISTA — Blått kort med checkboxar (☐ unicode) för imorgons uppgifter med källa
+    5. SVG CHARTS — Två charts bredvid varandra i ett kort:
+       a) Donut chart (inline SVG) för utfall (möte/callback/ej intresserad etc) med färger
+       b) Horisontella bars för betyg per kategori (Öppning, Behov, Pitch, Invändning, Avslut) med siffror
+    6. PROGRESS — Kort om agentens utveckling, referera till tidigare coaching om den finns
+    7. AVSLUT — Kort motiverande mening i italic
+
+    SVG CHARTS:
+    - Donut: <svg viewBox="0 0 100 100" width="120" height="120"> med <circle> och stroke-dasharray
+    - Bars: <div> med inline background-color och width i procent
+    - Använd VERKLIG DATA från samtalen ovan
+
+    REGLER FÖR TEXTEN:
+    - Kort och rakt på sak. Max 2 meningar per punkt.
+    - Citera specifika saker agenten sa i samtalen.
+    - Om du coachade igår — kolla om #{first_name} lyssnade.
+    - Resonera fritt utanför manuset om du ser mönster.
+
+    Returnera BARA HTML. Ingen markdown. Inget ```html. Börja direkt med <!DOCTYPE html>.
     """
 
     body = Jason.encode!(%{
@@ -201,16 +212,22 @@ defmodule Saleflow.Workers.DailyReportWorker do
            receive_timeout: 90_000
          ) do
       {:ok, %{status: 200, body: %{"content" => content}}} ->
-        text = content
+        html = content
           |> Enum.filter(fn block -> block["type"] == "text" end)
           |> Enum.map(fn block -> block["text"] end)
           |> Enum.join("")
+          |> String.trim()
 
-        cleaned = String.replace(text, ~r/```json\n?|\n?```/, "")
-        # Validate it's valid JSON before saving
-        case Jason.decode(cleaned) do
-          {:ok, _} -> {:ok, cleaned}
-          _ -> {:ok, text}
+        # Strip markdown code fences if Claude wrapped it
+        html = html
+          |> String.replace(~r/^```html\n?/, "")
+          |> String.replace(~r/\n?```$/, "")
+          |> String.trim()
+
+        if String.starts_with?(html, "<!DOCTYPE") || String.starts_with?(html, "<html") do
+          {:ok, html}
+        else
+          {:error, "Claude did not return HTML"}
         end
 
       {:ok, %{status: s, body: b}} -> {:error, "Claude #{s}: #{inspect(b)}"}
@@ -218,14 +235,10 @@ defmodule Saleflow.Workers.DailyReportWorker do
     end
   end
 
-  defp save_agent_report(user_id, date, report, score_avg, call_count) do
+  defp save_agent_report(user_id, date, html, score_avg, call_count) do
     Saleflow.Repo.query(
-      """
-      INSERT INTO agent_daily_reports (id, user_id, date, report, score_avg, call_count, inserted_at)
-      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW())
-      ON CONFLICT (user_id, date) DO UPDATE SET report = $3, score_avg = $4, call_count = $5
-      """,
-      [Ecto.UUID.dump!(user_id), date, report, score_avg, call_count]
+      "INSERT INTO agent_daily_reports (id, user_id, date, report, score_avg, call_count, inserted_at) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW()) ON CONFLICT (user_id, date) DO UPDATE SET report = $3, score_avg = $4, call_count = $5",
+      [Ecto.UUID.dump!(user_id), date, html, score_avg, call_count]
     )
   end
 
