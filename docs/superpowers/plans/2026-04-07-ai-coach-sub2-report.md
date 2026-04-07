@@ -101,7 +101,7 @@ defmodule Saleflow.Workers.CoachReportWorker do
   @moduledoc """
   Generates unified AI coaching reports per agent.
   Runs at 16:10 weekdays, after DailyTranscriptionWorker (16:00).
-  Uses Claude Batch API for 50% cost reduction.
+  Uses Claude Messages API with prompt caching (playbook as cached system message).
   """
 
   use Oban.Worker, queue: :default, max_attempts: 2
