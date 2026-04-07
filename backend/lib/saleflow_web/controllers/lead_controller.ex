@@ -74,7 +74,8 @@ defmodule SaleflowWeb.LeadController do
 
     with {:ok, lead} <- Sales.get_lead(id),
          {:ok, all_calls} <- Sales.list_calls_for_lead(id),
-         {:ok, all_audit} <- Audit.list_for_resource("Lead", id) do
+         {:ok, all_audit} <- Audit.list_for_resource("Lead", id),
+         {:ok, contacts} <- Sales.list_contacts_for_lead(id) do
       {calls, audit_logs} =
         case user.role do
           :admin ->
@@ -91,7 +92,8 @@ defmodule SaleflowWeb.LeadController do
       json(conn, %{
         lead: serialize_lead(lead),
         calls: Enum.map(calls, &serialize_call(&1, user_names, user)),
-        audit_logs: Enum.map(audit_logs, &serialize_audit_log(&1, user_names, user))
+        audit_logs: Enum.map(audit_logs, &serialize_audit_log(&1, user_names, user)),
+        contacts: Enum.map(contacts, &serialize_contact/1)
       })
     else
       {:error, _} ->
@@ -701,5 +703,56 @@ defmodule SaleflowWeb.LeadController do
       {:error, _} ->
         conn |> put_status(422) |> json(%{error: "Kunde inte spara kommentar"})
     end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Lead contacts
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  List all contacts for a lead.
+  """
+  def list_contacts(conn, %{"lead_id" => lead_id}) do
+    case Sales.list_contacts_for_lead(lead_id) do
+      {:ok, contacts} ->
+        json(conn, %{contacts: Enum.map(contacts, &serialize_contact/1)})
+
+      {:error, _} ->
+        conn |> put_status(:not_found) |> json(%{error: "Lead not found"})
+    end
+  end
+
+  @doc """
+  Create a new contact for a lead.
+  """
+  def create_contact(conn, %{"lead_id" => lead_id} = params) do
+    contact_params = %{
+      lead_id: lead_id,
+      name: params["name"],
+      role: params["role"],
+      phone: params["phone"],
+      email: params["email"]
+    }
+
+    case Sales.create_contact(contact_params) do
+      {:ok, contact} ->
+        conn |> put_status(201) |> json(%{contact: serialize_contact(contact)})
+
+      {:error, _} ->
+        conn |> put_status(422) |> json(%{error: "Kunde inte skapa kontakt"})
+    end
+  end
+
+  defp serialize_contact(contact) do
+    %{
+      id: contact.id,
+      lead_id: contact.lead_id,
+      name: contact.name,
+      role: contact.role,
+      phone: contact.phone,
+      email: contact.email,
+      inserted_at: contact.inserted_at,
+      updated_at: contact.updated_at
+    }
   end
 end

@@ -56,6 +56,8 @@ defmodule SaleflowWeb.Router do
     post "/leads/:id/outcome", LeadController, :outcome
     get "/leads/:id/comments", LeadController, :comments
     post "/leads/:id/comments", LeadController, :create_comment
+    get "/leads/:lead_id/contacts", LeadController, :list_contacts
+    post "/leads/:lead_id/contacts", LeadController, :create_contact
 
     get "/callbacks", LeadController, :callbacks
 

@@ -337,4 +337,71 @@ defmodule SaleflowWeb.LeadControllerTest do
       assert updated_lead.status == :callback
     end
   end
+
+  # -------------------------------------------------------------------------
+  # GET /api/leads/:lead_id/contacts
+  # -------------------------------------------------------------------------
+
+  describe "GET /api/leads/:lead_id/contacts" do
+    test "returns contacts list for a lead", %{conn: conn} do
+      {:ok, lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
+      {:ok, _c1} = Sales.create_contact(%{lead_id: lead.id, name: "Anna Svensson", phone: "+46701111111"})
+      {:ok, _c2} = Sales.create_contact(%{lead_id: lead.id, name: "Erik Holm", email: "erik@acme.se"})
+
+      conn = get(conn, "/api/leads/#{lead.id}/contacts")
+      assert %{"contacts" => contacts} = json_response(conn, 200)
+      assert length(contacts) == 2
+      names = Enum.map(contacts, & &1["name"])
+      assert "Anna Svensson" in names
+      assert "Erik Holm" in names
+    end
+
+    test "returns empty list when lead has no contacts", %{conn: conn} do
+      {:ok, lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
+
+      conn = get(conn, "/api/leads/#{lead.id}/contacts")
+      assert %{"contacts" => []} = json_response(conn, 200)
+    end
+  end
+
+  # -------------------------------------------------------------------------
+  # POST /api/leads/:lead_id/contacts
+  # -------------------------------------------------------------------------
+
+  describe "POST /api/leads/:lead_id/contacts" do
+    test "creates a contact and returns 201", %{conn: conn} do
+      {:ok, lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
+
+      conn = post(conn, "/api/leads/#{lead.id}/contacts", %{
+        name: "Anna Svensson",
+        role: "VD",
+        phone: "+46701111111",
+        email: "anna@acme.se"
+      })
+
+      assert %{"contact" => contact} = json_response(conn, 201)
+      assert contact["name"] == "Anna Svensson"
+      assert contact["role"] == "VD"
+      assert contact["phone"] == "+46701111111"
+      assert contact["email"] == "anna@acme.se"
+      assert contact["lead_id"] == lead.id
+    end
+  end
+
+  # -------------------------------------------------------------------------
+  # GET /api/leads/:id includes contacts
+  # -------------------------------------------------------------------------
+
+  describe "GET /api/leads/:id includes contacts" do
+    test "show response includes contacts array", %{conn: conn, user: user} do
+      {:ok, lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
+      {:ok, _c} = Sales.create_contact(%{lead_id: lead.id, name: "Anna Svensson"})
+      {:ok, _call} = Sales.log_call(%{lead_id: lead.id, user_id: user.id, outcome: :no_answer})
+
+      conn = get(conn, "/api/leads/#{lead.id}")
+      assert %{"lead" => _, "contacts" => contacts} = json_response(conn, 200)
+      assert length(contacts) == 1
+      assert hd(contacts)["name"] == "Anna Svensson"
+    end
+  end
 end
