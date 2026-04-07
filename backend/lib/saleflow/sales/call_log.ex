@@ -13,6 +13,7 @@ defmodule Saleflow.Sales.CallLog do
   - `:no_answer`       — no one picked up
   - `:bad_number`      — the number is unreachable / wrong
   - `:customer`        — the prospect is already a customer
+  - `:skipped`         — the agent skipped the lead without calling
   - `:other`           — any other outcome; use `notes` for details
   """
 
@@ -39,7 +40,7 @@ defmodule Saleflow.Sales.CallLog do
     end
 
     attribute :outcome, :atom do
-      constraints one_of: [:meeting_booked, :callback, :not_interested, :no_answer, :call_later, :bad_number, :customer, :other]
+      constraints one_of: [:meeting_booked, :callback, :not_interested, :no_answer, :call_later, :bad_number, :customer, :skipped, :other]
       allow_nil? false
       public? true
     end

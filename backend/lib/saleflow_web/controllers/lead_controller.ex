@@ -131,7 +131,7 @@ defmodule SaleflowWeb.LeadController do
   Submit an outcome for a lead: logs the call, releases the assignment,
   updates lead status, and optionally creates a meeting or quarantine.
   """
-  @valid_outcomes ~w(meeting_booked callback not_interested no_answer call_later bad_number customer other)
+  @valid_outcomes ~w(meeting_booked callback not_interested no_answer call_later bad_number customer skipped other)
 
   def outcome(conn, %{"id" => id, "outcome" => outcome} = params) do
     if outcome not in @valid_outcomes do
@@ -357,6 +357,20 @@ defmodule SaleflowWeb.LeadController do
         lead_id: lead.id,
         user_id: user.id,
         reason: "Call later"
+      })
+      {:ok, updated_lead}
+    end
+  end
+
+  defp apply_outcome(lead, "skipped", user, _params) do
+    # Short quarantine — lead goes back into queue after 1 hour
+    quarantine_until = DateTime.utc_now() |> DateTime.add(1, :hour)
+
+    with {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :quarantine, quarantine_until: quarantine_until}) do
+      {:ok, _q} = Sales.create_quarantine(%{
+        lead_id: lead.id,
+        user_id: user.id,
+        reason: "Skipped"
       })
       {:ok, updated_lead}
     end

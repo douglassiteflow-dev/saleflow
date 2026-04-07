@@ -131,6 +131,13 @@ defmodule Saleflow.Sales.CallLogTest do
       assert call.outcome == :customer
     end
 
+    test "logs outcome :skipped" do
+      lead = create_lead!()
+      user = create_user!()
+      assert {:ok, call} = Sales.log_call(%{lead_id: lead.id, user_id: user.id, outcome: :skipped})
+      assert call.outcome == :skipped
+    end
+
     test "logs outcome :other" do
       lead = create_lead!()
       user = create_user!()

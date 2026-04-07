@@ -18,7 +18,7 @@ defmodule Saleflow.Stats do
   # Per-user stats
   # ---------------------------------------------------------------------------
 
-  @doc "Antal utgående samtal idag för en specifik agent (exkluderar samtal till leads med status meeting_booked/customer)."
+  @doc "Antal utgående samtal idag för en specifik agent (exkluderar samtal till leads med status meeting_booked/customer och hoppade-över)."
   def calls_today(user_id) do
     uid = Ecto.UUID.dump!(user_id)
     today = Date.utc_today()
@@ -28,10 +28,12 @@ defmodule Saleflow.Stats do
         """
         SELECT COUNT(*) FROM phone_calls pc
         LEFT JOIN leads l ON l.id = pc.lead_id
+        LEFT JOIN call_logs cl ON cl.id = pc.call_log_id
         WHERE pc.user_id = $1
           AND pc.received_at::date = $2
           AND pc.direction = 'outgoing'
           AND (l.status IS NULL OR l.status NOT IN ('meeting_booked', 'customer'))
+          AND (cl.outcome IS NULL OR cl.outcome != 'skipped')
         """,
         [uid, today]
       )
@@ -39,7 +41,7 @@ defmodule Saleflow.Stats do
     count
   end
 
-  @doc "Totalt antal utgående samtal för en specifik agent (exkluderar samtal till leads med status meeting_booked/customer)."
+  @doc "Totalt antal utgående samtal för en specifik agent (exkluderar samtal till leads med status meeting_booked/customer och hoppade-över)."
   def total_calls(user_id) do
     uid = Ecto.UUID.dump!(user_id)
 
@@ -48,9 +50,11 @@ defmodule Saleflow.Stats do
         """
         SELECT COUNT(*) FROM phone_calls pc
         LEFT JOIN leads l ON l.id = pc.lead_id
+        LEFT JOIN call_logs cl ON cl.id = pc.call_log_id
         WHERE pc.user_id = $1
           AND pc.direction = 'outgoing'
           AND (l.status IS NULL OR l.status NOT IN ('meeting_booked', 'customer'))
+          AND (cl.outcome IS NULL OR cl.outcome != 'skipped')
         """,
         [uid]
       )
@@ -86,7 +90,7 @@ defmodule Saleflow.Stats do
   # Global stats (admin)
   # ---------------------------------------------------------------------------
 
-  @doc "Totalt antal utgående samtal idag (alla agenter, exkluderar samtal till leads med status meeting_booked/customer)."
+  @doc "Totalt antal utgående samtal idag (alla agenter, exkluderar samtal till leads med status meeting_booked/customer och hoppade-över)."
   def all_calls_today do
     today = Date.utc_today()
 
@@ -95,9 +99,11 @@ defmodule Saleflow.Stats do
         """
         SELECT COUNT(*) FROM phone_calls pc
         LEFT JOIN leads l ON l.id = pc.lead_id
+        LEFT JOIN call_logs cl ON cl.id = pc.call_log_id
         WHERE pc.received_at::date = $1
           AND pc.direction = 'outgoing'
           AND (l.status IS NULL OR l.status NOT IN ('meeting_booked', 'customer'))
+          AND (cl.outcome IS NULL OR cl.outcome != 'skipped')
         """,
         [today]
       )
@@ -105,15 +111,17 @@ defmodule Saleflow.Stats do
     count
   end
 
-  @doc "Totalt antal utgående samtal (alla agenter, all tid, exkluderar samtal till leads med status meeting_booked/customer)."
+  @doc "Totalt antal utgående samtal (alla agenter, all tid, exkluderar samtal till leads med status meeting_booked/customer och hoppade-över)."
   def all_total_calls do
     {:ok, %{rows: [[count]]}} =
       Repo.query(
         """
         SELECT COUNT(*) FROM phone_calls pc
         LEFT JOIN leads l ON l.id = pc.lead_id
+        LEFT JOIN call_logs cl ON cl.id = pc.call_log_id
         WHERE pc.direction = 'outgoing'
           AND (l.status IS NULL OR l.status NOT IN ('meeting_booked', 'customer'))
+          AND (cl.outcome IS NULL OR cl.outcome != 'skipped')
         """
       )
 
@@ -190,9 +198,11 @@ defmodule Saleflow.Stats do
       SELECT pc.user_id, COUNT(*) as cnt
       FROM phone_calls pc
       LEFT JOIN leads l ON l.id = pc.lead_id
+      LEFT JOIN call_logs cl ON cl.id = pc.call_log_id
       WHERE pc.received_at::date = CURRENT_DATE
         AND pc.direction = 'outgoing'
         AND (l.status IS NULL OR l.status NOT IN ('meeting_booked', 'customer'))
+        AND (cl.outcome IS NULL OR cl.outcome != 'skipped')
       GROUP BY pc.user_id
     ) c ON c.user_id = u.id
     LEFT JOIN (

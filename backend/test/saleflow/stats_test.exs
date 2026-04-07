@@ -81,6 +81,32 @@ defmodule Saleflow.StatsTest do
     call
   end
 
+  defp create_skipped_call!(user, opts \\ []) do
+    lead_id = Keyword.get(opts, :lead_id)
+    lead = if lead_id, do: nil, else: create_lead!()
+    actual_lead_id = lead_id || lead.id
+
+    {:ok, call_log} = Sales.log_call(%{
+      lead_id: actual_lead_id,
+      user_id: user.id,
+      outcome: :skipped,
+      notes: "Hoppade över"
+    })
+
+    params =
+      %{
+        user_id: user.id,
+        caller: "+46701111111",
+        callee: "+46702222222",
+        direction: :outgoing,
+        call_log_id: call_log.id
+      }
+      |> then(fn p -> Map.put(p, :lead_id, actual_lead_id) end)
+
+    {:ok, phone_call} = Sales.create_phone_call(params)
+    phone_call
+  end
+
   # ---------------------------------------------------------------------------
   # leaderboard/0
   # ---------------------------------------------------------------------------
@@ -119,6 +145,20 @@ defmodule Saleflow.StatsTest do
       assert row.meetings_booked_today == 1
       assert row.meetings_cancelled_today == 0
       assert row.net_meetings_today == 1
+    end
+
+    test "calls_today excludes skipped calls" do
+      user = create_user!()
+
+      create_outgoing_call!(user)
+      create_outgoing_call!(user)
+      create_skipped_call!(user)
+
+      rows = Stats.leaderboard()
+      row = Enum.find(rows, fn r -> r.user_id == user.id end)
+
+      assert row != nil
+      assert row.calls_today == 2
     end
 
     test "calls_today excludes calls to leads with meeting_booked or customer status" do
@@ -207,6 +247,16 @@ defmodule Saleflow.StatsTest do
 
       assert Stats.calls_today(user.id) == 2
     end
+
+    test "excludes skipped calls" do
+      user = create_user!()
+
+      create_outgoing_call!(user)
+      create_skipped_call!(user)
+      create_outgoing_call!(user)
+
+      assert Stats.calls_today(user.id) == 2
+    end
   end
 
   # ---------------------------------------------------------------------------
@@ -239,6 +289,15 @@ defmodule Saleflow.StatsTest do
     test "includes calls without a lead_id" do
       user = create_user!()
       create_outgoing_call!(user)
+      assert Stats.total_calls(user.id) == 1
+    end
+
+    test "excludes skipped calls" do
+      user = create_user!()
+
+      create_outgoing_call!(user)
+      create_skipped_call!(user)
+
       assert Stats.total_calls(user.id) == 1
     end
   end
@@ -275,6 +334,18 @@ defmodule Saleflow.StatsTest do
 
       assert Stats.all_calls_today() == 2
     end
+
+    test "excludes skipped calls" do
+      user1 = create_user!()
+      user2 = create_user!()
+
+      create_outgoing_call!(user1)
+      create_skipped_call!(user1)
+      create_outgoing_call!(user2)
+      create_skipped_call!(user2)
+
+      assert Stats.all_calls_today() == 2
+    end
   end
 
   # ---------------------------------------------------------------------------
@@ -300,6 +371,21 @@ defmodule Saleflow.StatsTest do
       user = create_user!()
       create_outgoing_call!(user)
       assert Stats.all_total_calls() >= 1
+    end
+
+    test "excludes skipped calls" do
+      user = create_user!()
+
+      create_outgoing_call!(user)
+      create_skipped_call!(user)
+
+      # all_total_calls is global so we can't assert exact count,
+      # but skipped should not be counted
+      real_calls = Stats.all_total_calls()
+
+      # Add another skipped — count should stay the same
+      create_skipped_call!(user)
+      assert Stats.all_total_calls() == real_calls
     end
   end
 

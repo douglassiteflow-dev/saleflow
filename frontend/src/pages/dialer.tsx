@@ -116,7 +116,7 @@ export function DialerPage() {
   function handleSkip() {
     if (!currentLeadId) return;
     skipOutcome.mutate(
-      { outcome: "no_answer", notes: "Hoppade över" },
+      { outcome: "skipped", notes: "Hoppade över" },
       { onSuccess: () => handleNextLead() },
     );
   }
