@@ -378,6 +378,15 @@ export interface DealDetailData {
   audit_logs: AuditLog[];
 }
 
+export interface Contact {
+  id: string;
+  lead_id: string;
+  name: string;
+  role: string | null;
+  phone: string | null;
+  email: string | null;
+}
+
 export type DemoStage =
   | "meeting_booked"
   | "generating"

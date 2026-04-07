@@ -69,7 +69,7 @@ export function useNextLead() {
 export function useUpdateLead(leadId: string) {
   const queryClient = useQueryClient();
 
-  return useMutation<Lead, ApiError, { telefon_2?: string | null }>({
+  return useMutation<Lead, ApiError, { telefon_2?: string | null; epost?: string; hemsida?: string }>({
     mutationFn: async (params) => {
       const data = await api<{ lead: Lead }>(`/api/leads/${leadId}`, {
         method: "PATCH",
