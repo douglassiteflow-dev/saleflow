@@ -14,7 +14,7 @@ import { DemoDetailTab } from "@/components/dialer/demo-detail-tab";
 import { CustomersTab } from "@/components/dialer/customers-tab";
 import { ReportTab } from "@/components/dialer/report-tab";
 import { UpdateBanner } from "@/components/dialer/update-banner";
-import { CallModal } from "@/components/dialer/call-modal";
+import { CustomerModal } from "@/components/dialer/customer-modal";
 import { RecordingPlayer } from "@/components/recording-player";
 import { CallAnalysisModal, ScoreStars } from "@/components/call-analysis-modal";
 import { AudioPlayerBar } from "@/components/audio-player-bar";
@@ -28,7 +28,7 @@ import {
 import { useCallHistory } from "@/api/calls";
 import { useMeetings, useCancelMeeting, useUpdateMeeting } from "@/api/meetings";
 import { useMe } from "@/api/auth";
-import { useDial, useTelavoxStatus, useTelavoxConnect, useTelavoxDisconnect } from "@/api/telavox";
+import { useDial, useHangup, useTelavoxStatus, useTelavoxConnect, useTelavoxDisconnect } from "@/api/telavox";
 import { useMicrosoftStatus, useMicrosoftAuthorize, useMicrosoftDisconnect } from "@/api/microsoft";
 import { useMySessions, useLogoutAll } from "@/api/sessions";
 import { formatPhone, formatDateTime, formatCurrency, formatDate, formatTime, formatDuration } from "@/lib/format";
@@ -87,7 +87,11 @@ export function DialerPage() {
   /* --- dial (Telavox) --- */
   const { data: telavoxStatus } = useTelavoxStatus();
   const dial = useDial();
+  const hangup = useHangup();
   const [callModalOpen, setCallModalOpen] = useState(false);
+  const [callStart, setCallStart] = useState(0);
+  const [callHungUp, setCallHungUp] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   /* --- skip outcome --- */
@@ -128,8 +132,20 @@ export function DialerPage() {
   function handleDial() {
     if (!currentLeadId) return;
     dial.mutate(currentLeadId, {
-      onSuccess: () => setCallModalOpen(true),
+      onSuccess: () => {
+        setCallStart(Date.now());
+        setCallHungUp(false);
+        setCallDuration(0);
+        setCallModalOpen(true);
+      },
     });
+  }
+
+  function handleHangup() {
+    const dur = Math.floor((Date.now() - callStart) / 1000);
+    setCallDuration(dur);
+    setCallHungUp(true);
+    hangup.mutate();
   }
 
   function handleCallModalClose() {
@@ -276,11 +292,15 @@ export function DialerPage() {
       </div>
 
       {/* Call modal */}
-      {callModalOpen && currentLeadId && lead && (
-        <CallModal
-          lead={lead}
+      {callModalOpen && currentLeadId && (
+        <CustomerModal
           leadId={currentLeadId}
-          onClose={handleCallModalClose}
+          phoneNumber={lead?.telefon ?? ""}
+          callStart={callStart}
+          hungUp={callHungUp}
+          duration={callDuration}
+          onHangup={handleHangup}
+          onOutcomeSubmitted={handleCallModalClose}
         />
       )}
     </div>
