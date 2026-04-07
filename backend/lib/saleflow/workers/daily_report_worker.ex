@@ -10,8 +10,11 @@ defmodule Saleflow.Workers.DailyReportWorker do
   require Logger
 
   @impl Oban.Worker
-  def perform(_job) do
-    today = Date.utc_today()
+  def perform(%Oban.Job{args: args}) do
+    today = case args["date"] do
+      nil -> Date.utc_today()
+      date_str -> Date.from_iso8601!(date_str)
+    end
 
     agents = get_agents()
 
