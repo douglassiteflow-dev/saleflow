@@ -161,9 +161,14 @@ defmodule SaleflowWeb.DemoConfigController do
   # SSE helpers
   # ---------------------------------------------------------------------------
 
-  @sse_timeout_ms 15 * 60 * 1_000
+  @default_sse_timeout_ms 15 * 60 * 1_000
 
-  defp stream_loop(conn, id) do
+  defp sse_timeout_ms do
+    Application.get_env(:saleflow, :sse_timeout_ms, @default_sse_timeout_ms)
+  end
+
+  @doc false
+  def stream_loop(conn, id) do
     receive do
       {:demo_generation, %{status: status} = payload} ->
         data = Jason.encode!(payload)
@@ -182,7 +187,7 @@ defmodule SaleflowWeb.DemoConfigController do
             conn
         end
     after
-      @sse_timeout_ms ->
+      sse_timeout_ms() ->
         chunk(conn, "event: timeout\ndata: {}\n\n")
         Phoenix.PubSub.unsubscribe(Saleflow.PubSub, "demo_generation:#{id}")
         conn
@@ -211,10 +216,8 @@ defmodule SaleflowWeb.DemoConfigController do
   end
 
   defp build_global_user_name_map do
-    case Accounts.list_users() do
-      {:ok, users} -> Enum.into(users, %{}, fn u -> {u.id, u.name} end)
-      _ -> %{}
-    end
+    {:ok, users} = Accounts.list_users()
+    Enum.into(users, %{}, fn u -> {u.id, u.name} end)
   end
 
   defp serialize_simple(dc, user_names \\ %{}) do
