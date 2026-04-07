@@ -70,6 +70,7 @@ defmodule Saleflow.Sales do
     resource Saleflow.Sales.Goal
     resource Saleflow.Sales.LeadComment
     resource Saleflow.Sales.Deal
+    resource Saleflow.Sales.DemoConfig
     resource Saleflow.Notifications.Notification
   end
 
@@ -755,6 +756,98 @@ defmodule Saleflow.Sales do
     Saleflow.Sales.Meeting
     |> Ash.Query.filter(deal_id == ^deal_id)
     |> Ash.Query.sort(meeting_date: :asc, meeting_time: :asc)
+    |> Ash.read()
+  end
+
+  # ---------------------------------------------------------------------------
+  # DemoConfig functions
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Creates a new demo config for a lead.
+
+  Required params: `:lead_id`, `:user_id`
+  Optional params: `:source_url`, `:notes`
+  """
+  def create_demo_config(params) do
+    Saleflow.Sales.DemoConfig
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create()
+  end
+
+  @doc """
+  Transitions a demo config from meeting_booked to generating.
+  """
+  def start_generation(demo_config) do
+    demo_config
+    |> Ash.Changeset.for_update(:start_generation, %{})
+    |> Ash.update()
+  end
+
+  @doc """
+  Transitions a demo config from generating to demo_ready,
+  saving the website_path and preview_url.
+  """
+  def generation_complete(demo_config, params) do
+    demo_config
+    |> Ash.Changeset.for_update(:generation_complete, params)
+    |> Ash.update()
+  end
+
+  @doc """
+  Records a generation failure error on a demo config.
+  Stage stays as generating.
+  """
+  def generation_failed(demo_config, params) do
+    demo_config
+    |> Ash.Changeset.for_update(:generation_failed, params)
+    |> Ash.update()
+  end
+
+  @doc """
+  Transitions a demo config from demo_ready to followup.
+  """
+  def advance_to_followup(demo_config) do
+    demo_config
+    |> Ash.Changeset.for_update(:advance_to_followup, %{})
+    |> Ash.update()
+  end
+
+  @doc """
+  Cancels a demo config (from any stage).
+  """
+  def cancel_demo_config(demo_config) do
+    demo_config
+    |> Ash.Changeset.for_update(:cancel, %{})
+    |> Ash.update()
+  end
+
+  @doc """
+  Gets a demo config by ID.
+  """
+  def get_demo_config(id) do
+    Saleflow.Sales.DemoConfig
+    |> Ash.get(id)
+  end
+
+  @doc """
+  Returns all demo configs.
+  """
+  def list_demo_configs do
+    Saleflow.Sales.DemoConfig
+    |> Ash.Query.sort(inserted_at: :desc)
+    |> Ash.read()
+  end
+
+  @doc """
+  Returns demo configs for a user, excluding cancelled, sorted by inserted_at desc.
+  """
+  def list_demo_configs_for_user(user_id) do
+    require Ash.Query
+
+    Saleflow.Sales.DemoConfig
+    |> Ash.Query.filter(user_id == ^user_id and stage != :cancelled)
+    |> Ash.Query.sort(inserted_at: :desc)
     |> Ash.read()
   end
 
