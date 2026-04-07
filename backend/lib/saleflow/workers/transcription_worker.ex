@@ -1,8 +1,15 @@
 defmodule Saleflow.Workers.TranscriptionWorker do
   @moduledoc """
-  Two-step call transcription:
-  1. OpenAI Whisper → raw transcription
-  2. Claude → structured analysis (speakers, summary, score, key info)
+  Call transcription and analysis using AssemblyAI Universal-2 + LeMUR.
+
+  Flow:
+  1. Generate presigned R2 URL for the recording
+  2. Submit to AssemblyAI for transcription (speaker labels, sentiment, chapters, summary)
+  3. Poll until complete
+  4. Calculate talk ratio from utterances (speaker A = seller, B = customer)
+  5. Send transcript to LeMUR with 25-point scorecard prompt + playbook
+  6. Parse scorecard JSON, build unified transcription_analysis (bakåtkompatibelt)
+  7. Save all fields to DB
 
   Triggered for calls with outcome meeting_booked that have a recording.
   """
@@ -14,12 +21,56 @@ defmodule Saleflow.Workers.TranscriptionWorker do
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"phone_call_id" => phone_call_id}}) do
     with {:ok, recording_key} <- get_recording(phone_call_id),
-         {:ok, mp3_data} <- download_from_r2(recording_key),
-         {:ok, raw_text} <- whisper_transcribe(mp3_data),
-         {:ok, analysis} <- claude_analyze(raw_text) do
-      save(phone_call_id, raw_text, analysis)
-      Logger.info("TranscriptionWorker: #{phone_call_id} done")
-      :ok
+         {:ok, presigned_url} <- Saleflow.Storage.presigned_url(recording_key),
+         {:ok, transcript_id} <- assemblyai_client().transcribe(presigned_url, %{}),
+         {:ok, result} <- poll_transcript(transcript_id) do
+      raw_text = build_raw_text(result)
+      talk_ratio = calculate_talk_ratio(result["utterances"])
+      sentiment = extract_sentiment(result)
+
+      case run_lemur_scorecard(transcript_id) do
+        {:ok, analysis} ->
+          scorecard_avg = calculate_scorecard_avg(analysis["scorecard"])
+
+          unified = build_unified_analysis(analysis, result, talk_ratio)
+
+          save(phone_call_id, %{
+            transcription: raw_text,
+            transcription_analysis: unified,
+            call_summary: analysis["summary"] || result["summary"],
+            assemblyai_transcript_id: transcript_id,
+            talk_ratio_seller: talk_ratio["seller_pct"],
+            sentiment: sentiment,
+            scorecard_avg: scorecard_avg
+          })
+
+          Logger.info("TranscriptionWorker: #{phone_call_id} done (full scorecard)")
+          :ok
+
+        {:error, lemur_reason} ->
+          Logger.warning(
+            "TranscriptionWorker: #{phone_call_id} LeMUR failed: #{inspect(lemur_reason)}, saving transcription only"
+          )
+
+          basic_analysis = %{
+            "talk_ratio" => talk_ratio,
+            "sentiment" => sentiment,
+            "summary" => result["summary"],
+            "lemur_error" => inspect(lemur_reason)
+          }
+
+          save(phone_call_id, %{
+            transcription: raw_text,
+            transcription_analysis: basic_analysis,
+            call_summary: result["summary"],
+            assemblyai_transcript_id: transcript_id,
+            talk_ratio_seller: talk_ratio["seller_pct"],
+            sentiment: sentiment,
+            scorecard_avg: nil
+          })
+
+          :ok
+      end
     else
       {:error, :no_recording} ->
         Logger.info("TranscriptionWorker: #{phone_call_id} no recording, skipping")
@@ -31,54 +82,156 @@ defmodule Saleflow.Workers.TranscriptionWorker do
     end
   end
 
-  # --- Step 1: Whisper ---
+  # ---------------------------------------------------------------------------
+  # AssemblyAI polling
+  # ---------------------------------------------------------------------------
 
-  defp whisper_transcribe(mp3_data) do
-    api_key = Application.get_env(:saleflow, :openai_api_key, "")
-    if api_key == "", do: throw({:error, "OPENAI_API_KEY not set"})
+  defp poll_transcript(transcript_id) do
+    case assemblyai_client().get_transcript(transcript_id) do
+      {:ok, %{"status" => "completed"} = result} ->
+        word_count =
+          result
+          |> Map.get("text", "")
+          |> String.split(~r/\s+/, trim: true)
+          |> length()
 
-    boundary = "----Whisper#{:rand.uniform(999_999)}"
+        if word_count < 10 do
+          {:ok, Map.put(result, "__voicemail", true)}
+        else
+          {:ok, result}
+        end
 
-    body =
-      "--#{boundary}\r\n" <>
-        "Content-Disposition: form-data; name=\"file\"; filename=\"call.mp3\"\r\n" <>
-        "Content-Type: audio/mpeg\r\n\r\n" <>
-        mp3_data <>
-        "\r\n--#{boundary}\r\n" <>
-        "Content-Disposition: form-data; name=\"model\"\r\n\r\nwhisper-1\r\n" <>
-        "--#{boundary}--\r\n"
+      {:ok, %{"status" => "error", "error" => error}} ->
+        {:error, {:transcription_failed, error}}
 
-    case Req.post("https://api.openai.com/v1/audio/transcriptions",
-           body: body,
-           headers: [
-             {"authorization", "Bearer #{api_key}"},
-             {"content-type", "multipart/form-data; boundary=#{boundary}"}
-           ],
-           receive_timeout: 120_000
-         ) do
-      {:ok, %{status: 200, body: %{"text" => text}}} -> {:ok, text}
-      {:ok, %{status: s, body: b}} -> {:error, "Whisper #{s}: #{inspect(b)}"}
-      {:error, reason} -> {:error, reason}
+      {:ok, %{"status" => _}} ->
+        # Still processing -- poll again after delay
+        Process.sleep(3_000)
+        poll_transcript(transcript_id)
+
+      {:error, _} = err ->
+        err
     end
   end
 
-  # --- Step 2: Claude ---
+  # ---------------------------------------------------------------------------
+  # Talk ratio
+  # ---------------------------------------------------------------------------
+
+  defp calculate_talk_ratio(utterances) do
+    {seller_ms, customer_ms} =
+      Enum.reduce(utterances || [], {0, 0}, fn u, {s, c} ->
+        duration = (u["end"] || 0) - (u["start"] || 0)
+        if u["speaker"] == "A", do: {s + duration, c}, else: {s, c + duration}
+      end)
+
+    total = max(seller_ms + customer_ms, 1)
+    seller_pct = round(seller_ms / total * 100)
+
+    %{
+      "seller_pct" => seller_pct,
+      "customer_pct" => 100 - seller_pct,
+      "longest_monolog_seconds" => calculate_longest_monolog(utterances),
+      "avg_seller_turn_seconds" => calculate_avg_turn(utterances, "A"),
+      "avg_customer_turn_seconds" => calculate_avg_turn(utterances, "B")
+    }
+  end
+
+  defp calculate_longest_monolog(nil), do: 0
+
+  defp calculate_longest_monolog(utterances) do
+    utterances
+    |> Enum.map(fn u -> ((u["end"] || 0) - (u["start"] || 0)) / 1_000 end)
+    |> Enum.max(fn -> 0 end)
+    |> round()
+  end
+
+  defp calculate_avg_turn(nil, _speaker), do: 0
+
+  defp calculate_avg_turn(utterances, speaker) do
+    turns =
+      utterances
+      |> Enum.filter(fn u -> u["speaker"] == speaker end)
+      |> Enum.map(fn u -> ((u["end"] || 0) - (u["start"] || 0)) / 1_000 end)
+
+    case turns do
+      [] -> 0
+      list -> round(Enum.sum(list) / length(list))
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Sentiment
+  # ---------------------------------------------------------------------------
+
+  defp extract_sentiment(%{"sentiment_analysis_results" => results}) when is_list(results) do
+    counts =
+      Enum.reduce(results, %{"POSITIVE" => 0, "NEUTRAL" => 0, "NEGATIVE" => 0}, fn r, acc ->
+        sentiment = r["sentiment"] || "NEUTRAL"
+        Map.update(acc, sentiment, 1, &(&1 + 1))
+      end)
+
+    # Return the dominant sentiment
+    {dominant, _} = Enum.max_by(counts, fn {_k, v} -> v end)
+    String.downcase(dominant)
+  end
+
+  defp extract_sentiment(_), do: "neutral"
+
+  # ---------------------------------------------------------------------------
+  # LeMUR scorecard
+  # ---------------------------------------------------------------------------
+
+  defp run_lemur_scorecard(transcript_id) do
+    playbook = get_active_playbook()
+    prompt = build_lemur_prompt(playbook)
+
+    case assemblyai_client().lemur_task([transcript_id], prompt, %{}) do
+      {:ok, %{"response" => response_text}} ->
+        parse_lemur_response(response_text)
+
+      {:error, _} = err ->
+        err
+    end
+  end
+
+  defp parse_lemur_response(text) when is_binary(text) do
+    # Strip markdown code fences if present
+    cleaned =
+      text
+      |> String.replace(~r/```json\s*/, "")
+      |> String.replace(~r/```\s*/, "")
+      |> String.trim()
+
+    case Jason.decode(cleaned) do
+      {:ok, parsed} -> {:ok, parsed}
+      {:error, _} -> {:error, {:json_parse_error, text}}
+    end
+  end
+
+  defp parse_lemur_response(text) when is_map(text), do: {:ok, text}
 
   defp get_active_playbook do
     case Saleflow.Repo.query(
            "SELECT opening, pitch, objections, closing, guidelines FROM playbooks WHERE active = true LIMIT 1"
          ) do
       {:ok, %{rows: [[opening, pitch, objections, closing, guidelines]]}} ->
-        %{opening: opening, pitch: pitch, objections: objections, closing: closing, guidelines: guidelines}
+        %{
+          opening: opening,
+          pitch: pitch,
+          objections: objections,
+          closing: closing,
+          guidelines: guidelines
+        }
 
       _ ->
         nil
     end
   end
 
-  defp playbook_prompt(nil), do: ""
+  defp playbook_section(nil), do: ""
 
-  defp playbook_prompt(playbook) do
+  defp playbook_section(playbook) do
     """
 
     FÖRETAGETS PLAYBOOK (bedöm samtalet mot detta):
@@ -102,93 +255,146 @@ defmodule Saleflow.Workers.TranscriptionWorker do
     """
   end
 
-  defp claude_analyze(raw_text) do
-    api_key = Application.get_env(:saleflow, :anthropic_api_key, "")
-    if api_key == "", do: throw({:error, "ANTHROPIC_API_KEY not set"})
-
-    playbook = get_active_playbook()
-
-    prompt = """
-    Du är en erfaren säljcoach som analyserar inspelade säljsamtal. Samtalet är mellan en säljare och en potentiell kund.
-    #{playbook_prompt(playbook)}
-    Här är den råa transkriptionen (kan innehålla felstavningar och grammatikfel från tal-till-text):
-    ---
-    #{raw_text}
-    ---
-
+  defp build_lemur_prompt(playbook) do
+    """
+    Du är en erfaren säljcoach som analyserar inspelade säljsamtal.
+    #{playbook_section(playbook)}
     INSTRUKTIONER:
-    1. Avgör FÖRST om detta är en telefonsvarare/röstbrevlåda. Om det bara är ett automatiskt meddelande (typ "Välkommen till röstbrevlådan", "Lämna ett meddelande efter signalen") — returnera: {"voicemail": true, "summary": "Telefonsvarare/röstbrevlåda"} och INGET annat.
-    2. Om det är ett riktigt samtal: Rätta ALL text grammatiskt. Fixa felstavningar, hörfel och tal-till-text-artefakter. Gör texten naturlig och lättläst men behåll innebörden och tonen exakt.
-    3. Separera vem som pratar (säljare vs kund) baserat på kontext.
-    4. Ge detaljerad feedback som CITERAR specifika delar av samtalet.
+    1. Avgör FÖRST om detta är en telefonsvarare/röstbrevlåda. Om det bara är ett automatiskt meddelande — returnera: {"voicemail": true} och INGET annat.
+    2. Om det är ett riktigt samtal, analysera det med 25-punkts scorecard nedan.
+    3. Speaker A = säljare, Speaker B = kund.
 
-    Om det är ett RIKTIGT samtal, returnera EXAKT detta JSON-format (inget annat):
+    Returnera EXAKT detta JSON-format (inget annat):
     {
-      "conversation": [
-        {"speaker": "Säljare", "text": "Grammatiskt korrekt text..."},
-        {"speaker": "Kund", "text": "Grammatiskt korrekt text..."}
-      ],
-      "summary": "2-3 meningar som sammanfattar samtalet och utfallet",
-      "meeting_time": "om ett möte bokades, exakt tid och datum som nämndes, annars null",
-      "customer_needs": ["konkret behov som kunden uttryckte"],
-      "objections": ["invändning kunden hade"],
-      "positive_signals": ["positiva signaler från kunden, t.ex. 'vi är intresserade'"],
-      "score": {
+      "voicemail": false,
+      "scorecard": {
         "opening": {
-          "score": 7,
-          "comment": "Referera till exakt vad säljaren sa i öppningen och vad som var bra/dåligt. Citera."
+          "q1_greeting": {"score": 7, "comment": "Hälsade professionellt med namn"},
+          "q2_introduction": {"score": 6, "comment": "Presenterade företaget men inte syftet tydligt"},
+          "q3_rapport": {"score": 5, "comment": "Ingen småprat eller personlig koppling"},
+          "q4_permission": {"score": 8, "comment": "Frågade om det passade att prata"},
+          "q5_hook": {"score": 4, "comment": "Saknade tydlig hook eller värdeerbjudande"}
         },
         "needs_discovery": {
-          "score": 5,
-          "comment": "Vilka frågor ställdes? Vilka missades? Citera specifika delar."
+          "q1_open_questions": {"score": 7, "comment": "Ställde öppna frågor om behov"},
+          "q2_active_listening": {"score": 6, "comment": "Bekräftade kundens svar"},
+          "q3_pain_points": {"score": 5, "comment": "Identifierade delvis smärtpunkter"},
+          "q4_current_situation": {"score": 7, "comment": "Kartlade nuvarande lösning"},
+          "q5_decision_process": {"score": 4, "comment": "Frågade inte om beslutsprocessen"}
         },
         "pitch": {
-          "score": 7,
-          "comment": "Hur presenterades produkten? Kopplades den till kundens behov? Citera."
+          "q1_value_proposition": {"score": 7, "comment": "Tydligt värdeerbjudande"},
+          "q2_customization": {"score": 6, "comment": "Anpassade pitch till kundens behov"},
+          "q3_proof_points": {"score": 5, "comment": "Använde referenskunder"},
+          "q4_differentiation": {"score": 7, "comment": "Skilde sig från konkurrenter"},
+          "q5_engagement": {"score": 6, "comment": "Kontrollerade kundens intresse"}
         },
         "objection_handling": {
-          "score": 6,
-          "comment": "Hur hanterades invändningar? Citera vad kunden sa och hur säljaren svarade."
+          "q1_acknowledge": {"score": 7, "comment": "Bekräftade invändningen"},
+          "q2_clarify": {"score": 6, "comment": "Ställde följdfråga"},
+          "q3_respond": {"score": 5, "comment": "Svarade med relevant argument"},
+          "q4_confirm": {"score": 7, "comment": "Bekräftade att invändningen var hanterad"},
+          "q5_pivot": {"score": 6, "comment": "Styrde tillbaka till värde"}
         },
         "closing": {
-          "score": 8,
-          "comment": "Hur avslutades samtalet? Bokades nästa steg? Citera."
-        },
-        "overall": 7,
-        "top_feedback": "Sammanfattande coaching: vad var bäst, vad ska förbättras till nästa samtal. Var specifik och referera till samtalet."
+          "q1_summary": {"score": 7, "comment": "Sammanfattade samtalet"},
+          "q2_next_step": {"score": 8, "comment": "Föreslog tydligt nästa steg"},
+          "q3_commitment": {"score": 6, "comment": "Fick verbalt åtagande"},
+          "q4_timeline": {"score": 5, "comment": "Satte tidslinje"},
+          "q5_professional_end": {"score": 7, "comment": "Avslutade professionellt"}
+        }
+      },
+      "score": {
+        "opening": {"score": 6, "comment": "Sammanfattande bedömning av öppningen"},
+        "needs_discovery": {"score": 6, "comment": "Sammanfattande bedömning av behovsanalys"},
+        "pitch": {"score": 6, "comment": "Sammanfattande bedömning av pitch"},
+        "objection_handling": {"score": 6, "comment": "Sammanfattande bedömning av invändningshantering"},
+        "closing": {"score": 7, "comment": "Sammanfattande bedömning av avslut"},
+        "overall": 6,
+        "top_feedback": "Sammanfattande coaching med specifika citat från samtalet."
+      },
+      "summary": "2-3 meningar som sammanfattar samtalet och utfallet",
+      "customer_needs": ["konkret behov 1", "konkret behov 2"],
+      "objections": ["invändning 1"],
+      "positive_signals": ["positiv signal 1"],
+      "action_items": ["nästa steg 1", "nästa steg 2"],
+      "keywords": {
+        "competitors": [{"name": "Företag X", "timestamp": "02:15"}],
+        "buying_signals": [{"signal": "vi är intresserade", "timestamp": "05:30"}],
+        "red_flags": [{"flag": "vi har redan en leverantör", "timestamp": "01:45"}]
       }
     }
 
-    Poäng 1-10 där 10 är perfekt. Var ärlig och konstruktiv. Svara BARA med JSON, inget annat.
+    Poäng 1-10 där 10 är perfekt. Var ärlig och konstruktiv. Citera specifika delar av samtalet.
+    Fältet "score" är för bakåtkompatibilitet — fyll i det också med kategorisnitt.
+    Svara BARA med JSON, inget annat.
     """
+  end
 
-    body = Jason.encode!(%{
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
-      messages: [%{role: "user", content: prompt}]
-    })
+  # ---------------------------------------------------------------------------
+  # Build raw text from utterances
+  # ---------------------------------------------------------------------------
 
-    case Req.post("https://api.anthropic.com/v1/messages",
-           body: body,
-           headers: [
-             {"x-api-key", api_key},
-             {"anthropic-version", "2023-06-01"},
-             {"content-type", "application/json"}
-           ],
-           receive_timeout: 60_000
-         ) do
-      {:ok, %{status: 200, body: %{"content" => [%{"text" => text} | _]}}} ->
-        case Jason.decode(text) do
-          {:ok, analysis} -> {:ok, analysis}
-          {:error, _} -> {:ok, %{"raw_analysis" => text}}
+  defp build_raw_text(%{"utterances" => utterances}) when is_list(utterances) do
+    utterances
+    |> Enum.map(fn u ->
+      speaker = if u["speaker"] == "A", do: "Säljare", else: "Kund"
+      "#{speaker}: #{u["text"]}"
+    end)
+    |> Enum.join("\n")
+  end
+
+  defp build_raw_text(%{"text" => text}), do: text
+  defp build_raw_text(_), do: ""
+
+  # ---------------------------------------------------------------------------
+  # Scorecard average
+  # ---------------------------------------------------------------------------
+
+  defp calculate_scorecard_avg(nil), do: nil
+
+  defp calculate_scorecard_avg(scorecard) when is_map(scorecard) do
+    scores =
+      scorecard
+      |> Enum.flat_map(fn {_category, questions} ->
+        if is_map(questions) do
+          questions
+          |> Enum.map(fn {_q, %{"score" => s}} -> s end)
+          |> Enum.filter(&is_number/1)
+        else
+          []
         end
+      end)
 
-      {:ok, %{status: s, body: b}} -> {:error, "Claude #{s}: #{inspect(b)}"}
-      {:error, reason} -> {:error, reason}
+    case scores do
+      [] -> nil
+      list -> Float.round(Enum.sum(list) / length(list), 1)
     end
   end
 
-  # --- Storage ---
+  defp calculate_scorecard_avg(_), do: nil
+
+  # ---------------------------------------------------------------------------
+  # Build unified analysis (bakåtkompatibelt)
+  # ---------------------------------------------------------------------------
+
+  defp build_unified_analysis(analysis, result, talk_ratio) do
+    voicemail = analysis["voicemail"] == true
+
+    if voicemail do
+      %{"voicemail" => true, "summary" => "Telefonsvarare/röstbrevlåda"}
+    else
+      analysis
+      |> Map.put("talk_ratio", talk_ratio)
+      |> Map.put("assemblyai_summary", result["summary"])
+      |> Map.put("chapters", result["auto_chapters_result"])
+      |> Map.put("entities", result["entities"])
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Storage
+  # ---------------------------------------------------------------------------
 
   defp get_recording(phone_call_id) do
     case Saleflow.Repo.query(
@@ -200,21 +406,39 @@ defmodule Saleflow.Workers.TranscriptionWorker do
     end
   end
 
-  defp download_from_r2(key) do
-    bucket = Application.get_env(:saleflow, :r2_bucket, "saleflow-inspelningar")
-
-    case ExAws.S3.get_object(bucket, key) |> ExAws.request() do
-      {:ok, %{body: data}} -> {:ok, data}
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  defp save(phone_call_id, raw_text, analysis) do
-    analysis_json = Jason.encode!(analysis)
+  defp save(phone_call_id, fields) do
+    analysis_json = Jason.encode!(fields.transcription_analysis)
 
     Saleflow.Repo.query(
-      "UPDATE phone_calls SET transcription = $1, transcription_analysis = $2 WHERE id = $3",
-      [raw_text, analysis_json, Ecto.UUID.dump!(phone_call_id)]
+      """
+      UPDATE phone_calls SET
+        transcription = $1,
+        transcription_analysis = $2,
+        call_summary = $3,
+        assemblyai_transcript_id = $4,
+        talk_ratio_seller = $5,
+        sentiment = $6,
+        scorecard_avg = $7
+      WHERE id = $8
+      """,
+      [
+        fields.transcription,
+        analysis_json,
+        fields.call_summary,
+        fields.assemblyai_transcript_id,
+        fields.talk_ratio_seller,
+        fields.sentiment,
+        fields.scorecard_avg,
+        Ecto.UUID.dump!(phone_call_id)
+      ]
     )
+  end
+
+  # ---------------------------------------------------------------------------
+  # Configurable client (for Mox)
+  # ---------------------------------------------------------------------------
+
+  defp assemblyai_client do
+    Application.get_env(:saleflow, :assemblyai_client, Saleflow.AssemblyAI.Client)
   end
 end

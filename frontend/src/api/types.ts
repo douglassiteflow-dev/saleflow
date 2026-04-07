@@ -423,3 +423,37 @@ export interface DemoConfigDetail extends DemoConfig {
     status: string;
   }[];
 }
+
+export interface ScorecardQuestion {
+  score: number;
+  comment: string;
+}
+
+export interface ScorecardCategory {
+  [question: string]: ScorecardQuestion | number;
+  avg: number;
+}
+
+export interface Scorecard {
+  opening: ScorecardCategory;
+  discovery: ScorecardCategory;
+  pitch: ScorecardCategory;
+  objection_handling: ScorecardCategory;
+  closing: ScorecardCategory;
+  overall_avg: number;
+}
+
+export interface TalkRatio {
+  seller_pct: number;
+  customer_pct: number;
+  longest_monolog_seconds: number;
+  avg_seller_turn_seconds: number;
+  avg_customer_turn_seconds: number;
+}
+
+export interface SentimentAnalysis {
+  overall: "POSITIVE" | "NEGATIVE" | "NEUTRAL";
+  positive_pct: number;
+  negative_pct: number;
+  neutral_pct: number;
+}

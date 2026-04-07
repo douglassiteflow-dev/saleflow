@@ -1,4 +1,6 @@
-import { X } from "lucide-react";
+import { useState } from "react";
+import { X, ChevronDown, ChevronRight } from "lucide-react";
+import type { Scorecard, TalkRatio, SentimentAnalysis } from "@/api/types";
 
 interface ScoreDetail {
   score: number;
@@ -21,6 +23,9 @@ interface Analysis {
     overall: number;
     top_feedback: string;
   };
+  scorecard?: Scorecard;
+  talk_ratio?: TalkRatio;
+  sentiment?: SentimentAnalysis;
 }
 
 interface Props {
@@ -70,8 +75,244 @@ function Tag({ children, color }: { children: string; color: string }) {
   );
 }
 
+function scorePct(score: number, max: number) {
+  return (score / max) * 100;
+}
+
+function scoreColor(score: number) {
+  if (score >= 8) return "bg-emerald-500";
+  if (score >= 6) return "bg-amber-400";
+  if (score >= 4) return "bg-orange-400";
+  return "bg-red-500";
+}
+
+interface ScorecardCategoryRowProps {
+  label: string;
+  categoryKey: keyof Scorecard;
+  scorecard: Scorecard;
+}
+
+function ScorecardCategoryRow({ label, categoryKey, scorecard }: ScorecardCategoryRowProps) {
+  const [expanded, setExpanded] = useState(false);
+  const category = scorecard[categoryKey] as Record<string, { score: number; comment: string } | number>;
+  const avg = typeof category.avg === "number" ? category.avg : 0;
+  const pct = scorePct(avg, 10);
+  const color = scoreColor(avg);
+
+  const questions = Object.entries(category).filter(
+    ([key]) => key !== "avg",
+  ) as [string, { score: number; comment: string }][];
+
+  return (
+    <div className="space-y-1">
+      <button
+        type="button"
+        className="w-full flex items-center gap-2 group"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+      >
+        <span className="text-[var(--color-text-secondary)] shrink-0">
+          {expanded ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" />
+          )}
+        </span>
+        <span className="text-[13px] font-medium text-[var(--color-text-primary)] flex-1 text-left">
+          {label}
+        </span>
+        <span className="text-[13px] font-mono text-[var(--color-text-secondary)]">
+          {avg.toFixed(1)}/10
+        </span>
+      </button>
+      <div className="ml-5 h-2 rounded-full bg-[var(--color-bg-panel)] overflow-hidden">
+        <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
+      </div>
+
+      {expanded && questions.length > 0 && (
+        <div className="ml-5 mt-2 space-y-3 border-l-2 border-[var(--color-border)] pl-3">
+          {questions.map(([question, detail]) => {
+            const qPct = scorePct(detail.score, 5);
+            const qColor = scoreColor((detail.score / 5) * 10);
+            return (
+              <div key={question} className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] text-[var(--color-text-primary)]">{question}</span>
+                  <span className="text-[12px] font-mono text-[var(--color-text-secondary)]">
+                    {detail.score}/5
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-[var(--color-bg-panel)] overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${qColor} transition-all`}
+                    style={{ width: `${qPct}%` }}
+                  />
+                </div>
+                {detail.comment && (
+                  <p className="text-[11px] text-[var(--color-text-secondary)] italic leading-relaxed">
+                    &ldquo;{detail.comment}&rdquo;
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TalkRatioSection({ talkRatio }: { talkRatio: TalkRatio }) {
+  const sellerPct = Math.round(talkRatio.seller_pct);
+  const customerPct = Math.round(talkRatio.customer_pct);
+  const tooMuchTalk = talkRatio.seller_pct > 65;
+  const longMonolog = talkRatio.longest_monolog_seconds > 60;
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">
+        Talfördelning
+      </h3>
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between text-[12px] text-[var(--color-text-secondary)]">
+          <span>Säljare {sellerPct}%</span>
+          <span>Kund {customerPct}%</span>
+        </div>
+        <div className="h-3 rounded-full overflow-hidden flex">
+          <div
+            data-testid="seller-bar"
+            className="h-full bg-indigo-400 transition-all"
+            style={{ width: `${sellerPct}%` }}
+          />
+          <div
+            data-testid="customer-bar"
+            className="h-full bg-emerald-400 flex-1 transition-all"
+          />
+        </div>
+        <div className="flex items-center gap-3 text-[11px] text-[var(--color-text-secondary)]">
+          <span className="flex items-center gap-1">
+            <span className="inline-block h-2 w-2 rounded-full bg-indigo-400" />
+            Säljare
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
+            Kund
+          </span>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 text-[12px] text-[var(--color-text-secondary)]">
+        <span>
+          Längsta monolog:{" "}
+          <span className="font-medium text-[var(--color-text-primary)]">
+            {talkRatio.longest_monolog_seconds}s
+          </span>
+        </span>
+        <span>·</span>
+        <span>
+          Snitt säljare/tur:{" "}
+          <span className="font-medium text-[var(--color-text-primary)]">
+            {talkRatio.avg_seller_turn_seconds}s
+          </span>
+        </span>
+        <span>·</span>
+        <span>
+          Snitt kund/tur:{" "}
+          <span className="font-medium text-[var(--color-text-primary)]">
+            {talkRatio.avg_customer_turn_seconds}s
+          </span>
+        </span>
+      </div>
+
+      {tooMuchTalk && (
+        <div
+          data-testid="warning-seller-talk"
+          className="rounded-[8px] bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-700"
+        >
+          Säljaren pratar för mycket ({sellerPct}%). Sikta på max 65%.
+        </div>
+      )}
+      {longMonolog && (
+        <div
+          data-testid="warning-long-monolog"
+          className="rounded-[8px] bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-700"
+        >
+          Lång monolog på {talkRatio.longest_monolog_seconds}s. Försök hålla dem under 60s.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SentimentSection({ sentiment }: { sentiment: SentimentAnalysis }) {
+  const emojiMap = {
+    POSITIVE: "😊",
+    NEUTRAL: "😐",
+    NEGATIVE: "😟",
+  };
+  const labelMap = {
+    POSITIVE: "Positiv",
+    NEUTRAL: "Neutral",
+    NEGATIVE: "Negativ",
+  };
+  const colorMap = {
+    POSITIVE: "text-emerald-600",
+    NEUTRAL: "text-amber-600",
+    NEGATIVE: "text-rose-600",
+  };
+
+  const emoji = emojiMap[sentiment.overall];
+  const label = labelMap[sentiment.overall];
+  const color = colorMap[sentiment.overall];
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">
+        Sentiment
+      </h3>
+      <div className="flex items-center gap-2">
+        <span className="text-[20px]" role="img" aria-label={label}>
+          {emoji}
+        </span>
+        <span className={`text-[15px] font-medium ${color}`}>{label}</span>
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-center text-[12px]">
+        <div className="rounded-[8px] bg-emerald-50 border border-emerald-100 py-1.5">
+          <div className="font-medium text-emerald-700">
+            {Math.round(sentiment.positive_pct)}%
+          </div>
+          <div className="text-[11px] text-emerald-600">Positiv</div>
+        </div>
+        <div className="rounded-[8px] bg-zinc-50 border border-zinc-200 py-1.5">
+          <div className="font-medium text-zinc-600">
+            {Math.round(sentiment.neutral_pct)}%
+          </div>
+          <div className="text-[11px] text-zinc-500">Neutral</div>
+        </div>
+        <div className="rounded-[8px] bg-rose-50 border border-rose-100 py-1.5">
+          <div className="font-medium text-rose-700">
+            {Math.round(sentiment.negative_pct)}%
+          </div>
+          <div className="text-[11px] text-rose-600">Negativ</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const SCORECARD_LABELS: Record<keyof Omit<Scorecard, "overall_avg">, string> = {
+  opening: "Öppning",
+  discovery: "Behovsanalys",
+  pitch: "Pitch",
+  objection_handling: "Invändningshantering",
+  closing: "Avslut",
+};
+
 export function CallAnalysisModal({ analysis, companyName, onClose }: Props) {
-  const overall = analysis.score.overall;
+  const hasScorecard = !!analysis.scorecard;
+  const overall = hasScorecard
+    ? analysis.scorecard!.overall_avg
+    : analysis.score.overall;
 
   return (
     <div
@@ -156,19 +397,47 @@ export function CallAnalysisModal({ analysis, companyName, onClose }: Props) {
             )}
           </div>
 
-          {/* Scores */}
-          <div>
-            <h3 className="text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">
-              Betyg
-            </h3>
-            <div className="space-y-4">
-              <ScoreBar label="Öppning" detail={analysis.score.opening} />
-              <ScoreBar label="Behovsanalys" detail={analysis.score.needs_discovery} />
-              <ScoreBar label="Pitch" detail={analysis.score.pitch} />
-              <ScoreBar label="Invändningshantering" detail={analysis.score.objection_handling} />
-              <ScoreBar label="Avslut" detail={analysis.score.closing} />
+          {/* Scores — 25-point scorecard or legacy 5-point */}
+          {hasScorecard ? (
+            <div>
+              <h3 className="text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">
+                Betyg (25p)
+              </h3>
+              <div className="space-y-4">
+                {(Object.keys(SCORECARD_LABELS) as Array<keyof Omit<Scorecard, "overall_avg">>).map((key) => (
+                  <ScorecardCategoryRow
+                    key={key}
+                    label={SCORECARD_LABELS[key]}
+                    categoryKey={key}
+                    scorecard={analysis.scorecard!}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div>
+              <h3 className="text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">
+                Betyg
+              </h3>
+              <div className="space-y-4">
+                <ScoreBar label="Öppning" detail={analysis.score.opening} />
+                <ScoreBar label="Behovsanalys" detail={analysis.score.needs_discovery} />
+                <ScoreBar label="Pitch" detail={analysis.score.pitch} />
+                <ScoreBar label="Invändningshantering" detail={analysis.score.objection_handling} />
+                <ScoreBar label="Avslut" detail={analysis.score.closing} />
+              </div>
+            </div>
+          )}
+
+          {/* Talk ratio */}
+          {analysis.talk_ratio && (
+            <TalkRatioSection talkRatio={analysis.talk_ratio} />
+          )}
+
+          {/* Sentiment */}
+          {analysis.sentiment && (
+            <SentimentSection sentiment={analysis.sentiment} />
+          )}
 
           {/* Coaching */}
           <div className="rounded-[10px] bg-indigo-50 border border-indigo-100 p-4">

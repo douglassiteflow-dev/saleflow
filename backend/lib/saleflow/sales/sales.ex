@@ -71,6 +71,7 @@ defmodule Saleflow.Sales do
     resource Saleflow.Sales.LeadComment
     resource Saleflow.Sales.Deal
     resource Saleflow.Sales.DemoConfig
+    resource Saleflow.Sales.Contact
     resource Saleflow.Notifications.Notification
   end
 
@@ -871,6 +872,45 @@ defmodule Saleflow.Sales do
     demo_config
     |> Ash.Changeset.for_update(:reset_for_retry, %{})
     |> Ash.update()
+  end
+
+  # ---------------------------------------------------------------------------
+  # Contact functions
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Creates a new contact for a lead.
+
+  Required params: `:lead_id`, `:name`
+  Optional params: `:role`, `:phone`, `:email`
+  """
+  @spec create_contact(map()) :: {:ok, Saleflow.Sales.Contact.t()} | {:error, Ash.Error.t()}
+  def create_contact(params) do
+    Saleflow.Sales.Contact
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create()
+  end
+
+  @doc """
+  Returns all contacts for a given lead, sorted by `inserted_at` ascending (oldest first).
+  """
+  @spec list_contacts_for_lead(Ecto.UUID.t()) ::
+          {:ok, list(Saleflow.Sales.Contact.t())} | {:error, Ash.Error.t()}
+  def list_contacts_for_lead(lead_id) do
+    require Ash.Query
+
+    Saleflow.Sales.Contact
+    |> Ash.Query.filter(lead_id == ^lead_id)
+    |> Ash.Query.sort(inserted_at: :asc)
+    |> Ash.read()
+  end
+
+  @doc """
+  Deletes a contact.
+  """
+  @spec delete_contact(Saleflow.Sales.Contact.t()) :: :ok | {:error, Ash.Error.t()}
+  def delete_contact(contact) do
+    Ash.destroy(contact)
   end
 
   def decode_uuid(value) when is_binary(value) and byte_size(value) == 16 do
