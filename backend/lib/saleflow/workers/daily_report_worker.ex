@@ -198,10 +198,6 @@ defmodule Saleflow.Workers.DailyReportWorker do
     body = Jason.encode!(%{
       model: "claude-sonnet-4-20250514",
       max_tokens: 16000,
-      thinking: %{
-        type: "enabled",
-        budget_tokens: 10000
-      },
       messages: [%{role: "user", content: prompt}]
     })
 
@@ -212,7 +208,7 @@ defmodule Saleflow.Workers.DailyReportWorker do
              {"anthropic-version", "2023-06-01"},
              {"content-type", "application/json"}
            ],
-           receive_timeout: 90_000
+           receive_timeout: 180_000
          ) do
       {:ok, %{status: 200, body: %{"content" => content}}} ->
         html = content
