@@ -4,9 +4,9 @@
 
 **Goal:** Replace DailyReportWorker with a CoachReportWorker that generates unified coaching reports with longitudinal tracking, best/worst call examples with recording links, scorecard trends, keyword intelligence, and daily focus areas that follow up over time.
 
-**Architecture:** CoachReportWorker runs at 16:10 weekdays (after DailyTranscriptionWorker at 16:00). Uses Claude Batch API (50% discount) with prompt caching on playbook. Reads 14 days of previous reports for longitudinal tracking. Generates HTML report with inline CSS + SVG charts. Migration adds new columns to agent_daily_reports for structured data.
+**Architecture:** CoachReportWorker runs at 16:10 weekdays (after DailyTranscriptionWorker at 16:00). Uses Claude Messages API with prompt caching (playbook as cached system message). Reads 14 days of previous reports for longitudinal tracking. Generates HTML report with inline CSS + SVG charts. Migration adds new columns to agent_daily_reports for structured data.
 
-**Tech Stack:** Claude Sonnet 4 Batch API, Elixir/Phoenix/Oban, PostgreSQL, HTML+CSS+SVG
+**Tech Stack:** Claude Sonnet 4 Messages API + prompt caching, Elixir/Phoenix/Oban, PostgreSQL, HTML+CSS+SVG
 
 **Spec:** `docs/superpowers/specs/2026-04-07-ai-sales-coach-design.md` (Sub-projekt 2)
 
@@ -46,7 +46,7 @@ defmodule Saleflow.Repo.Migrations.ExtendAgentDailyReports do
 
   def change do
     alter table(:agent_daily_reports) do
-      add :score_breakdown, :map          # jsonb: {opening: 6.2, discovery: 5.8, ...}
+      add :score_breakdown, :jsonb          # {opening: 6.2, discovery: 5.8, ...}
       add :talk_ratio_avg, :float
       add :sentiment_positive_pct, :float
       add :meeting_count, :integer, default: 0
@@ -54,8 +54,8 @@ defmodule Saleflow.Repo.Migrations.ExtendAgentDailyReports do
       add :focus_area, :string            # scorecard question to improve
       add :focus_area_score_today, :float
       add :previous_focus_followed_up, :boolean, default: false
-      add :top_competitors, :map          # jsonb: {"Webnode": 3}
-      add :top_objections, :map           # jsonb: {"har leverantör": 5}
+      add :top_competitors, :jsonb          # {"Webnode": 3}
+      add :top_objections, :jsonb           # {"har leverantör": 5}
     end
   end
 end
@@ -134,9 +134,10 @@ defmodule Saleflow.Workers.CoachReportWorker do
     playbook = get_active_playbook()
     goals = get_agent_goals(agent.id)
 
-    prompt = build_prompt(calls, history, playbook, goals, agent.name)
+    playbook_text = format_playbook(playbook)
+    prompt = build_prompt(calls, history, goals, agent.name)
 
-    case call_claude(prompt) do
+    case call_claude(prompt, playbook_text) do
       {:ok, html_report} ->
         structured = extract_structured_data(calls, history)
         save_report(agent.id, date, html_report, structured)
@@ -212,7 +213,7 @@ defmodule Saleflow.Workers.CoachReportWorker do
 
   # --- Claude prompt ---
 
-  def build_prompt(calls, history, playbook, goals, agent_name) do
+  def build_prompt(calls, history, goals, agent_name) do
     calls_json = Jason.encode!(Enum.map(calls, fn c ->
       %{
         id: c.id,
@@ -233,12 +234,11 @@ defmodule Saleflow.Workers.CoachReportWorker do
     end))
 
     history_json = Jason.encode!(history)
-    playbook_text = format_playbook(playbook)
     goals_text = format_goals(goals)
     yesterday_focus = get_yesterday_focus(history)
 
     """
-    Du är en erfaren AI-säljcoach. Generera en personaliserad daglig coaching-rapport för #{agent_name}.
+    Generera en personaliserad daglig coaching-rapport för #{agent_name}.
 
     DAGENS SAMTAL (JSON):
     #{calls_json}
@@ -246,7 +246,6 @@ defmodule Saleflow.Workers.CoachReportWorker do
     HISTORIK (senaste 14 dagar, JSON):
     #{history_json}
 
-    #{playbook_text}
     #{goals_text}
 
     #{if yesterday_focus, do: "IGÅRS FOKUSOMRÅDE: #{yesterday_focus}", else: ""}
@@ -281,12 +280,19 @@ defmodule Saleflow.Workers.CoachReportWorker do
 
   # --- Claude API ---
 
-  defp call_claude(prompt) do
+  defp call_claude(prompt, playbook_text) do
     api_key = Application.get_env(:saleflow, :anthropic_api_key, "")
 
+    # System message with playbook is cached (90% cheaper after first call)
+    # User message contains the dynamic data (calls, history)
     body = Jason.encode!(%{
       model: "claude-sonnet-4-20250514",
       max_tokens: 16000,
+      system: [%{
+        type: "text",
+        text: "Du är en erfaren AI-säljcoach. #{playbook_text}",
+        cache_control: %{type: "ephemeral"}
+      }],
       messages: [%{role: "user", content: prompt}]
     })
 
@@ -295,6 +301,7 @@ defmodule Saleflow.Workers.CoachReportWorker do
            headers: [
              {"x-api-key", api_key},
              {"anthropic-version", "2023-06-01"},
+             {"anthropic-beta", "prompt-caching-2024-07-31"},
              {"content-type", "application/json"}
            ],
            receive_timeout: 180_000
@@ -311,27 +318,32 @@ defmodule Saleflow.Workers.CoachReportWorker do
   # --- Save ---
 
   defp save_report(user_id, date, html_report, structured) do
+    # Pre-encode map fields to JSON strings for Postgrex jsonb compatibility
+    score_breakdown_json = if structured.score_breakdown, do: Jason.encode!(structured.score_breakdown), else: nil
+    competitors_json = if structured.top_competitors, do: Jason.encode!(structured.top_competitors), else: nil
+    objections_json = if structured.top_objections, do: Jason.encode!(structured.top_objections), else: nil
+
     Saleflow.Repo.query("""
       INSERT INTO agent_daily_reports
         (id, user_id, date, report, score_avg, call_count,
          score_breakdown, talk_ratio_avg, sentiment_positive_pct,
          meeting_count, conversion_rate, focus_area, focus_area_score_today,
          previous_focus_followed_up, top_competitors, top_objections, inserted_at)
-      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
+      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, $15::jsonb, NOW())
       ON CONFLICT (user_id, date)
       DO UPDATE SET report = $3, score_avg = $4, call_count = $5,
-        score_breakdown = $6, talk_ratio_avg = $7, sentiment_positive_pct = $8,
+        score_breakdown = $6::jsonb, talk_ratio_avg = $7, sentiment_positive_pct = $8,
         meeting_count = $9, conversion_rate = $10, focus_area = $11,
         focus_area_score_today = $12, previous_focus_followed_up = $13,
-        top_competitors = $14, top_objections = $15
+        top_competitors = $14::jsonb, top_objections = $15::jsonb
     """, [
       Ecto.UUID.dump!(user_id), date, html_report,
       structured.score_avg, structured.call_count,
-      structured.score_breakdown, structured.talk_ratio_avg,
+      score_breakdown_json, structured.talk_ratio_avg,
       structured.sentiment_positive_pct, structured.meeting_count,
       structured.conversion_rate, structured.focus_area,
       structured.focus_area_score_today, structured.previous_focus_followed_up,
-      structured.top_competitors, structured.top_objections
+      competitors_json, objections_json
     ])
   end
 
