@@ -55,7 +55,7 @@ config :saleflow, Oban,
       {"*/15 * * * *", Saleflow.Workers.MeetingStatusWorker},
       {"*/10 * * * *", Saleflow.Workers.GoalCheckWorker},
       {"10 16 * * 1-5", Saleflow.Workers.DailyReportWorker},
-      {"*/30 * * * *", Saleflow.Workers.RecordingSyncWorker}
+      {"*/5 * * * *", Saleflow.Workers.RecordingSyncWorker}
     ]}
   ]
 
