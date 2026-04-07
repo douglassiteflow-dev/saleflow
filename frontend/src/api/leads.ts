@@ -15,6 +15,7 @@ export interface OutcomeParams {
   customer_email?: string;
   customer_name?: string;
   create_teams_meeting?: boolean;
+  source_url?: string;
 }
 
 export function useLeads(search?: string) {

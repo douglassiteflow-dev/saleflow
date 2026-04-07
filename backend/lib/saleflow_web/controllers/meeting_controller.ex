@@ -83,6 +83,7 @@ defmodule SaleflowWeb.MeetingController do
 
     case Sales.create_meeting(meeting_params) do
       {:ok, meeting} ->
+        meeting = maybe_link_demo_config(meeting, params, user)
         broadcast_dashboard_update("meeting_created")
 
         conn
@@ -162,6 +163,61 @@ defmodule SaleflowWeb.MeetingController do
       if all_cancelled and deal.stage not in [:won, :cancelled] do
         Sales.cancel_deal(deal)
       end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # DemoConfig auto-linking
+  # ---------------------------------------------------------------------------
+
+  defp maybe_link_demo_config(meeting, %{"source_url" => source_url}, user)
+       when is_binary(source_url) and source_url != "" do
+    case find_active_demo_config(meeting.lead_id) do
+      nil ->
+        # Create new DemoConfig, enqueue generation, link to meeting
+        case Sales.create_demo_config(%{
+               lead_id: meeting.lead_id,
+               user_id: user.id,
+               source_url: source_url
+             }) do
+          {:ok, demo_config} ->
+            %{"demo_config_id" => demo_config.id}
+            |> Saleflow.Workers.DemoGenerationWorker.new()
+            |> Oban.insert()
+
+            link_meeting_to_demo_config(meeting, demo_config.id)
+
+          {:error, _} ->
+            meeting
+        end
+
+      existing ->
+        link_meeting_to_demo_config(meeting, existing.id)
+    end
+  end
+
+  defp maybe_link_demo_config(meeting, _params, _user) do
+    case find_active_demo_config(meeting.lead_id) do
+      nil -> meeting
+      existing -> link_meeting_to_demo_config(meeting, existing.id)
+    end
+  end
+
+  defp find_active_demo_config(lead_id) do
+    require Ash.Query
+
+    Saleflow.Sales.DemoConfig
+    |> Ash.Query.filter(lead_id == ^lead_id and stage != :cancelled)
+    |> Ash.Query.sort(inserted_at: :desc)
+    |> Ash.Query.limit(1)
+    |> Ash.read!()
+    |> List.first()
+  end
+
+  defp link_meeting_to_demo_config(meeting, demo_config_id) do
+    case Sales.update_meeting(meeting, %{demo_config_id: demo_config_id}) do
+      {:ok, updated} -> updated
+      {:error, _} -> meeting
     end
   end
 
@@ -253,6 +309,7 @@ defmodule SaleflowWeb.MeetingController do
       teams_event_id: meeting.teams_event_id,
       attendee_email: meeting.attendee_email,
       attendee_name: meeting.attendee_name,
+      demo_config_id: meeting.demo_config_id,
       updated_at: meeting.updated_at,
       inserted_at: meeting.inserted_at
     }

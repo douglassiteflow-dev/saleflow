@@ -9,8 +9,8 @@ import { LeadComments } from "@/components/dialer/lead-comments";
 import { OutcomeInline } from "@/components/dialer/outcome-inline";
 import { MeetingDetailTab } from "@/components/dialer/meeting-detail-tab";
 import { LeadDetailTab } from "@/components/dialer/lead-detail-tab";
-import { DealsTab } from "@/components/dialer/deals-tab";
-import { DealDetailTab } from "@/components/dialer/deal-detail-tab";
+import { DemoTab } from "@/components/dialer/demo-tab";
+import { DemoDetailTab } from "@/components/dialer/demo-detail-tab";
 import { CustomersTab } from "@/components/dialer/customers-tab";
 import { ReportTab } from "@/components/dialer/report-tab";
 import { UpdateBanner } from "@/components/dialer/update-banner";
@@ -41,7 +41,7 @@ import Loader from "@/components/kokonutui/loader";
 import { TabToolbar, usePagination, type DateRange } from "@/components/dialer/tab-toolbar";
 import type { Lead, CallLog } from "@/api/types";
 
-type Tab = DialerTab | "profile" | "meeting-detail" | "lead-detail" | "deal-detail";
+type Tab = DialerTab | "profile" | "meeting-detail" | "lead-detail" | "demo-detail";
 
 /* ==================== Main component ==================== */
 
@@ -50,8 +50,8 @@ export function DialerPage() {
   const [activeTab, setActiveTab] = useState<Tab>("dialer");
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
-  const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
-  const [dealReturnTab, setDealReturnTab] = useState<Tab>("deals");
+  const [selectedDemoConfigId, setSelectedDemoConfigId] = useState<string | null>(null);
+  const [demoReturnTab, setDemoReturnTab] = useState<DialerTab>("demo");
   const todayStr = todayISO();
   const [meetingsRange, setMeetingsRange] = useState<DateRange>({ from: todayStr, to: todayStr });
   const [meetingsPreset, setMeetingsPreset] = useState<string | null>("Idag");
@@ -170,7 +170,7 @@ export function DialerPage() {
       {/* ---- Tabs ---- */}
       <DialerTabs
         activeTab={activeTab}
-        onTabChange={(tab) => { setSelectedDealId(null); setActiveTab(tab); }}
+        onTabChange={(tab) => { setSelectedDemoConfigId(null); setActiveTab(tab); }}
         callbackCount={callbacks?.length}
         meetingCount={
           meetings?.filter(
@@ -239,16 +239,25 @@ export function DialerPage() {
         <LeadDetailTab leadId={selectedLeadId} onBack={() => setActiveTab("history")} />
       )}
 
-      {activeTab === "deals" && !selectedDealId && (
-        <DealsTab onSelectDeal={(id) => { setSelectedDealId(id); setDealReturnTab("deals"); setActiveTab("deal-detail"); }} />
+      {activeTab === "demo" && (
+        <DemoTab onSelectDemoConfig={(id) => {
+          setSelectedDemoConfigId(id);
+          setDemoReturnTab("demo");
+          setActiveTab("demo-detail" as any);
+        }} />
+      )}
+      {activeTab === ("demo-detail" as any) && selectedDemoConfigId && (
+        <DemoDetailTab
+          demoConfigId={selectedDemoConfigId}
+          onBack={() => {
+            setSelectedDemoConfigId(null);
+            setActiveTab(demoReturnTab);
+          }}
+        />
       )}
 
-      {activeTab === "customers" && !selectedDealId && (
-        <CustomersTab onSelectDeal={(id) => { setSelectedDealId(id); setDealReturnTab("customers"); setActiveTab("deal-detail"); }} />
-      )}
-
-      {activeTab === "deal-detail" && selectedDealId && (
-        <DealDetailTab dealId={selectedDealId} onBack={() => { setSelectedDealId(null); setActiveTab(dealReturnTab); }} />
+      {activeTab === "customers" && (
+        <CustomersTab onSelectDeal={(id) => { setSelectedDemoConfigId(id); setDemoReturnTab("customers"); setActiveTab("demo-detail" as any); }} />
       )}
 
       {activeTab === "report" && <ReportTab />}

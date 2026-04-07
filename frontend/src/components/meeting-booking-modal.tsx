@@ -35,6 +35,7 @@ export function MeetingBookingModal({
   const [customerName, setCustomerName] = useState(lead.vd_namn ?? "");
   const [notes, setNotes] = useState("");
   const [sendTeams, setSendTeams] = useState(msConnected);
+  const [sourceUrl, setSourceUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   // Reset state when modal opens with new lead
@@ -48,6 +49,7 @@ export function MeetingBookingModal({
       setCustomerName(lead.vd_namn ?? "");
       setNotes("");
       setSendTeams(msConnected);
+      setSourceUrl("");
       setError(null);
     }
   }, [isOpen, lead.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -76,6 +78,7 @@ export function MeetingBookingModal({
       customer_email: customerEmail || undefined,
       customer_name: customerName || undefined,
       create_teams_meeting: sendTeams,
+      source_url: sourceUrl || undefined,
       duration: callDuration,
     };
 
@@ -198,6 +201,19 @@ export function MeetingBookingModal({
                 rows={3}
                 placeholder="Valfria anteckningar..."
                 className="flex w-full rounded-[6px] border border-[var(--color-border-input)] bg-white px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] resize-y focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors duration-150"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
+                Hemsida/Bokadirekt-länk
+              </label>
+              <input
+                type="url"
+                value={sourceUrl}
+                onChange={(e) => setSourceUrl(e.target.value)}
+                placeholder="https://www.bokadirekt.se/places/..."
+                className="w-full px-3 py-2 text-[13px] rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] focus:outline-none focus:border-[var(--color-accent)]"
               />
             </div>
 

@@ -31,6 +31,7 @@ export interface CreateMeetingParams {
   meeting_date: string;
   meeting_time: string;
   notes?: string;
+  source_url?: string;
 }
 
 export function useCreateMeeting() {

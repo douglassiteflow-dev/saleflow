@@ -45,7 +45,7 @@ config :saleflow, :token_signing_secret, "super-secret-token-signing-key-change-
 # Oban
 config :saleflow, Oban,
   repo: Saleflow.Repo,
-  queues: [default: 10, scheduled: 5],
+  queues: [default: 10, scheduled: 5, demo_generation: 1],
   plugins: [
     {Oban.Plugins.Cron, crontab: [
       {"*/5 * * * *", Saleflow.Workers.AutoReleaseWorker},

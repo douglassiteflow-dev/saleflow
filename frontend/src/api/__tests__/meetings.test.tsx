@@ -104,6 +104,28 @@ describe("useCreateMeeting", () => {
       method: "POST",
     }));
   });
+
+  it("posts new meeting with source_url", async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockMeeting),
+    });
+
+    const { result } = renderHook(() => useCreateMeeting(), { wrapper: createWrapper() });
+    result.current.mutate({
+      lead_id: "l1",
+      title: "Demo",
+      meeting_date: "2024-06-01",
+      meeting_time: "14:00",
+      source_url: "https://www.bokadirekt.se/places/test-123",
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const body = JSON.parse(
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body as string,
+    );
+    expect(body.source_url).toBe("https://www.bokadirekt.se/places/test-123");
+  });
 });
 
 describe("useUpdateMeeting", () => {

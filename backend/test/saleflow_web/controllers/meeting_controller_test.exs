@@ -410,6 +410,127 @@ defmodule SaleflowWeb.MeetingControllerTest do
   end
 
   # -------------------------------------------------------------------------
+  # POST /api/meetings — DemoConfig auto-linking
+  # -------------------------------------------------------------------------
+
+  describe "POST /api/meetings — DemoConfig auto-linking" do
+    test "creates meeting with source_url and auto-creates demo config", %{conn: conn, lead: lead} do
+      conn =
+        post(conn, "/api/meetings", %{
+          lead_id: lead.id,
+          title: "Demo Meeting",
+          meeting_date: "2026-06-01",
+          meeting_time: "14:30:00",
+          source_url: "https://example.se"
+        })
+
+      assert %{"meeting" => meeting} = json_response(conn, 201)
+      assert meeting["title"] == "Demo Meeting"
+      assert meeting["demo_config_id"] != nil
+
+      # Verify DemoConfig was created with correct source_url
+      {:ok, dc} = Sales.get_demo_config(meeting["demo_config_id"])
+      assert dc.source_url == "https://example.se"
+      assert dc.lead_id == lead.id
+    end
+
+    test "links meeting to existing demo config for same lead", %{conn: conn, user: user, lead: lead} do
+      # Create a DemoConfig for the lead first
+      {:ok, existing_dc} =
+        Sales.create_demo_config(%{
+          lead_id: lead.id,
+          user_id: user.id,
+          source_url: "https://existing.se"
+        })
+
+      # Post meeting without source_url
+      conn =
+        post(conn, "/api/meetings", %{
+          lead_id: lead.id,
+          title: "Follow-up Meeting",
+          meeting_date: "2026-06-10",
+          meeting_time: "10:00:00"
+        })
+
+      assert %{"meeting" => meeting} = json_response(conn, 201)
+      assert meeting["demo_config_id"] == existing_dc.id
+    end
+
+    test "links meeting to existing demo config when source_url provided but config exists", %{
+      conn: conn,
+      user: user,
+      lead: lead
+    } do
+      # Create an active DemoConfig for the lead
+      {:ok, existing_dc} =
+        Sales.create_demo_config(%{
+          lead_id: lead.id,
+          user_id: user.id,
+          source_url: "https://existing.se"
+        })
+
+      # Post meeting with a different source_url — should link to existing, not create new
+      conn =
+        post(conn, "/api/meetings", %{
+          lead_id: lead.id,
+          title: "Another Demo",
+          meeting_date: "2026-06-15",
+          meeting_time: "11:00:00",
+          source_url: "https://different.se"
+        })
+
+      assert %{"meeting" => meeting} = json_response(conn, 201)
+      assert meeting["demo_config_id"] == existing_dc.id
+    end
+
+    test "does not link demo config when none exists and no source_url", %{conn: conn, lead: lead} do
+      conn =
+        post(conn, "/api/meetings", %{
+          lead_id: lead.id,
+          title: "Plain Meeting",
+          meeting_date: "2026-06-01",
+          meeting_time: "14:30:00"
+        })
+
+      assert %{"meeting" => meeting} = json_response(conn, 201)
+      assert meeting["demo_config_id"] == nil
+    end
+
+    test "ignores cancelled demo config and creates new one with source_url", %{
+      conn: conn,
+      user: user,
+      lead: lead
+    } do
+      # Create and cancel a DemoConfig
+      {:ok, dc} =
+        Sales.create_demo_config(%{
+          lead_id: lead.id,
+          user_id: user.id,
+          source_url: "https://cancelled.se"
+        })
+
+      {:ok, _cancelled} = Sales.cancel_demo_config(dc)
+
+      # Post meeting with source_url — should create a new DemoConfig
+      conn =
+        post(conn, "/api/meetings", %{
+          lead_id: lead.id,
+          title: "Fresh Demo",
+          meeting_date: "2026-06-20",
+          meeting_time: "09:00:00",
+          source_url: "https://fresh.se"
+        })
+
+      assert %{"meeting" => meeting} = json_response(conn, 201)
+      assert meeting["demo_config_id"] != nil
+      assert meeting["demo_config_id"] != dc.id
+
+      {:ok, new_dc} = Sales.get_demo_config(meeting["demo_config_id"])
+      assert new_dc.source_url == "https://fresh.se"
+    end
+  end
+
+  # -------------------------------------------------------------------------
   # POST /api/meetings — error and fallback paths
   # -------------------------------------------------------------------------
 

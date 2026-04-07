@@ -65,6 +65,7 @@ describe("MeetingForm", () => {
     expect(screen.getByPlaceholderText("lead-uuid")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Mötesbeskrivning")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Valfria anteckningar...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("https://www.bokadirekt.se/places/...")).toBeInTheDocument();
   });
 
   it("shows error when required fields are empty", async () => {
@@ -156,5 +157,38 @@ describe("MeetingForm", () => {
   it("renders time select", () => {
     render(<MeetingForm onCancel={onCancel} />, { wrapper: Wrapper });
     expect(screen.getByTestId("time-select")).toBeInTheDocument();
+  });
+
+  it("includes source_url in submission when provided", async () => {
+    render(<MeetingForm onCancel={onCancel} />, { wrapper: Wrapper });
+    fireEvent.change(screen.getByPlaceholderText("lead-uuid"), { target: { value: "lead-1" } });
+    fireEvent.change(screen.getByPlaceholderText("Mötesbeskrivning"), { target: { value: "Meeting" } });
+    const dateInput = document.querySelector('input[type="date"]')!;
+    fireEvent.change(dateInput, { target: { value: "2024-06-01" } });
+    fireEvent.change(screen.getByTestId("time-select"), { target: { value: "14:00" } });
+    fireEvent.change(screen.getByPlaceholderText("https://www.bokadirekt.se/places/..."), {
+      target: { value: "https://www.bokadirekt.se/places/test-123" },
+    });
+    const form = document.querySelector("form")!;
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(mutateAsyncMock).toHaveBeenCalledWith(
+        expect.objectContaining({ source_url: "https://www.bokadirekt.se/places/test-123" }),
+      );
+    });
+  });
+
+  it("omits source_url from submission when empty", async () => {
+    render(<MeetingForm onCancel={onCancel} />, { wrapper: Wrapper });
+    fillFormAndSubmit();
+
+    await waitFor(() => {
+      expect(mutateAsyncMock).toHaveBeenCalledWith(
+        expect.objectContaining({ lead_id: "lead-1" }),
+      );
+    });
+    const callArg = mutateAsyncMock.mock.calls[0][0] as Record<string, unknown>;
+    expect(callArg.source_url).toBeUndefined();
   });
 });

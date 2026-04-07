@@ -851,6 +851,28 @@ defmodule Saleflow.Sales do
     |> Ash.read()
   end
 
+  @doc """
+  Returns meetings linked to a demo config, sorted by date and time ascending.
+  """
+  def list_meetings_for_demo_config(demo_config_id) do
+    require Ash.Query
+
+    Saleflow.Sales.Meeting
+    |> Ash.Query.filter(demo_config_id == ^demo_config_id)
+    |> Ash.Query.sort(meeting_date: :asc, meeting_time: :asc)
+    |> Ash.read()
+  end
+
+  @doc """
+  Resets a demo config for retry: clears error, sets stage back to meeting_booked.
+  Only works when stage is :generating (with an error).
+  """
+  def reset_for_retry(demo_config) do
+    demo_config
+    |> Ash.Changeset.for_update(:reset_for_retry, %{})
+    |> Ash.update()
+  end
+
   def decode_uuid(value) when is_binary(value) and byte_size(value) == 16 do
     Ecto.UUID.load!(value)
   end

@@ -15,6 +15,7 @@ export function MeetingForm({ onCancel }: MeetingFormProps) {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [notes, setNotes] = useState("");
+  const [sourceUrl, setSourceUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const createMeeting = useCreateMeeting();
@@ -25,6 +26,7 @@ export function MeetingForm({ onCancel }: MeetingFormProps) {
     setDate("");
     setTime("");
     setNotes("");
+    setSourceUrl("");
     setError(null);
   }
 
@@ -46,6 +48,7 @@ export function MeetingForm({ onCancel }: MeetingFormProps) {
         meeting_date: date,
         meeting_time: timeWithSeconds,
         notes: notes.trim() || undefined,
+        source_url: sourceUrl.trim() || undefined,
       });
       reset();
       onCancel();
@@ -140,6 +143,19 @@ export function MeetingForm({ onCancel }: MeetingFormProps) {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Valfria anteckningar..."
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-[10px] font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">
+          Hemsida/Bokadirekt-länk
+        </label>
+        <input
+          type="url"
+          value={sourceUrl}
+          onChange={(e) => setSourceUrl(e.target.value)}
+          placeholder="https://www.bokadirekt.se/places/..."
+          className="w-full px-3 py-2 text-[13px] rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] focus:outline-none focus:border-[var(--color-accent)]"
         />
       </div>
 

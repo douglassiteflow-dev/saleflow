@@ -202,5 +202,27 @@ defmodule Saleflow.Sales.DemoConfig do
 
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "demo_config.notes_updated"}
     end
+
+    update :reset_for_retry do
+      description "Clear error and reset stage to meeting_booked for retry"
+      require_atomic? false
+
+      change fn changeset, _context ->
+        current = Ash.Changeset.get_attribute(changeset, :stage)
+
+        if current == :generating do
+          changeset
+          |> Ash.Changeset.force_change_attribute(:stage, :meeting_booked)
+          |> Ash.Changeset.force_change_attribute(:error, nil)
+        else
+          Ash.Changeset.add_error(changeset,
+            field: :stage,
+            message: "must be in generating stage to retry"
+          )
+        end
+      end
+
+      change {Saleflow.Audit.Changes.CreateAuditLog, action: "demo_config.reset_for_retry"}
+    end
   end
 end

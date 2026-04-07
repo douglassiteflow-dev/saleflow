@@ -75,6 +75,14 @@ defmodule SaleflowWeb.Router do
     post "/deals/:id/advance", DealController, :advance
     patch "/deals/:id", DealController, :update
 
+    # Demo Configs
+    get "/demo-configs", DemoConfigController, :index
+    get "/demo-configs/:id/logs", DemoConfigController, :logs
+    get "/demo-configs/:id/preview", DemoConfigController, :preview
+    get "/demo-configs/:id", DemoConfigController, :show
+    post "/demo-configs/:id/advance", DemoConfigController, :advance
+    post "/demo-configs/:id/retry", DemoConfigController, :retry
+
     get "/audit", AuditController, :index
 
     get "/my-stats", AdminController, :my_stats
