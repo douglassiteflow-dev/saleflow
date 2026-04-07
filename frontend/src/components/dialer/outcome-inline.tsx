@@ -52,6 +52,7 @@ interface OutcomeInlineProps {
   leadId: string;
   companyName: string;
   leadData: Lead;
+  callDuration?: number;
   onOutcomeSubmitted: () => void;
 }
 
@@ -59,6 +60,7 @@ export function OutcomeInline({
   leadId,
   companyName: _companyName,
   leadData,
+  callDuration,
   onOutcomeSubmitted,
 }: OutcomeInlineProps) {
   const submitOutcome = useSubmitOutcome(leadId);
@@ -92,6 +94,7 @@ export function OutcomeInline({
       {
         outcome,
         notes: notes || undefined,
+        duration: callDuration ?? 0,
         callback_at:
           outcome === "callback" && callbackDate ? callbackDate : undefined,
       },

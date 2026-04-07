@@ -545,6 +545,7 @@ function DialerTabContent({
             leadId={lead.id}
             companyName={lead.företag}
             leadData={lead}
+            callDuration={callDuration}
             onOutcomeSubmitted={onOutcomeSubmitted}
           />
         </div>
