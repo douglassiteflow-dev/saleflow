@@ -46,7 +46,7 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
   # ---------------------------------------------------------------------------
 
   describe "perform/1 with matching call" do
-    test "does not overwrite callee or duration (set by our app)" do
+    test "syncs duration from Telavox but preserves callee" do
       phone_call = create_phone_call(%{callee: "+46000000000", duration: 15})
       user_id = Ecto.UUID.generate()
 
@@ -68,9 +68,9 @@ defmodule Saleflow.Workers.RecordingFetchWorkerTest do
           [Ecto.UUID.dump!(phone_call.id)]
         )
 
-      # Our app's values should be preserved
+      # Callee preserved (set by our app), duration synced from Telavox
       assert callee == "+46000000000"
-      assert duration == 15
+      assert duration == 42
     end
 
     test "sets telavox_call_id on phone_call" do

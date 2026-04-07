@@ -91,13 +91,14 @@ defmodule Saleflow.Workers.RecordingFetchWorker do
   defp enrich_from_call(phone_call_id, call_data) do
     recording_id = call_data["recordingId"]
     telavox_call_id = call_data["callId"]
+    telavox_duration = call_data["duration"]
 
-    Logger.info("RecordingFetchWorker: #{phone_call_id} → callId=#{telavox_call_id || "none"}, recording=#{recording_id || "none"}")
+    Logger.info("RecordingFetchWorker: #{phone_call_id} → callId=#{telavox_call_id || "none"}, recording=#{recording_id || "none"}, duration=#{telavox_duration || "none"}")
 
-    # Only store telavox_call_id for recording lookup — don't overwrite duration/callee/lead_id (set by our app)
+    # Store telavox_call_id and sync duration from Telavox (more accurate than frontend timer)
     Saleflow.Repo.query(
-      "UPDATE phone_calls SET telavox_call_id = $1 WHERE id = $2 AND telavox_call_id IS NULL",
-      [telavox_call_id, Ecto.UUID.dump!(phone_call_id)]
+      "UPDATE phone_calls SET telavox_call_id = COALESCE($1, telavox_call_id), duration = COALESCE($3, duration) WHERE id = $2",
+      [telavox_call_id, Ecto.UUID.dump!(phone_call_id), telavox_duration]
     )
 
     case recording_id do
