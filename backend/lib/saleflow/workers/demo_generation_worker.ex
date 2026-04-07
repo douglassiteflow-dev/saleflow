@@ -19,11 +19,10 @@ defmodule Saleflow.Workers.DemoGenerationWorker do
   alias Saleflow.Sales
 
   @brief_template_path "priv/demo_generation/brief.md"
-  @timeout_ms 15 * 60 * 1_000
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"demo_config_id" => id}}) do
-    with {:ok, demo_config} when not is_nil(demo_config) <- Sales.get_demo_config(id),
+    with {:ok, demo_config} <- Sales.get_demo_config(id),
          {:ok, demo_config} <- Sales.start_generation(demo_config) do
       out_dir = output_dir(demo_config)
       File.mkdir_p!(out_dir)
@@ -32,7 +31,7 @@ defmodule Saleflow.Workers.DemoGenerationWorker do
       brief_path = Path.join(out_dir, "brief.md")
       File.write!(brief_path, brief_content)
 
-      case run_claude_cli(brief_path, id) do
+      case runner().run(brief_path, id) do
         {:ok, _output} ->
           site_index = Path.join([out_dir, "site", "index.html"])
 
@@ -64,12 +63,8 @@ defmodule Saleflow.Workers.DemoGenerationWorker do
           {:error, error_msg}
       end
     else
-      {:ok, nil} ->
-        Logger.warning("DemoGenerationWorker: DemoConfig #{id} not found")
-        {:error, "DemoConfig not found"}
-
       {:error, reason} ->
-        Logger.warning("DemoGenerationWorker: failed to start generation for #{id}: #{inspect(reason)}")
+        Logger.warning("DemoGenerationWorker: failed for #{id}: #{inspect(reason)}")
         {:error, reason}
     end
   end
@@ -92,80 +87,22 @@ defmodule Saleflow.Workers.DemoGenerationWorker do
     Path.join(base, demo_config.id)
   end
 
-  # ---------------------------------------------------------------------------
-  # Private helpers
-  # ---------------------------------------------------------------------------
-
-  defp run_claude_cli(brief_path, id) do
-    claude_bin = System.find_executable("claude") || "claude"
-    prompt = "Read and follow the brief at #{brief_path}. Execute each step."
-
-    args = [
-      claude_bin,
-      "--dangerously-skip-permissions",
-      "-p",
-      prompt,
-      "--output-format",
-      "stream-json"
-    ]
-
-    port =
-      Port.open({:spawn_executable, claude_bin}, [
-        :binary,
-        :exit_status,
-        :stderr_to_stdout,
-        args: tl(args)
-      ])
-
-    collect_output(port, id, "", System.monotonic_time(:millisecond))
-  end
-
-  defp collect_output(port, id, acc, start_time) do
-    elapsed = System.monotonic_time(:millisecond) - start_time
-
-    if elapsed > @timeout_ms do
-      Port.close(port)
-      {:error, "Timeout after 15 minutes"}
-    else
-      remaining = @timeout_ms - elapsed
-
-      receive do
-        {^port, {:data, data}} ->
-          broadcast_stream(id, data)
-          collect_output(port, id, acc <> data, start_time)
-
-        {^port, {:exit_status, 0}} ->
-          {:ok, acc}
-
-        {^port, {:exit_status, code}} ->
-          {:error, "exit code #{code}"}
-      after
-        remaining ->
-          Port.close(port)
-          {:error, "Timeout after 15 minutes"}
-      end
-    end
-  end
-
-  defp broadcast_stream(id, data) do
-    data
-    |> String.split("\n", trim: true)
-    |> Enum.each(fn line ->
-      payload =
-        case Jason.decode(line) do
-          {:ok, parsed} -> %{status: "streaming", data: parsed}
-          {:error, _} -> %{status: "streaming", data: %{"raw" => line}}
-        end
-
-      broadcast(id, payload)
-    end)
-  end
-
-  defp broadcast(id, payload) do
+  @doc """
+  Broadcasts a demo generation event via PubSub.
+  """
+  def broadcast(id, payload) do
     Phoenix.PubSub.broadcast(
       Saleflow.PubSub,
       "demo_generation:#{id}",
       {:demo_generation, payload}
+    )
+  end
+
+  defp runner do
+    Application.get_env(
+      :saleflow,
+      :demo_generation_runner,
+      Saleflow.Workers.DemoGeneration.DefaultRunner
     )
   end
 end
