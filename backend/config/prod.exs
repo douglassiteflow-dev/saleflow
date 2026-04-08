@@ -19,8 +19,6 @@ config :logger, level: :info
 # PDF generation happens via the genflow-local-server app instead
 config :saleflow, :skip_chromic_pdf, true
 
-# Auto-run migrations at app startup
-config :saleflow, :auto_migrate, true
 
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.

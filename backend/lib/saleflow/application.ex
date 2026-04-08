@@ -9,11 +9,6 @@ defmodule Saleflow.Application do
 
   @impl true
   def start(_type, _args) do
-    # Run migrations at startup in production
-    if Application.get_env(:saleflow, :auto_migrate, false) do
-      Saleflow.Release.migrate()
-    end
-
     children =
       [
         SaleflowWeb.Telemetry,
