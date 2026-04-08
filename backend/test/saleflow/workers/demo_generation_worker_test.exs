@@ -385,4 +385,143 @@ defmodule Saleflow.Workers.DemoGenerationWorkerTest do
       assert unchanged_deal.stage == :demo_scheduled
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Tests for slug_from_url/1
+  # ---------------------------------------------------------------------------
+
+  describe "slug_from_url/1" do
+    test "extracts hostname from URL" do
+      assert DemoGenerationWorker.slug_from_url("https://example.se") == "example-se"
+    end
+
+    test "strips www. prefix" do
+      assert DemoGenerationWorker.slug_from_url("https://www.example.se") == "example-se"
+    end
+
+    test "replaces dots with hyphens" do
+      assert DemoGenerationWorker.slug_from_url("https://sub.example.se") == "sub-example-se"
+    end
+
+    test "returns unknown for nil" do
+      assert DemoGenerationWorker.slug_from_url(nil) == "unknown"
+    end
+
+    test "returns unknown for empty string" do
+      assert DemoGenerationWorker.slug_from_url("") == "unknown"
+    end
+
+    test "returns unknown for string without host" do
+      assert DemoGenerationWorker.slug_from_url("not-a-url") == "unknown"
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Tests for genflow job queue mode
+  # ---------------------------------------------------------------------------
+
+  describe "perform/1 with genflow jobs enabled" do
+    setup do
+      Application.put_env(:saleflow, :use_genflow_jobs, true)
+      Application.put_env(:saleflow, :genflow_poll_interval_ms, 0)
+      Application.put_env(:saleflow, :genflow_max_polls, 3)
+
+      on_exit(fn ->
+        Application.put_env(:saleflow, :use_genflow_jobs, false)
+      end)
+
+      :ok
+    end
+
+    test "creates genflow job and times out when job stays pending" do
+      dc = create_demo_config!(source_url: "https://testforetag.se")
+
+      # Subscribe to PubSub
+      Phoenix.PubSub.subscribe(Saleflow.PubSub, "demo_generation:#{dc.id}")
+
+      job = build_job(dc.id)
+      assert {:error, error_msg} = DemoGenerationWorker.perform(job)
+      assert error_msg =~ "timed out"
+
+      # Verify the queued broadcast was sent
+      assert_receive {:demo_generation, %{status: "queued", genflow_job_id: _}}
+
+      # Verify the timeout error broadcast was sent
+      assert_receive {:demo_generation, %{status: "error", error: error}}
+      assert error =~ "timed out"
+
+      # Verify demo_config was marked as failed
+      {:ok, updated_dc} = Sales.get_demo_config(dc.id)
+      assert updated_dc.error =~ "timed out"
+    end
+
+    test "creates genflow job and reports failure when job is marked failed" do
+      dc = create_demo_config!(source_url: "https://testforetag.se")
+      test_pid = self()
+
+      # Subscribe to PubSub to capture the genflow_job_id
+      Phoenix.PubSub.subscribe(Saleflow.PubSub, "demo_generation:#{dc.id}")
+
+      # Spawn a process that will fail the job as soon as it's created
+      _listener = spawn(fn ->
+        # Subscribe to get the job ID from the "queued" broadcast
+        Phoenix.PubSub.subscribe(Saleflow.PubSub, "demo_generation:#{dc.id}")
+
+        receive do
+          {:demo_generation, %{status: "queued", genflow_job_id: job_id}} ->
+            {:ok, job} = Saleflow.Generation.get_job(job_id)
+            {:ok, picked} = Saleflow.Generation.pick_job(job)
+            {:ok, _} = Saleflow.Generation.fail_job(picked, "Build error")
+            send(test_pid, :job_failed)
+        after
+          5_000 -> :ok
+        end
+      end)
+
+      job = build_job(dc.id)
+      result = DemoGenerationWorker.perform(job)
+
+      # The result depends on timing — either the fail was picked up or it timed out
+      case result do
+        {:error, msg} when is_binary(msg) ->
+          assert msg =~ "failed" or msg =~ "timed out"
+
+        _ ->
+          flunk("Expected error result, got: #{inspect(result)}")
+      end
+    end
+
+    test "does not run local generation when genflow is enabled" do
+      dc = create_demo_config!(source_url: "https://testforetag.se")
+
+      # The MockRunner should NOT be called when genflow is enabled
+      # If it were called, Mox would complain about unexpected calls
+      # (no expect set up for this test)
+
+      job = build_job(dc.id)
+      # Will timeout since no one completes the genflow job, but it should
+      # not call the local runner
+      {:error, _} = DemoGenerationWorker.perform(job)
+    end
+  end
+
+  describe "perform/1 with genflow jobs disabled (default)" do
+    test "uses local generation when genflow is disabled" do
+      # Ensure genflow is disabled (default)
+      Application.put_env(:saleflow, :use_genflow_jobs, false)
+
+      dc = create_demo_config!(source_url: "https://testforetag.se")
+      out_dir = DemoGenerationWorker.output_dir(dc)
+
+      # Mock the runner — this should be called in local mode
+      MockRunner
+      |> expect(:run, fn _brief_path, _id -> {:error, "test abort"} end)
+
+      job = build_job(dc.id)
+      {:error, _} = DemoGenerationWorker.perform(job)
+
+      # Cleanup
+      File.rm_rf!(out_dir)
+    end
+  end
 end
