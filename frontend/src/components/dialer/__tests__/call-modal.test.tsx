@@ -21,8 +21,8 @@ vi.mock("@/api/microsoft", () => ({
   useMicrosoftStatus: vi.fn(() => ({ data: { connected: false } })),
 }));
 
-vi.mock("@/components/meeting-booking-modal", () => ({
-  MeetingBookingModal: () => <div data-testid="meeting-modal">Meeting Modal</div>,
+vi.mock("@/components/dialer/booking-wizard", () => ({
+  BookingWizard: () => <div data-testid="meeting-modal">Meeting Modal</div>,
 }));
 
 const lead: Lead = {

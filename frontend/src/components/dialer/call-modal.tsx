@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSubmitOutcome } from "@/api/leads";
 import { useHangup } from "@/api/telavox";
 import { useMicrosoftStatus } from "@/api/microsoft";
-import { MeetingBookingModal } from "@/components/meeting-booking-modal";
+import { BookingWizard } from "@/components/dialer/booking-wizard";
 import { cn } from "@/lib/cn";
 import type { Lead, Outcome } from "@/api/types";
 
@@ -183,14 +183,13 @@ export function CallModal({ lead, leadId, onClose }: CallModalProps) {
       </div>
 
       {meetingModalOpen && (
-        <MeetingBookingModal
+        <BookingWizard
           isOpen={meetingModalOpen}
           leadId={leadId}
           lead={lead}
-          msConnected={msStatus?.connected ?? false}
-          callDuration={duration}
+          isMsConnected={msStatus?.connected ?? false}
           onClose={() => setMeetingModalOpen(false)}
-          onBooked={handleMeetingBooked}
+          onSuccess={handleMeetingBooked}
         />
       )}
     </>

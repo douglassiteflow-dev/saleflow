@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Lead, Outcome } from "@/api/types";
 import { useSubmitOutcome } from "@/api/leads";
 import { useMicrosoftStatus } from "@/api/microsoft";
-import { MeetingBookingModal } from "@/components/meeting-booking-modal";
+import { BookingWizard } from "@/components/dialer/booking-wizard";
 import { cn } from "@/lib/cn";
 
 interface OutcomeConfig {
@@ -211,13 +211,13 @@ export function OutcomeInline({
       </div>
 
       {/* Meeting booking modal */}
-      <MeetingBookingModal
+      <BookingWizard
         isOpen={meetingModalOpen}
         onClose={() => setMeetingModalOpen(false)}
-        onBooked={handleMeetingBooked}
+        onSuccess={handleMeetingBooked}
         lead={leadData}
         leadId={leadId}
-        msConnected={msStatus?.connected ?? false}
+        isMsConnected={msStatus?.connected ?? false}
       />
     </>
   );
