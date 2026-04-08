@@ -322,6 +322,21 @@ defmodule SaleflowWeb.DealControllerTest do
       assert json_response(resp, 404)
     end
 
+    test "rejects questionnaire when deal is not at meeting_completed stage", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      deal = create_deal!(lead, agent)
+      assert deal.stage == :booking_wizard
+
+      resp =
+        post(agent_conn, "/api/deals/#{deal.id}/send-questionnaire", %{
+          "customer_email" => "kund@example.se"
+        })
+
+      assert json_response(resp, 422)
+      assert json_response(resp, 422)["error"] =~ "Möte genomfört"
+    end
+
     test "agent cannot send questionnaire for another agent's deal", %{conn: conn} do
       lead = create_lead!()
       {_other_conn, other_agent} = create_agent!(conn, %{name: "Other"})
@@ -472,6 +487,23 @@ defmodule SaleflowWeb.DealControllerTest do
         })
 
       assert json_response(resp, 404)
+    end
+
+    test "rejects contract when deal is not at questionnaire_sent stage", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      deal = create_deal!(lead, agent)
+      assert deal.stage == :booking_wizard
+
+      resp =
+        post(agent_conn, "/api/deals/#{deal.id}/send-contract", %{
+          "recipient_email" => "kund@example.se",
+          "recipient_name" => "Kund AB",
+          "amount" => 9500
+        })
+
+      assert json_response(resp, 422)
+      assert json_response(resp, 422)["error"] =~ "Formulär skickat"
     end
 
     test "returns 403 for wrong owner", %{conn: conn} do

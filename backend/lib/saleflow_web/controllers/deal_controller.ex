@@ -126,36 +126,48 @@ defmodule SaleflowWeb.DealController do
     with {:ok, deal} <- get_deal(id),
          :ok <- check_ownership(deal, user),
          {:ok, lead} <- Sales.get_lead(deal.lead_id) do
-      email = params["customer_email"] || lead.epost
-
-      unless email do
-        conn |> put_status(:unprocessable_entity) |> json(%{error: "Ingen email angiven"})
+      unless deal.stage == :meeting_completed do
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "Deal måste vara i steget 'Möte genomfört'"})
       else
-        token = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
+        email = params["customer_email"] || lead.epost
 
-        case Sales.create_questionnaire(%{
-               deal_id: deal.id,
-               customer_email: email,
-               token: token
-             }) do
-          {:ok, questionnaire} ->
-            send_questionnaire_email(email, lead.företag, token)
-            Sales.advance_deal(deal)
-            broadcast_dashboard_update("questionnaire_sent")
+        unless email do
+          conn |> put_status(:unprocessable_entity) |> json(%{error: "Ingen email angiven"})
+        else
+          token = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
 
-            json(conn, %{
-              questionnaire: %{
-                id: questionnaire.id,
-                token: questionnaire.token,
-                status: questionnaire.status,
-                customer_email: questionnaire.customer_email
-              }
-            })
+          case Sales.create_questionnaire(%{
+                 deal_id: deal.id,
+                 customer_email: email,
+                 token: token
+               }) do
+            {:ok, questionnaire} ->
+              send_questionnaire_email(email, lead.företag, token)
 
-          {:error, _} ->
-            conn
-            |> put_status(:unprocessable_entity)
-            |> json(%{error: "Kunde inte skapa formulär"})
+              case Sales.advance_deal(deal) do
+                {:ok, _advanced} ->
+                  broadcast_dashboard_update("questionnaire_sent")
+
+                  json(conn, %{
+                    questionnaire: %{
+                      id: questionnaire.id,
+                      token: questionnaire.token,
+                      status: questionnaire.status,
+                      customer_email: questionnaire.customer_email
+                    }
+                  })
+
+                {:error, _reason} ->
+                  conn
+                  |> put_status(:unprocessable_entity)
+                  |> json(%{error: "Kunde inte avancera deal"})
+              end
+
+            {:error, _} ->
+              conn
+              |> put_status(:unprocessable_entity)
+              |> json(%{error: "Kunde inte skapa formulär"})
+          end
         end
       end
     else
@@ -177,49 +189,61 @@ defmodule SaleflowWeb.DealController do
     with {:ok, deal} <- get_deal(id),
          :ok <- check_ownership(deal, user),
          {:ok, lead} <- Sales.get_lead(deal.lead_id) do
-      email = params["recipient_email"] || lead.epost
-      name = params["recipient_name"] || lead.företag
-
-      unless email do
-        conn |> put_status(:unprocessable_entity) |> json(%{error: "Ingen email angiven"})
+      unless deal.stage == :questionnaire_sent do
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "Deal måste vara i steget 'Formulär skickat'"})
       else
-        unless params["amount"] do
-          conn |> put_status(:unprocessable_entity) |> json(%{error: "Belopp krävs"})
+        email = params["recipient_email"] || lead.epost
+        name = params["recipient_name"] || lead.företag
+
+        unless email do
+          conn |> put_status(:unprocessable_entity) |> json(%{error: "Ingen email angiven"})
         else
-          case Saleflow.Contracts.create_contract(%{
-                 deal_id: deal.id,
-                 user_id: user.id,
-                 recipient_email: email,
-                 recipient_name: name,
-                 amount: params["amount"],
-                 currency: params["currency"] || "SEK",
-                 terms: params["terms"],
-                 seller_name: user.name
-               }) do
-            {:ok, contract} ->
-              send_contract_email(email, lead.företag, contract)
-              Saleflow.Contracts.mark_sent(contract)
-              Sales.advance_deal(deal)
-              broadcast_dashboard_update("contract_sent")
+          unless params["amount"] do
+            conn |> put_status(:unprocessable_entity) |> json(%{error: "Belopp krävs"})
+          else
+            case Saleflow.Contracts.create_contract(%{
+                   deal_id: deal.id,
+                   user_id: user.id,
+                   recipient_email: email,
+                   recipient_name: name,
+                   amount: params["amount"],
+                   currency: params["currency"] || "SEK",
+                   terms: params["terms"],
+                   seller_name: user.name
+                 }) do
+              {:ok, contract} ->
+                send_contract_email(email, lead.företag, contract)
+                Saleflow.Contracts.mark_sent(contract)
 
-              json(conn, %{
-                contract: %{
-                  id: contract.id,
-                  contract_number: contract.contract_number,
-                  status: :sent,
-                  access_token: contract.access_token,
-                  verification_code: contract.verification_code,
-                  recipient_email: contract.recipient_email,
-                  recipient_name: contract.recipient_name,
-                  amount: contract.amount,
-                  currency: contract.currency
-                }
-              })
+                case Sales.advance_deal(deal) do
+                  {:ok, _advanced} ->
+                    broadcast_dashboard_update("contract_sent")
 
-            {:error, _} ->
-              conn
-              |> put_status(:unprocessable_entity)
-              |> json(%{error: "Kunde inte skapa avtal"})
+                    json(conn, %{
+                      contract: %{
+                        id: contract.id,
+                        contract_number: contract.contract_number,
+                        status: :sent,
+                        access_token: contract.access_token,
+                        verification_code: contract.verification_code,
+                        recipient_email: contract.recipient_email,
+                        recipient_name: contract.recipient_name,
+                        amount: contract.amount,
+                        currency: contract.currency
+                      }
+                    })
+
+                  {:error, _reason} ->
+                    conn
+                    |> put_status(:unprocessable_entity)
+                    |> json(%{error: "Kunde inte avancera deal"})
+                end
+
+              {:error, _} ->
+                conn
+                |> put_status(:unprocessable_entity)
+                |> json(%{error: "Kunde inte skapa avtal"})
+            end
           end
         end
       end

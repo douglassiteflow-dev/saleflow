@@ -41,7 +41,7 @@ defmodule SaleflowWeb.ContractPublicController do
         conn |> put_status(404) |> json(%{error: "Avtal hittades inte"})
 
       {:ok, contract} ->
-        if contract.verification_code == code do
+        if Plug.Crypto.secure_compare(contract.verification_code, code) do
           {:ok, updated} = Contracts.mark_viewed(contract)
 
           conn |> json(%{
