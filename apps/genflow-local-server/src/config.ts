@@ -13,8 +13,8 @@ const CONFIG_DIR = path.join(os.homedir(), ".genflow");
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
 
 const DEFAULTS: GenFlowConfig = {
-  backendUrl: "http://localhost:4000",
-  apiKey: "dev-genflow-key",
+  backendUrl: "https://sale.siteflow.se",
+  apiKey: "",
   flowingAiUrl: "http://localhost:1337",
   pollInterval: 5000,
 };

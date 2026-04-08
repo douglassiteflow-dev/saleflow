@@ -23,6 +23,7 @@ export default function App() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [completed, setCompleted] = useState(0);
   const [failed, setFailed] = useState(0);
+  const [testResult, setTestResult] = useState<"idle" | "testing" | "ok" | "fail">("idle");
   const logRef = useRef<HTMLDivElement>(null);
 
   const log = useCallback((msg: string) => {
@@ -54,16 +55,36 @@ export default function App() {
     setConfig((prev) => ({ ...prev, [field]: value }));
   };
 
+  const testConnection = async () => {
+    setTestResult("testing");
+    try {
+      const res = await fetch(`${config.backendUrl}/api/gen-jobs/pending`, {
+        headers: { "X-GenFlow-Key": config.apiKey },
+      });
+      if (res.ok) {
+        setTestResult("ok");
+        log("✓ Anslutningen fungerar!");
+      } else if (res.status === 401) {
+        setTestResult("fail");
+        log("✗ Fel API-nyckel");
+      } else {
+        setTestResult("fail");
+        log(`✗ Backend svarade med ${res.status}`);
+      }
+    } catch {
+      setTestResult("fail");
+      log("✗ Kunde inte nå backend — kontrollera URL");
+    }
+    setTimeout(() => setTestResult("idle"), 3000);
+  };
+
   return (
     <div className="app">
       {/* Header — centered */}
       <div className="header">
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, gap: 8 }}>
           <img src="./icon.png" alt="Genflow" className="logo" />
-          <div className="header-text">
-            <h1>Genflow</h1>
-            <div className="sub">Lokal genereringsserver</div>
-          </div>
+          <h1 className="brand">Genflow</h1>
           <div className={`status-pill ${running ? "online" : "offline"}`}>
             <span className="dot" />
             {running ? "Ansluten" : "Frånkopplad"}
@@ -109,6 +130,16 @@ export default function App() {
             disabled={running}
           />
         </div>
+        <button
+          className={`btn-test ${testResult}`}
+          onClick={testConnection}
+          disabled={running || testResult === "testing"}
+        >
+          {testResult === "testing" ? "Testar..." :
+           testResult === "ok" ? "✓ Ansluten" :
+           testResult === "fail" ? "✗ Misslyckades" :
+           "Testa anslutning"}
+        </button>
       </div>
 
       {/* Controls */}

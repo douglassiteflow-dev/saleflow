@@ -55,25 +55,14 @@ body {
   border-radius: 8px;
 }
 
-.header-text {
-  flex: 1;
-}
-
-.header-text h1 {
-  font-size: 18px;
+.brand {
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.02em;
+  text-align: center;
   background: linear-gradient(135deg, #2dd4bf 0%, #a78bfa 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-}
-
-.header-text .sub {
-  font-size: 11px;
-  color: #475569;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  margin-top: 1px;
 }
 
 .status-pill {
@@ -213,6 +202,41 @@ body {
 
 .field input:disabled {
   opacity: 0.4;
+}
+
+.btn-test {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  border: 1px solid rgba(45, 212, 191, 0.2);
+  border-radius: 8px;
+  background: rgba(45, 212, 191, 0.05);
+  color: #2dd4bf;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-app-region: no-drag;
+}
+
+.btn-test:hover:not(:disabled) {
+  background: rgba(45, 212, 191, 0.1);
+  border-color: rgba(45, 212, 191, 0.4);
+}
+
+.btn-test:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-test.ok {
+  border-color: rgba(45, 212, 191, 0.4);
+  color: #2dd4bf;
+}
+
+.btn-test.fail {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
 }
 
 /* Controls */
