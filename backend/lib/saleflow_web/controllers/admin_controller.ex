@@ -26,10 +26,12 @@ defmodule SaleflowWeb.AdminController do
 
     case Accounts.register(user_params) do
       {:ok, user} ->
+        frontend_url = Application.get_env(:saleflow, :frontend_url, "http://localhost:5173")
+
         {subject, html} =
           Saleflow.Notifications.Templates.render_welcome(
             user.name,
-            "http://localhost:5173/login"
+            "#{frontend_url}/login"
           )
 
         Saleflow.Notifications.Mailer.send_email_async(to_string(user.email), subject, html)

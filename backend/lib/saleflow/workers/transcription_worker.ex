@@ -44,6 +44,8 @@ defmodule Saleflow.Workers.TranscriptionWorker do
             scorecard_avg: scorecard_avg
           })
 
+          save_call_topics(phone_call_id, analysis)
+
           Logger.info("TranscriptionWorker: #{phone_call_id} done (full scorecard)")
           :ok
 
@@ -433,6 +435,75 @@ defmodule Saleflow.Workers.TranscriptionWorker do
       ]
     )
   end
+
+  # ---------------------------------------------------------------------------
+  # Call topics extraction
+  # ---------------------------------------------------------------------------
+
+  def save_call_topics(phone_call_id, analysis) do
+    keywords = analysis["keywords"] || %{}
+
+    topics =
+      extract_topic_list(keywords["competitors"], "competitor") ++
+        extract_topic_list(keywords["buying_signals"], "buying_signal") ++
+        extract_topic_list(keywords["red_flags"], "red_flag") ++
+        extract_objections(analysis["objections"])
+
+    Enum.each(topics, fn topic ->
+      Saleflow.Repo.query(
+        """
+        INSERT INTO call_topics (id, phone_call_id, topic_type, keyword, context, timestamp_seconds, sentiment, inserted_at, updated_at)
+        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW(), NOW())
+        """,
+        [
+          Ecto.UUID.dump!(phone_call_id),
+          topic.type,
+          topic.keyword,
+          topic.context,
+          topic.timestamp,
+          topic.sentiment
+        ]
+      )
+    end)
+  end
+
+  def extract_topic_list(nil, _type), do: []
+
+  def extract_topic_list(items, type) when is_list(items) do
+    Enum.map(items, fn item ->
+      %{
+        type: type,
+        keyword: item["keyword"] || item["name"] || item["signal"] || item["flag"] || "",
+        context: item["context"] || "",
+        timestamp: parse_timestamp(item["timestamp"]),
+        sentiment: nil
+      }
+    end)
+  end
+
+  def extract_topic_list(_, _), do: []
+
+  def extract_objections(nil), do: []
+
+  def extract_objections(objections) when is_list(objections) do
+    Enum.map(objections, fn obj ->
+      %{type: "objection", keyword: to_string(obj), context: nil, timestamp: nil, sentiment: "negative"}
+    end)
+  end
+
+  def extract_objections(_), do: []
+
+  def parse_timestamp(nil), do: nil
+  def parse_timestamp(ts) when is_integer(ts), do: ts
+
+  def parse_timestamp(ts) when is_binary(ts) do
+    case Integer.parse(ts) do
+      {n, _} -> n
+      :error -> nil
+    end
+  end
+
+  def parse_timestamp(_), do: nil
 
   # ---------------------------------------------------------------------------
   # Configurable client (for Mox)

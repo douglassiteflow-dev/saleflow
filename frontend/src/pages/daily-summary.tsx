@@ -4,7 +4,8 @@ import { useDailySummary } from "@/api/daily-summary";
 import type { CallAnalysis } from "@/api/daily-summary";
 import { StatCard } from "@/components/stat-card";
 import { Card, CardTitle } from "@/components/ui/card";
-import { OUTCOME_LABELS } from "@/lib/constants";
+import { OUTCOME_LABELS, OUTCOME_DOT_COLORS } from "@/lib/constants";
+import { ScoreBar } from "@/components/score-bar";
 import { todayISO } from "@/lib/date";
 import Loader from "@/components/kokonutui/loader";
 
@@ -28,53 +29,6 @@ function formatSwedishDate(iso: string): string {
   });
 }
 
-/* ------------------------------------------------------------------ */
-/*  Score bar (same style as call-analysis-modal)                      */
-/* ------------------------------------------------------------------ */
-
-function ScoreBar({ label, score, max = 10 }: { label: string; score: number; max?: number }) {
-  const pct = (score / max) * 100;
-  const color =
-    score >= 8
-      ? "bg-emerald-500"
-      : score >= 6
-        ? "bg-amber-400"
-        : score >= 4
-          ? "bg-orange-400"
-          : "bg-red-500";
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <span className="text-[13px] font-medium text-[var(--color-text-primary)]">{label}</span>
-        <span className="text-[13px] font-mono text-[var(--color-text-secondary)]">
-          {score.toFixed(1)}/10
-        </span>
-      </div>
-      <div className="h-2 rounded-full bg-[var(--color-bg-panel)] overflow-hidden">
-        <div
-          className={`h-full rounded-full ${color} transition-all`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Outcome dot color helper                                           */
-/* ------------------------------------------------------------------ */
-
-const OUTCOME_DOT: Record<string, string> = {
-  meeting_booked: "bg-emerald-500",
-  callback: "bg-amber-400",
-  not_interested: "bg-rose-500",
-  no_answer: "bg-slate-400",
-  call_later: "bg-blue-500",
-  bad_number: "bg-red-500",
-  customer: "bg-indigo-500",
-  other: "bg-slate-400",
-};
 
 /* ------------------------------------------------------------------ */
 /*  Aggregation logic                                                  */
@@ -400,7 +354,7 @@ export function DailySummaryPage() {
                   .map(([outcome, count]) => {
                     const pct =
                       agg.totalCalls > 0 ? Math.round((count / agg.totalCalls) * 100) : 0;
-                    const dotColor = OUTCOME_DOT[outcome] ?? "bg-slate-400";
+                    const dotColor = OUTCOME_DOT_COLORS[outcome] ?? "bg-slate-400";
 
                     return (
                       <div key={outcome} className="space-y-1.5">

@@ -168,6 +168,8 @@ defmodule SaleflowWeb.LeadController do
 
       # Schedule recording fetch + transcription in background
       if phone_call do
+        require Logger
+
         try do
           %{phone_call_id: phone_call.id, user_id: user.id}
           |> Saleflow.Workers.RecordingFetchWorker.new(schedule_in: 15)
@@ -180,9 +182,11 @@ defmodule SaleflowWeb.LeadController do
             |> Oban.insert()
           end
         rescue
-          _ -> :ok
+          e ->
+            Logger.warning("LeadController.outcome: failed to enqueue background job: #{inspect(e)}")
         catch
-          _, _ -> :ok
+          kind, e ->
+            Logger.warning("LeadController.outcome: caught #{kind} in background job enqueue: #{inspect(e)}")
         end
       end
 
@@ -329,55 +333,30 @@ defmodule SaleflowWeb.LeadController do
 
   defp apply_outcome(lead, "not_interested", user, _params) do
     # Permanent quarantine — set a far-future date (year 2099) so it never auto-releases
-    permanent_until = ~U[2099-12-31 23:59:59Z]
-
-    with {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :quarantine, quarantine_until: permanent_until}) do
-      {:ok, _q} = Sales.create_quarantine(%{
-        lead_id: lead.id,
-        user_id: user.id,
-        reason: "Not interested"
-      })
-      {:ok, updated_lead}
-    end
+    apply_quarantine_outcome(lead, user, ~U[2099-12-31 23:59:59Z], "Not interested")
   end
 
   defp apply_outcome(lead, "no_answer", user, _params) do
     # 24h quarantine instead of going back to queue immediately
-    quarantine_until = DateTime.utc_now() |> DateTime.add(24, :hour)
-
-    with {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :quarantine, quarantine_until: quarantine_until}) do
-      {:ok, _q} = Sales.create_quarantine(%{
-        lead_id: lead.id,
-        user_id: user.id,
-        reason: "No answer"
-      })
-      {:ok, updated_lead}
-    end
+    apply_quarantine_outcome(lead, user, DateTime.utc_now() |> DateTime.add(24, :hour), "No answer")
   end
 
   defp apply_outcome(lead, "call_later", user, _params) do
     # 24h quarantine — same as no_answer
-    quarantine_until = DateTime.utc_now() |> DateTime.add(24, :hour)
-
-    with {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :quarantine, quarantine_until: quarantine_until}) do
-      {:ok, _q} = Sales.create_quarantine(%{
-        lead_id: lead.id,
-        user_id: user.id,
-        reason: "Call later"
-      })
-      {:ok, updated_lead}
-    end
+    apply_quarantine_outcome(lead, user, DateTime.utc_now() |> DateTime.add(24, :hour), "Call later")
   end
 
   defp apply_outcome(lead, "skipped", user, _params) do
     # Short quarantine — lead goes back into queue after 1 hour
-    quarantine_until = DateTime.utc_now() |> DateTime.add(1, :hour)
+    apply_quarantine_outcome(lead, user, DateTime.utc_now() |> DateTime.add(1, :hour), "Skipped")
+  end
 
+  defp apply_quarantine_outcome(lead, user, quarantine_until, reason) do
     with {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :quarantine, quarantine_until: quarantine_until}) do
       {:ok, _q} = Sales.create_quarantine(%{
         lead_id: lead.id,
         user_id: user.id,
-        reason: "Skipped"
+        reason: reason
       })
       {:ok, updated_lead}
     end

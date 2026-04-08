@@ -19,3 +19,15 @@ export const OUTCOME_COLORS: Record<string, string> = {
   customer: "bg-indigo-100 text-indigo-700",
   other: "bg-slate-100 text-slate-600",
 };
+
+/** Solid dot colors used in charts/lists (e.g. daily-summary outcome breakdown). */
+export const OUTCOME_DOT_COLORS: Record<string, string> = {
+  meeting_booked: "bg-emerald-500",
+  callback: "bg-amber-400",
+  not_interested: "bg-rose-500",
+  no_answer: "bg-slate-400",
+  call_later: "bg-blue-500",
+  bad_number: "bg-red-500",
+  customer: "bg-indigo-500",
+  other: "bg-slate-400",
+};

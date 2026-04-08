@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, ChevronDown, ChevronRight } from "lucide-react";
 import type { Scorecard, TalkRatio, SentimentAnalysis } from "@/api/types";
+import { ScoreBar } from "@/components/score-bar";
 
 interface ScoreDetail {
   score: number;
@@ -44,28 +45,6 @@ function Stars({ score, max = 10 }: { score: number; max?: number }) {
   );
 }
 
-function ScoreBar({ label, detail }: { label: string; detail: ScoreDetail }) {
-  const pct = (detail.score / 10) * 100;
-  const color =
-    detail.score >= 8 ? "bg-emerald-500" :
-    detail.score >= 6 ? "bg-amber-400" :
-    detail.score >= 4 ? "bg-orange-400" : "bg-red-500";
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <span className="text-[13px] font-medium text-[var(--color-text-primary)]">{label}</span>
-        <span className="text-[13px] font-mono text-[var(--color-text-secondary)]">{detail.score}/10</span>
-      </div>
-      <div className="h-2 rounded-full bg-[var(--color-bg-panel)] overflow-hidden">
-        <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
-      </div>
-      <p className="text-[12px] text-[var(--color-text-secondary)] leading-relaxed italic">
-        &ldquo;{detail.comment}&rdquo;
-      </p>
-    </div>
-  );
-}
 
 function Tag({ children, color }: { children: string; color: string }) {
   return (
@@ -420,11 +399,11 @@ export function CallAnalysisModal({ analysis, companyName, onClose }: Props) {
                 Betyg
               </h3>
               <div className="space-y-4">
-                <ScoreBar label="Öppning" detail={analysis.score.opening} />
-                <ScoreBar label="Behovsanalys" detail={analysis.score.needs_discovery} />
-                <ScoreBar label="Pitch" detail={analysis.score.pitch} />
-                <ScoreBar label="Invändningshantering" detail={analysis.score.objection_handling} />
-                <ScoreBar label="Avslut" detail={analysis.score.closing} />
+                <ScoreBar label="Öppning" score={analysis.score.opening.score} comment={analysis.score.opening.comment} />
+                <ScoreBar label="Behovsanalys" score={analysis.score.needs_discovery.score} comment={analysis.score.needs_discovery.comment} />
+                <ScoreBar label="Pitch" score={analysis.score.pitch.score} comment={analysis.score.pitch.comment} />
+                <ScoreBar label="Invändningshantering" score={analysis.score.objection_handling.score} comment={analysis.score.objection_handling.comment} />
+                <ScoreBar label="Avslut" score={analysis.score.closing.score} comment={analysis.score.closing.comment} />
               </div>
             </div>
           )}
