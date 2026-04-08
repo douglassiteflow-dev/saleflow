@@ -3,6 +3,8 @@ defmodule SaleflowWeb.CallController do
 
   require Logger
 
+  import SaleflowWeb.ControllerHelpers, only: [to_int: 1, parse_date: 1]
+
   defp client do
     Application.get_env(:saleflow, :telavox_client, Saleflow.Telavox.Client)
   end
@@ -180,19 +182,6 @@ defmodule SaleflowWeb.CallController do
       end)
 
     json(conn, %{calls: calls})
-  end
-
-  defp to_int(nil), do: 0
-  defp to_int(%Decimal{} = d), do: Decimal.to_integer(d)
-  defp to_int(n) when is_integer(n), do: n
-  defp to_int(_), do: 0
-
-  defp parse_date(nil), do: nil
-  defp parse_date(str) when is_binary(str) do
-    case Date.from_iso8601(str) do
-      {:ok, date} -> date
-      _ -> nil
-    end
   end
 
   defp get_lead_phone(lead_id) do

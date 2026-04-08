@@ -2,7 +2,9 @@ defmodule SaleflowWeb.DemoConfigController do
   use SaleflowWeb, :controller
 
   alias Saleflow.Sales
-  alias Saleflow.Accounts
+
+  import SaleflowWeb.ControllerHelpers, only: [check_ownership: 2, build_global_user_name_map: 0]
+  import SaleflowWeb.Serializers, only: [serialize_lead: 1, serialize_meeting: 2]
 
   @doc """
   List demo configs.
@@ -205,21 +207,6 @@ defmodule SaleflowWeb.DemoConfigController do
     end
   end
 
-  defp check_ownership(_dc, %{role: :admin}), do: :ok
-
-  defp check_ownership(dc, user) do
-    if dc.user_id == user.id do
-      :ok
-    else
-      {:error, :forbidden}
-    end
-  end
-
-  defp build_global_user_name_map do
-    {:ok, users} = Accounts.list_users()
-    Enum.into(users, %{}, fn u -> {u.id, u.name} end)
-  end
-
   defp serialize_simple(dc, user_names \\ %{}) do
     lead_name =
       cond do
@@ -248,53 +235,4 @@ defmodule SaleflowWeb.DemoConfigController do
     serialize_simple(dc, user_names)
   end
 
-  defp serialize_lead(nil), do: nil
-
-  defp serialize_lead(lead) do
-    %{
-      id: lead.id,
-      företag: lead.företag,
-      telefon: lead.telefon,
-      telefon_2: lead.telefon_2,
-      epost: lead.epost,
-      hemsida: lead.hemsida,
-      adress: lead.adress,
-      postnummer: lead.postnummer,
-      stad: lead.stad,
-      bransch: lead.bransch,
-      orgnr: lead.orgnr,
-      omsättning_tkr: lead.omsättning_tkr,
-      vinst_tkr: lead.vinst_tkr,
-      anställda: lead.anställda,
-      vd_namn: lead.vd_namn,
-      bolagsform: lead.bolagsform,
-      status: lead.status,
-      källa: lead.källa,
-      lead_list_id: lead.lead_list_id,
-      inserted_at: lead.inserted_at,
-      updated_at: lead.updated_at
-    }
-  end
-
-  defp serialize_meeting(meeting, user_names) do
-    %{
-      id: meeting.id,
-      lead_id: meeting.lead_id,
-      user_id: meeting.user_id,
-      user_name: Map.get(user_names, meeting.user_id),
-      title: meeting.title,
-      meeting_date: meeting.meeting_date,
-      meeting_time: meeting.meeting_time,
-      notes: meeting.notes,
-      duration_minutes: meeting.duration_minutes,
-      status: meeting.status,
-      deal_id: meeting.deal_id,
-      demo_config_id: meeting.demo_config_id,
-      teams_join_url: meeting.teams_join_url,
-      attendee_email: meeting.attendee_email,
-      attendee_name: meeting.attendee_name,
-      inserted_at: meeting.inserted_at,
-      updated_at: meeting.updated_at
-    }
-  end
 end

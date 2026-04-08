@@ -2,9 +2,9 @@ defmodule SaleflowWeb.AuditController do
   use SaleflowWeb, :controller
 
   alias Saleflow.Audit
-  alias Saleflow.Accounts
 
-  import SaleflowWeb.ControllerHelpers, only: [maybe_put: 3]
+  import SaleflowWeb.ControllerHelpers, only: [maybe_put: 3, build_user_name_map: 2]
+  import SaleflowWeb.Serializers, only: [serialize_audit_log: 3]
 
   @doc """
   List audit logs with optional action filter.
@@ -50,48 +50,6 @@ defmodule SaleflowWeb.AuditController do
         user_names = %{user.id => "Du"}
         json(conn, %{audit_logs: Enum.map(logs, &serialize_audit_log(&1, user_names, user))})
     end
-  end
-
-  # ---------------------------------------------------------------------------
-  # Helpers
-  # ---------------------------------------------------------------------------
-
-  # Build a map of user_id => name for all user_ids present in the logs.
-  # For agents there is only one user (themselves), so we skip a DB call.
-  defp build_user_name_map(_logs, %{role: :agent} = user) do
-    %{user.id => "Du"}
-  end
-
-  defp build_user_name_map(logs, _admin_user) do
-    user_ids =
-      logs
-      |> Enum.map(& &1.user_id)
-      |> Enum.reject(&is_nil/1)
-      |> Enum.uniq()
-
-    case user_ids do
-      [] ->
-        %{}
-
-      _ ->
-        {:ok, users} = Accounts.list_users()
-
-        Enum.into(users, %{}, fn u -> {u.id, u.name} end)
-    end
-  end
-
-  defp serialize_audit_log(log, user_names, _current_user) do
-    %{
-      id: log.id,
-      user_id: log.user_id,
-      user_name: Map.get(user_names, log.user_id),
-      action: log.action,
-      resource_type: log.resource_type,
-      resource_id: log.resource_id,
-      changes: log.changes,
-      metadata: log.metadata,
-      inserted_at: log.inserted_at
-    }
   end
 
 end

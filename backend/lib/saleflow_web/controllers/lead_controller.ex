@@ -5,7 +5,8 @@ defmodule SaleflowWeb.LeadController do
   alias Saleflow.Audit
   alias Saleflow.Accounts
 
-  import SaleflowWeb.ControllerHelpers, only: [maybe_put: 3]
+  import SaleflowWeb.ControllerHelpers
+  import SaleflowWeb.Serializers
 
   @doc """
   List or search leads. Pass `?q=term` to search by company name.
@@ -163,11 +164,7 @@ defmodule SaleflowWeb.LeadController do
          {:ok, _lead} <- apply_outcome(lead, outcome, user, params) do
 
       # Broadcast dashboard update so stats refresh in real-time
-      Phoenix.PubSub.broadcast(
-        Saleflow.PubSub,
-        "dashboard:updates",
-        {:dashboard_update, %{event: "call_completed", user_id: user.id}}
-      )
+      broadcast_dashboard_update("call_completed")
 
       # Schedule recording fetch + transcription in background
       if phone_call do
@@ -253,8 +250,8 @@ defmodule SaleflowWeb.LeadController do
   defp parse_call_duration(_), do: 0
 
   defp apply_outcome(lead, "meeting_booked", user, params) do
-    meeting_date = parse_date(params["meeting_date"])
-    meeting_time = parse_time(params["meeting_time"])
+    meeting_date = parse_date_with_default(params["meeting_date"])
+    meeting_time = parse_time_with_default(params["meeting_time"])
 
     # Double booking check
     case check_meeting_conflict(user.id, meeting_date, meeting_time) do
@@ -421,62 +418,8 @@ defmodule SaleflowWeb.LeadController do
   end
 
   # ---------------------------------------------------------------------------
-  # Serializers
+  # Serializers (local, controller-specific)
   # ---------------------------------------------------------------------------
-
-  defp serialize_lead(lead) do
-    %{
-      id: lead.id,
-      företag: lead.företag,
-      telefon: lead.telefon,
-      telefon_2: lead.telefon_2,
-      epost: lead.epost,
-      hemsida: lead.hemsida,
-      adress: lead.adress,
-      postnummer: lead.postnummer,
-      stad: lead.stad,
-      bransch: lead.bransch,
-      orgnr: lead.orgnr,
-      omsättning_tkr: lead.omsättning_tkr,
-      vinst_tkr: lead.vinst_tkr,
-      anställda: lead.anställda,
-      vd_namn: lead.vd_namn,
-      bolagsform: lead.bolagsform,
-      status: lead.status,
-      quarantine_until: lead.quarantine_until,
-      callback_at: lead.callback_at,
-      källa: lead.källa,
-      lead_list_id: lead.lead_list_id,
-      imported_at: lead.imported_at,
-      inserted_at: lead.inserted_at,
-      updated_at: lead.updated_at
-    }
-  end
-
-  # Build a user_id => name map for all relevant user_ids.
-  # For agents, only their own id is needed (shown as "Du").
-  defp build_user_name_map(_calls, _audit_logs, %{role: :agent} = user) do
-    %{user.id => "Du"}
-  end
-
-  defp build_user_name_map(calls, audit_logs, _admin_user) do
-    call_ids = Enum.map(calls, & &1.user_id)
-    audit_ids = Enum.map(audit_logs, & &1.user_id)
-
-    user_ids =
-      (call_ids ++ audit_ids)
-      |> Enum.reject(&is_nil/1)
-      |> Enum.uniq()
-
-    case user_ids do
-      [] ->
-        %{}
-
-      _ ->
-        {:ok, users} = Accounts.list_users()
-        Enum.into(users, %{}, fn u -> {u.id, u.name} end)
-    end
-  end
 
   defp serialize_call(call, user_names, _current_user) do
     {duration, has_recording, phone_call_id, transcription, transcription_analysis} = get_call_phone_data(call.id)
@@ -497,50 +440,20 @@ defmodule SaleflowWeb.LeadController do
     }
   end
 
-  defp get_call_phone_data(call_log_id) do
-    case Saleflow.Repo.query(
-           "SELECT COALESCE(SUM(duration), 0), bool_or(recording_key IS NOT NULL), (SELECT id FROM phone_calls WHERE call_log_id = $1 AND recording_key IS NOT NULL LIMIT 1), (SELECT transcription FROM phone_calls WHERE call_log_id = $1 AND transcription IS NOT NULL LIMIT 1), (SELECT transcription_analysis FROM phone_calls WHERE call_log_id = $1 AND transcription_analysis IS NOT NULL LIMIT 1) FROM phone_calls WHERE call_log_id = $1",
-           [Ecto.UUID.dump!(call_log_id)]
-         ) do
-      {:ok, %{rows: [[dur, has_rec, pc_id, transcription, analysis]]}} ->
-        {to_int(dur), has_rec || false, pc_id && Saleflow.Sales.decode_uuid(pc_id), transcription, analysis}
-      _ -> {0, false, nil, nil}
-    end
-  end
-
-  defp to_int(nil), do: 0
-  defp to_int(%Decimal{} = d), do: Decimal.to_integer(d)
-  defp to_int(n) when is_integer(n), do: n
-  defp to_int(_), do: 0
-
-  defp serialize_audit_log(log, user_names, _current_user) do
-    %{
-      id: log.id,
-      user_id: log.user_id,
-      user_name: Map.get(user_names, log.user_id),
-      action: log.action,
-      resource_type: log.resource_type,
-      resource_id: log.resource_id,
-      changes: log.changes,
-      metadata: log.metadata,
-      inserted_at: log.inserted_at
-    }
-  end
-
   # ---------------------------------------------------------------------------
-  # Date/time parsing helpers
+  # Date/time parsing with defaults (specific to outcome/meeting booking)
   # ---------------------------------------------------------------------------
 
-  defp parse_date(nil), do: Date.utc_today() |> Date.add(1)
-  defp parse_date(date_string) when is_binary(date_string) do
+  defp parse_date_with_default(nil), do: Date.utc_today() |> Date.add(1)
+  defp parse_date_with_default(date_string) when is_binary(date_string) do
     case Date.from_iso8601(date_string) do
       {:ok, date} -> date
       _ -> Date.utc_today() |> Date.add(1)
     end
   end
 
-  defp parse_time(nil), do: ~T[10:00:00]
-  defp parse_time(time_string) when is_binary(time_string) do
+  defp parse_time_with_default(nil), do: ~T[10:00:00]
+  defp parse_time_with_default(time_string) when is_binary(time_string) do
     # HTML time input sends "HH:MM", Time.from_iso8601 requires "HH:MM:SS"
     padded = if String.length(time_string) == 5, do: time_string <> ":00", else: time_string
 

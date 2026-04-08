@@ -4,7 +4,7 @@ defmodule SaleflowWeb.MicrosoftController do
   alias Saleflow.Microsoft.Graph
   require Logger
 
-  import SaleflowWeb.ControllerHelpers, only: [maybe_put: 3]
+  import SaleflowWeb.ControllerHelpers, only: [maybe_put: 3, check_ownership: 2]
 
   @scopes "openid profile email Calendars.ReadWrite OnlineMeetings.ReadWrite User.Read offline_access"
 
@@ -288,12 +288,6 @@ defmodule SaleflowWeb.MicrosoftController do
     else
       :ok
     end
-  end
-
-  defp check_ownership(_meeting, %{role: :admin}), do: :ok
-
-  defp check_ownership(meeting, user) do
-    if meeting.user_id == user.id, do: :ok, else: {:error, :forbidden}
   end
 
   defp build_datetime(date, time) do

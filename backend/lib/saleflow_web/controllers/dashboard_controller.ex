@@ -2,9 +2,11 @@ defmodule SaleflowWeb.DashboardController do
   use SaleflowWeb, :controller
 
   alias Saleflow.Sales
-  alias Saleflow.Accounts
   alias Saleflow.Stats
   alias Saleflow.Repo
+
+  import SaleflowWeb.ControllerHelpers, only: [build_global_user_name_map: 0]
+  import SaleflowWeb.Serializers
 
   @doc """
   Combined dashboard endpoint. Returns stats, today's meetings, callbacks, and my_stats
@@ -167,85 +169,11 @@ defmodule SaleflowWeb.DashboardController do
         end
       end)
 
-    user_names =
-      case Accounts.list_users() do
-        {:ok, users} -> Enum.into(users, %{}, fn u -> {u.id, u.name} end)
-        _ -> %{}
-      end
+    user_names = build_global_user_name_map()
 
     Enum.map(meetings, fn m ->
       lead = Map.get(lead_map, m.lead_id)
       serialize_meeting_with_lead(m, lead, user_names)
     end)
-  end
-
-  defp serialize_meeting_with_lead(meeting, nil, user_names) do
-    serialize_meeting(meeting)
-    |> Map.put(:user_name, Map.get(user_names, meeting.user_id))
-    |> Map.put(:lead, nil)
-  end
-
-  defp serialize_meeting_with_lead(meeting, lead, user_names) do
-    serialize_meeting(meeting)
-    |> Map.put(:user_name, Map.get(user_names, meeting.user_id))
-    |> Map.put(:lead, %{
-      id: lead.id,
-      företag: lead.företag,
-      telefon: lead.telefon,
-      adress: lead.adress,
-      postnummer: lead.postnummer,
-      stad: lead.stad,
-      bransch: lead.bransch,
-      omsättning_tkr: lead.omsättning_tkr,
-      vd_namn: lead.vd_namn,
-      källa: lead.källa,
-      status: lead.status
-    })
-  end
-
-  defp serialize_meeting(meeting) do
-    %{
-      id: meeting.id,
-      lead_id: meeting.lead_id,
-      user_id: meeting.user_id,
-      title: meeting.title,
-      meeting_date: meeting.meeting_date,
-      meeting_time: meeting.meeting_time,
-      notes: meeting.notes,
-      status: meeting.status,
-      reminded_at: meeting.reminded_at,
-      attendee_email: meeting.attendee_email,
-      attendee_name: meeting.attendee_name,
-      updated_at: meeting.updated_at,
-      inserted_at: meeting.inserted_at
-    }
-  end
-
-  defp serialize_lead(lead) do
-    %{
-      id: lead.id,
-      företag: lead.företag,
-      telefon: lead.telefon,
-      epost: lead.epost,
-      hemsida: lead.hemsida,
-      adress: lead.adress,
-      postnummer: lead.postnummer,
-      stad: lead.stad,
-      bransch: lead.bransch,
-      orgnr: lead.orgnr,
-      omsättning_tkr: lead.omsättning_tkr,
-      vinst_tkr: lead.vinst_tkr,
-      anställda: lead.anställda,
-      vd_namn: lead.vd_namn,
-      bolagsform: lead.bolagsform,
-      status: lead.status,
-      quarantine_until: lead.quarantine_until,
-      callback_at: lead.callback_at,
-      källa: lead.källa,
-      lead_list_id: lead.lead_list_id,
-      imported_at: lead.imported_at,
-      inserted_at: lead.inserted_at,
-      updated_at: lead.updated_at
-    }
   end
 end

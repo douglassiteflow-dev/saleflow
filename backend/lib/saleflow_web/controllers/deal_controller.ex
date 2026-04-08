@@ -2,10 +2,10 @@ defmodule SaleflowWeb.DealController do
   use SaleflowWeb, :controller
 
   alias Saleflow.Sales
-  alias Saleflow.Accounts
   alias Saleflow.Audit
 
-  import SaleflowWeb.ControllerHelpers, only: [maybe_put: 3]
+  import SaleflowWeb.ControllerHelpers
+  import SaleflowWeb.Serializers
 
   alias Saleflow.Notifications.EmailTemplate
 
@@ -319,16 +319,6 @@ defmodule SaleflowWeb.DealController do
     end
   end
 
-  defp check_ownership(_deal, %{role: :admin}), do: :ok
-
-  defp check_ownership(deal, user) do
-    if deal.user_id == user.id do
-      :ok
-    else
-      {:error, :forbidden}
-    end
-  end
-
   defp enrich_deals(deals) do
     lead_ids = deals |> Enum.map(& &1.lead_id) |> Enum.uniq()
 
@@ -346,13 +336,6 @@ defmodule SaleflowWeb.DealController do
       lead = Map.get(lead_map, d.lead_id)
       serialize_deal(d, lead, user_names)
     end)
-  end
-
-  defp build_global_user_name_map do
-    case Accounts.list_users() do
-      {:ok, users} -> Enum.into(users, %{}, fn u -> {u.id, u.name} end)
-      _ -> %{}
-    end
   end
 
   defp serialize_deal_simple(deal) do
@@ -382,75 +365,6 @@ defmodule SaleflowWeb.DealController do
     serialize_deal_simple(deal)
     |> Map.put(:lead_name, lead.företag)
     |> Map.put(:user_name, Map.get(user_names, deal.user_id))
-  end
-
-  defp serialize_lead(lead) do
-    %{
-      id: lead.id,
-      företag: lead.företag,
-      telefon: lead.telefon,
-      telefon_2: lead.telefon_2,
-      epost: lead.epost,
-      hemsida: lead.hemsida,
-      adress: lead.adress,
-      postnummer: lead.postnummer,
-      stad: lead.stad,
-      bransch: lead.bransch,
-      orgnr: lead.orgnr,
-      omsättning_tkr: lead.omsättning_tkr,
-      vinst_tkr: lead.vinst_tkr,
-      anställda: lead.anställda,
-      vd_namn: lead.vd_namn,
-      bolagsform: lead.bolagsform,
-      status: lead.status,
-      quarantine_until: lead.quarantine_until,
-      callback_at: lead.callback_at,
-      källa: lead.källa,
-      lead_list_id: lead.lead_list_id,
-      imported_at: lead.imported_at,
-      inserted_at: lead.inserted_at,
-      updated_at: lead.updated_at
-    }
-  end
-
-  defp serialize_meeting(meeting, user_names) do
-    %{
-      id: meeting.id,
-      lead_id: meeting.lead_id,
-      user_id: meeting.user_id,
-      user_name: Map.get(user_names, meeting.user_id),
-      title: meeting.title,
-      meeting_date: meeting.meeting_date,
-      meeting_time: meeting.meeting_time,
-      notes: meeting.notes,
-      duration_minutes: meeting.duration_minutes,
-      status: meeting.status,
-      deal_id: meeting.deal_id,
-      inserted_at: meeting.inserted_at,
-      updated_at: meeting.updated_at
-    }
-  end
-
-  defp serialize_audit_log(log, user_names) do
-    %{
-      id: log.id,
-      user_id: log.user_id,
-      user_name: Map.get(user_names, log.user_id),
-      action: log.action,
-      resource_type: log.resource_type,
-      resource_id: log.resource_id,
-      changes: log.changes,
-      metadata: log.metadata,
-      inserted_at: log.inserted_at
-    }
-  end
-
-  defp broadcast_dashboard_update(event) do
-    Phoenix.PubSub.broadcast(
-      Saleflow.PubSub,
-      "dashboard:updates",
-      {:dashboard_update, %{event: event}}
-    )
   end
 
   defp authorize_admin(%{role: :admin}), do: :ok

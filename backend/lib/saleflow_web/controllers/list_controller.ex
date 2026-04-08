@@ -4,6 +4,7 @@ defmodule SaleflowWeb.ListController do
   alias Saleflow.Sales
 
   import SaleflowWeb.ControllerHelpers, only: [maybe_put: 3]
+  import SaleflowWeb.Serializers, only: [serialize_lead: 1]
 
   @doc """
   List all lead lists with stats.
@@ -171,33 +172,6 @@ defmodule SaleflowWeb.ListController do
       status: list.status,
       inserted_at: list.inserted_at,
       updated_at: list.updated_at
-    }
-  end
-
-  defp serialize_lead(lead) do
-    %{
-      id: lead.id,
-      företag: lead.företag,
-      telefon: lead.telefon,
-      epost: lead.epost,
-      hemsida: lead.hemsida,
-      adress: lead.adress,
-      postnummer: lead.postnummer,
-      stad: lead.stad,
-      bransch: lead.bransch,
-      orgnr: lead.orgnr,
-      omsättning_tkr: lead.omsättning_tkr,
-      vinst_tkr: lead.vinst_tkr,
-      anställda: lead.anställda,
-      vd_namn: lead.vd_namn,
-      bolagsform: lead.bolagsform,
-      status: lead.status,
-      quarantine_until: lead.quarantine_until,
-      callback_at: lead.callback_at,
-      imported_at: lead.imported_at,
-      lead_list_id: lead.lead_list_id,
-      inserted_at: lead.inserted_at,
-      updated_at: lead.updated_at
     }
   end
 

@@ -2,10 +2,10 @@ defmodule SaleflowWeb.MeetingController do
   use SaleflowWeb, :controller
 
   alias Saleflow.Sales
-  alias Saleflow.Accounts
   alias Saleflow.Audit
 
-  import SaleflowWeb.ControllerHelpers, only: [maybe_put: 3]
+  import SaleflowWeb.ControllerHelpers
+  import SaleflowWeb.Serializers
 
   @doc """
   List meetings.
@@ -78,8 +78,8 @@ defmodule SaleflowWeb.MeetingController do
       lead_id: params["lead_id"],
       user_id: user.id,
       title: params["title"],
-      meeting_date: parse_date(params["meeting_date"]),
-      meeting_time: parse_time(params["meeting_time"]),
+      meeting_date: parse_date_with_default(params["meeting_date"]),
+      meeting_time: parse_time_with_default(params["meeting_time"]),
       notes: params["notes"]
     }
 
@@ -110,8 +110,8 @@ defmodule SaleflowWeb.MeetingController do
          :ok <- check_ownership(meeting, user) do
       update_params =
         %{}
-        |> maybe_put(:meeting_date, parse_date_optional(params["meeting_date"]))
-        |> maybe_put(:meeting_time, parse_time_optional(params["meeting_time"]))
+        |> maybe_put(:meeting_date, parse_date(params["meeting_date"]))
+        |> maybe_put(:meeting_time, parse_time(params["meeting_time"]))
         |> maybe_put(:notes, params["notes"])
         |> maybe_put(:status, parse_status(params["status"]))
 
@@ -239,16 +239,6 @@ defmodule SaleflowWeb.MeetingController do
     end
   end
 
-  defp check_ownership(_meeting, %{role: :admin}), do: :ok
-
-  defp check_ownership(meeting, user) do
-    if meeting.user_id == user.id do
-      :ok
-    else
-      {:error, :forbidden}
-    end
-  end
-
   defp enrich_meetings(meetings) do
     # Build lead_id -> lead map
     lead_ids = meetings |> Enum.map(& &1.lead_id) |> Enum.uniq()
@@ -270,112 +260,6 @@ defmodule SaleflowWeb.MeetingController do
     end)
   end
 
-  defp build_global_user_name_map do
-    case Accounts.list_users() do
-      {:ok, users} -> Enum.into(users, %{}, fn u -> {u.id, u.name} end)
-      _ -> %{}
-    end
-  end
-
-  defp build_user_name_map(_calls, _audit_logs, %{role: :agent} = user) do
-    %{user.id => "Du"}
-  end
-
-  defp build_user_name_map(calls, audit_logs, _admin_user) do
-    call_ids = Enum.map(calls, & &1.user_id)
-    audit_ids = Enum.map(audit_logs, & &1.user_id)
-
-    user_ids =
-      (call_ids ++ audit_ids)
-      |> Enum.reject(&is_nil/1)
-      |> Enum.uniq()
-
-    case user_ids do
-      [] ->
-        %{}
-
-      _ ->
-        {:ok, users} = Accounts.list_users()
-        Enum.into(users, %{}, fn u -> {u.id, u.name} end)
-    end
-  end
-
-  defp serialize_meeting(meeting) do
-    %{
-      id: meeting.id,
-      lead_id: meeting.lead_id,
-      user_id: meeting.user_id,
-      title: meeting.title,
-      meeting_date: meeting.meeting_date,
-      meeting_time: meeting.meeting_time,
-      notes: meeting.notes,
-      duration_minutes: meeting.duration_minutes,
-      status: meeting.status,
-      reminded_at: meeting.reminded_at,
-      teams_join_url: meeting.teams_join_url,
-      teams_event_id: meeting.teams_event_id,
-      attendee_email: meeting.attendee_email,
-      attendee_name: meeting.attendee_name,
-      demo_config_id: meeting.demo_config_id,
-      updated_at: meeting.updated_at,
-      inserted_at: meeting.inserted_at
-    }
-  end
-
-  defp serialize_meeting_with_lead(meeting, nil, user_names) do
-    serialize_meeting(meeting)
-    |> Map.put(:user_name, Map.get(user_names, meeting.user_id))
-    |> Map.put(:lead, nil)
-  end
-
-  defp serialize_meeting_with_lead(meeting, lead, user_names) do
-    serialize_meeting(meeting)
-    |> Map.put(:user_name, Map.get(user_names, meeting.user_id))
-    |> Map.put(:lead, %{
-      id: lead.id,
-      företag: lead.företag,
-      telefon: lead.telefon,
-      epost: lead.epost,
-      adress: lead.adress,
-      postnummer: lead.postnummer,
-      stad: lead.stad,
-      bransch: lead.bransch,
-      omsättning_tkr: lead.omsättning_tkr,
-      vd_namn: lead.vd_namn,
-      källa: lead.källa,
-      status: lead.status
-    })
-  end
-
-  defp serialize_lead(lead) do
-    %{
-      id: lead.id,
-      företag: lead.företag,
-      telefon: lead.telefon,
-      telefon_2: lead.telefon_2,
-      epost: lead.epost,
-      hemsida: lead.hemsida,
-      adress: lead.adress,
-      postnummer: lead.postnummer,
-      stad: lead.stad,
-      bransch: lead.bransch,
-      orgnr: lead.orgnr,
-      omsättning_tkr: lead.omsättning_tkr,
-      vinst_tkr: lead.vinst_tkr,
-      anställda: lead.anställda,
-      vd_namn: lead.vd_namn,
-      bolagsform: lead.bolagsform,
-      status: lead.status,
-      quarantine_until: lead.quarantine_until,
-      callback_at: lead.callback_at,
-      källa: lead.källa,
-      lead_list_id: lead.lead_list_id,
-      imported_at: lead.imported_at,
-      inserted_at: lead.inserted_at,
-      updated_at: lead.updated_at
-    }
-  end
-
   defp serialize_call(call, user_names) do
     {duration, has_recording, phone_call_id, transcription, transcription_analysis} = get_call_phone_data(call.id)
 
@@ -395,77 +279,27 @@ defmodule SaleflowWeb.MeetingController do
     }
   end
 
-  defp get_call_phone_data(call_log_id) do
-    case Saleflow.Repo.query(
-           "SELECT COALESCE(SUM(duration), 0), bool_or(recording_key IS NOT NULL), (SELECT id FROM phone_calls WHERE call_log_id = $1 AND recording_key IS NOT NULL LIMIT 1), (SELECT transcription FROM phone_calls WHERE call_log_id = $1 AND transcription IS NOT NULL LIMIT 1), (SELECT transcription_analysis FROM phone_calls WHERE call_log_id = $1 AND transcription_analysis IS NOT NULL LIMIT 1) FROM phone_calls WHERE call_log_id = $1",
-           [Ecto.UUID.dump!(call_log_id)]
-         ) do
-      {:ok, %{rows: [[dur, has_rec, pc_id, transcription, analysis]]}} ->
-        {to_int(dur), has_rec || false, pc_id && Saleflow.Sales.decode_uuid(pc_id), transcription, analysis}
-      _ -> {0, false, nil, nil}
-    end
-  end
+  # ---------------------------------------------------------------------------
+  # Date/time parsing with defaults (specific to meeting creation)
+  # ---------------------------------------------------------------------------
 
-  defp to_int(nil), do: 0
-  defp to_int(%Decimal{} = d), do: Decimal.to_integer(d)
-  defp to_int(n) when is_integer(n), do: n
-  defp to_int(_), do: 0
+  defp parse_date_with_default(nil), do: Date.utc_today() |> Date.add(1)
 
-  defp serialize_audit_log(log, user_names) do
-    %{
-      id: log.id,
-      user_id: log.user_id,
-      user_name: Map.get(user_names, log.user_id),
-      action: log.action,
-      resource_type: log.resource_type,
-      resource_id: log.resource_id,
-      changes: log.changes,
-      metadata: log.metadata,
-      inserted_at: log.inserted_at
-    }
-  end
-
-  defp broadcast_dashboard_update(event) do
-    Phoenix.PubSub.broadcast(
-      Saleflow.PubSub,
-      "dashboard:updates",
-      {:dashboard_update, %{event: event}}
-    )
-  end
-
-  defp parse_date(nil), do: Date.utc_today() |> Date.add(1)
-
-  defp parse_date(date_string) when is_binary(date_string) do
+  defp parse_date_with_default(date_string) when is_binary(date_string) do
     case Date.from_iso8601(date_string) do
       {:ok, date} -> date
       _ -> Date.utc_today() |> Date.add(1)
     end
   end
 
-  defp parse_date_optional(nil), do: nil
+  defp parse_time_with_default(nil), do: ~T[10:00:00]
 
-  defp parse_date_optional(date_string) when is_binary(date_string) do
-    case Date.from_iso8601(date_string) do
-      {:ok, date} -> date
-      _ -> nil
-    end
-  end
+  defp parse_time_with_default(time_string) when is_binary(time_string) do
+    padded = if String.length(time_string) == 5, do: time_string <> ":00", else: time_string
 
-  defp parse_time(nil), do: ~T[10:00:00]
-
-  defp parse_time(time_string) when is_binary(time_string) do
-    case Time.from_iso8601(time_string) do
+    case Time.from_iso8601(padded) do
       {:ok, time} -> time
       _ -> ~T[10:00:00]
-    end
-  end
-
-  defp parse_time_optional(nil), do: nil
-
-  defp parse_time_optional(time_string) when is_binary(time_string) do
-    case Time.from_iso8601(time_string) do
-      {:ok, time} -> time
-      _ -> nil
     end
   end
 
