@@ -23,6 +23,7 @@ if config_env() != :test do
   config :saleflow, :openai_api_key, System.get_env("OPENAI_API_KEY") || ""
   config :saleflow, :anthropic_api_key, System.get_env("ANTHROPIC_API_KEY") || ""
   config :saleflow, :assemblyai_api_key, System.get_env("ASSEMBLYAI_API_KEY") || ""
+  config :saleflow, :genflow_api_key, System.get_env("GENFLOW_API_KEY") || "dev-genflow-key"
 
   # Cloudflare R2 (S3-compatible)
   r2_account_id = System.get_env("R2_ACCOUNT_ID") || ""

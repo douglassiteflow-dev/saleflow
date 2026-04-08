@@ -37,7 +37,8 @@ config :saleflow, :ash_domains, [
   Saleflow.Audit,
   Saleflow.Notifications,
   Saleflow.Apps,
-  Saleflow.Contracts
+  Saleflow.Contracts,
+  Saleflow.Generation
 ]
 
 # Token signing secret
