@@ -347,4 +347,92 @@ describe("BookingWizard", () => {
       expect.any(Object),
     );
   });
+
+  // 13. Error message is displayed when submission fails
+  it("displays error message when submission fails", async () => {
+    const mutateMock = vi.fn((_, callbacks) => {
+      callbacks.onError(new Error("Serverfel"));
+    });
+    mockUseSubmitOutcome.mockReturnValue({
+      mutate: mutateMock,
+      isPending: false,
+    } as ReturnType<typeof useSubmitOutcome>);
+
+    const user = userEvent.setup();
+    renderWizard();
+    await goToStep2(user);
+
+    await user.click(screen.getByLabelText("Ja"));
+    const urlInput = screen.getByPlaceholderText(/bokadirekt\.se/i);
+    await user.type(urlInput, "https://www.bokadirekt.se/places/test");
+    await user.click(screen.getByRole("button", { name: "Slutför" }));
+
+    expect(screen.getByText("Serverfel")).toBeInTheDocument();
+  });
+
+  // 14. "Försök igen" button is visible on error
+  it("shows Försök igen button when submission fails", async () => {
+    const mutateMock = vi.fn((_, callbacks) => {
+      callbacks.onError(new Error("Nätverksfel"));
+    });
+    mockUseSubmitOutcome.mockReturnValue({
+      mutate: mutateMock,
+      isPending: false,
+    } as ReturnType<typeof useSubmitOutcome>);
+
+    const user = userEvent.setup();
+    renderWizard();
+    await goToStep2(user);
+
+    await user.click(screen.getByLabelText("Ja"));
+    const urlInput = screen.getByPlaceholderText(/bokadirekt\.se/i);
+    await user.type(urlInput, "https://www.bokadirekt.se/places/test");
+    await user.click(screen.getByRole("button", { name: "Slutför" }));
+
+    expect(screen.getByRole("button", { name: "Försök igen" })).toBeInTheDocument();
+  });
+
+  // 15. Submission with "Befintlig hemsida" uses the website URL as source_url
+  it("submits with correct source_url when Befintlig hemsida is selected", async () => {
+    const mutateMock = vi.fn();
+    mockUseSubmitOutcome.mockReturnValue({
+      mutate: mutateMock,
+      isPending: false,
+    } as ReturnType<typeof useSubmitOutcome>);
+
+    const user = userEvent.setup();
+    renderWizard();
+    await goToStep2(user);
+
+    await user.click(screen.getByLabelText("Nej"));
+    await user.click(screen.getByLabelText("Befintlig hemsida"));
+    const urlInput = screen.getByPlaceholderText(/företaget\.se/i);
+    await user.type(urlInput, "https://www.testbolaget.se");
+
+    await user.click(screen.getByRole("button", { name: "Slutför" }));
+
+    expect(mutateMock).toHaveBeenCalledOnce();
+    expect(mutateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        outcome: "meeting_booked",
+        source_url: "https://www.testbolaget.se",
+      }),
+      expect.any(Object),
+    );
+  });
+
+  // 16. File input is visible in "Manuellt" mode
+  it("shows file input for logo upload in Manuellt mode", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await goToStep2(user);
+
+    await user.click(screen.getByLabelText("Nej"));
+    await user.click(screen.getByLabelText("Manuellt"));
+
+    const fileInput = screen.getByLabelText("Ladda upp logotyp");
+    expect(fileInput).toBeInTheDocument();
+    expect(fileInput).toHaveAttribute("type", "file");
+    expect(fileInput).toHaveAttribute("accept", "image/*");
+  });
 });

@@ -16,6 +16,12 @@ interface BookingWizardProps {
 
 type DemoSource = "bokadirekt" | "existing_website" | "manual" | null;
 
+// ── Minimal inline toast ───────────────────────────────────────────────────
+interface ToastState {
+  message: string;
+  visible: boolean;
+}
+
 export function BookingWizard({
   leadId,
   lead,
@@ -45,9 +51,18 @@ export function BookingWizard({
   const [bokadirektUrl, setBokadirektUrl] = useState("");
   const [existingWebsiteUrl, setExistingWebsiteUrl] = useState("");
   const [manualInfo, setManualInfo] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
 
   // Error state
   const [error, setError] = useState<string | null>(null);
+
+  // Toast state
+  const [toast, setToast] = useState<ToastState>({ message: "", visible: false });
+
+  function showToast(message: string) {
+    setToast({ message, visible: true });
+    setTimeout(() => setToast({ message: "", visible: false }), 3000);
+  }
 
   // Reset all state when modal opens
   useEffect(() => {
@@ -66,6 +81,7 @@ export function BookingWizard({
       setBokadirektUrl("");
       setExistingWebsiteUrl("");
       setManualInfo("");
+      setLogoFile(null);
       setError(null);
     }
   }, [isOpen, lead.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -121,6 +137,7 @@ export function BookingWizard({
 
     submitOutcome.mutate(params, {
       onSuccess: () => {
+        showToast(`Demo schemalagd för ${lead.företag}`);
         onSuccess();
         onClose();
       },
@@ -137,296 +154,329 @@ export function BookingWizard({
     "block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]";
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg w-full max-w-xl mx-4 mt-[8vh] shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-[var(--color-border)]">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
-                Boka möte
-              </h2>
-              <p className="text-sm text-[var(--color-text-secondary)]">{lead.företag}</p>
-            </div>
-            <span className="text-xs font-medium text-[var(--color-text-secondary)] bg-slate-100 px-3 py-1 rounded-full">
-              Steg {step} av 2
-            </span>
-          </div>
-
-          {/* Step indicator bar */}
-          <div className="mt-3 flex gap-1.5">
-            <div className="h-1 flex-1 rounded-full bg-[var(--color-accent)]" />
-            <div
-              className={`h-1 flex-1 rounded-full transition-colors duration-200 ${
-                step === 2 ? "bg-[var(--color-accent)]" : "bg-slate-200"
-              }`}
-            />
-          </div>
+    <>
+      {/* Toast notification */}
+      {toast.visible && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] bg-[var(--color-text-primary)] text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-lg"
+        >
+          {toast.message}
         </div>
+      )}
 
-        {/* Body */}
-        <div className="p-6">
-          {/* ── Step 1: Mötesinbjudan ── */}
-          {step === 1 && (
-            <div className="space-y-4">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-text-secondary)]">
-                Mötesinbjudan
-              </p>
-
-              <div className="space-y-1.5">
-                <label className={labelClass}>Titel</label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder={`Möte med ${lead.företag}`}
-                  className={inputClass}
-                />
+      <div
+        className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      >
+        <div
+          className="bg-white rounded-lg w-full max-w-xl mx-4 mt-[8vh] shadow-xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-[var(--color-border)]">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
+                  Boka möte
+                </h2>
+                <p className="text-sm text-[var(--color-text-secondary)]">{lead.företag}</p>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className={labelClass}>Datum</label>
-                  <input
-                    type="date"
-                    value={date}
-                    min={todayISO()}
-                    onChange={(e) => setDate(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className={labelClass}>Längd</label>
-                  <select
-                    value={duration}
-                    onChange={(e) => setDuration(Number(e.target.value) as 30 | 45 | 60)}
-                    className={inputClass}
-                  >
-                    <option value={30}>30 min</option>
-                    <option value={45}>45 min</option>
-                    <option value={60}>60 min</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className={labelClass}>Tid</label>
-                <TimeSelect value={time} onChange={setTime} />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className={labelClass}>Kundens e-post</label>
-                <input
-                  type="email"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                  placeholder="namn@företag.se"
-                  className={inputClass}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className={labelClass}>Kundens namn</label>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Förnamn Efternamn"
-                  className={inputClass}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className={labelClass}>Anteckningar</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
-                  placeholder="Valfria anteckningar..."
-                  className={`${inputClass} resize-y`}
-                />
-              </div>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={sendTeams}
-                  onChange={(e) => setSendTeams(e.target.checked)}
-                  disabled={!isMsConnected}
-                  className="rounded border-[var(--color-border-input)] text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
-                />
-                <span
-                  className={`text-sm ${isMsConnected ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-secondary)]"}`}
-                >
-                  Skapa Teams-möte
-                  {!isMsConnected && (
-                    <span className="text-xs ml-1">(Microsoft ej kopplad)</span>
-                  )}
-                </span>
-              </label>
+              <span className="text-xs font-medium text-[var(--color-text-secondary)] bg-slate-100 px-3 py-1 rounded-full">
+                Steg {step} av 2
+              </span>
             </div>
-          )}
 
-          {/* ── Step 2: Konfigurera demo ── */}
-          {step === 2 && (
-            <div className="space-y-5">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-text-secondary)]">
-                Konfigurera demo
-              </p>
+            {/* Step indicator bar */}
+            <div className="mt-3 flex gap-1.5">
+              <div className="h-1 flex-1 rounded-full bg-[var(--color-accent)]" />
+              <div
+                className={`h-1 flex-1 rounded-full transition-colors duration-200 ${
+                  step === 2 ? "bg-[var(--color-accent)]" : "bg-slate-200"
+                }`}
+              />
+            </div>
+          </div>
 
-              {/* Bokadirekt question */}
-              <div className="space-y-2">
-                <label className={labelClass}>Har kunden Bokadirekt?</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--color-text-primary)]">
-                    <input
-                      type="radio"
-                      name="hasBokadirekt"
-                      value="yes"
-                      checked={hasBokadirekt === "yes"}
-                      onChange={() => {
-                        setHasBokadirekt("yes");
-                        setDemoSource(null);
-                      }}
-                      className="text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
-                    />
-                    Ja
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--color-text-primary)]">
-                    <input
-                      type="radio"
-                      name="hasBokadirekt"
-                      value="no"
-                      checked={hasBokadirekt === "no"}
-                      onChange={() => setHasBokadirekt("no")}
-                      className="text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
-                    />
-                    Nej
-                  </label>
-                </div>
-              </div>
+          {/* Body */}
+          <div className="p-6">
+            {/* ── Step 1: Mötesinbjudan ── */}
+            {step === 1 && (
+              <div className="space-y-4">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-text-secondary)]">
+                  Mötesinbjudan
+                </p>
 
-              {/* Bokadirekt URL */}
-              {hasBokadirekt === "yes" && (
                 <div className="space-y-1.5">
-                  <label className={labelClass}>Bokadirekt-länk</label>
+                  <label className={labelClass}>Titel</label>
                   <input
-                    type="url"
-                    value={bokadirektUrl}
-                    onChange={(e) => setBokadirektUrl(e.target.value)}
-                    placeholder="https://www.bokadirekt.se/places/..."
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder={`Möte med ${lead.företag}`}
                     className={inputClass}
                   />
                 </div>
-              )}
 
-              {/* No Bokadirekt: choose source */}
-              {hasBokadirekt === "no" && (
-                <div className="space-y-3">
-                  <label className={labelClass}>Källa för demo</label>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--color-text-primary)]">
-                      <input
-                        type="radio"
-                        name="demoSource"
-                        value="existing_website"
-                        checked={demoSource === "existing_website"}
-                        onChange={() => setDemoSource("existing_website")}
-                        className="text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
-                      />
-                      Befintlig hemsida
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--color-text-primary)]">
-                      <input
-                        type="radio"
-                        name="demoSource"
-                        value="manual"
-                        checked={demoSource === "manual"}
-                        onChange={() => setDemoSource("manual")}
-                        className="text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
-                      />
-                      Manuellt
-                    </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className={labelClass}>Datum</label>
+                    <input
+                      type="date"
+                      value={date}
+                      min={todayISO()}
+                      onChange={(e) => setDate(e.target.value)}
+                      className={inputClass}
+                    />
                   </div>
 
-                  {demoSource === "existing_website" && (
-                    <div className="space-y-1.5">
-                      <label className={labelClass}>Hemsida-URL</label>
-                      <input
-                        type="url"
-                        value={existingWebsiteUrl}
-                        onChange={(e) => setExistingWebsiteUrl(e.target.value)}
-                        placeholder="https://www.företaget.se"
-                        className={inputClass}
-                      />
-                    </div>
-                  )}
-
-                  {demoSource === "manual" && (
-                    <div className="space-y-1.5">
-                      <label className={labelClass}>Företagsinformation</label>
-                      <textarea
-                        value={manualInfo}
-                        onChange={(e) => setManualInfo(e.target.value)}
-                        rows={4}
-                        placeholder="Beskriv företaget, tjänster, målgrupp..."
-                        className={`${inputClass} resize-y`}
-                      />
-                    </div>
-                  )}
+                  <div className="space-y-1.5">
+                    <label className={labelClass}>Längd</label>
+                    <select
+                      value={duration}
+                      onChange={(e) => setDuration(Number(e.target.value) as 30 | 45 | 60)}
+                      className={inputClass}
+                    >
+                      <option value={30}>30 min</option>
+                      <option value={45}>45 min</option>
+                      <option value={60}>60 min</option>
+                    </select>
+                  </div>
                 </div>
-              )}
+
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Tid</label>
+                  <TimeSelect value={time} onChange={setTime} />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Kundens e-post</label>
+                  <input
+                    type="email"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    placeholder="namn@företag.se"
+                    className={inputClass}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Kundens namn</label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Förnamn Efternamn"
+                    className={inputClass}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Anteckningar</label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
+                    placeholder="Valfria anteckningar..."
+                    className={`${inputClass} resize-y`}
+                  />
+                </div>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sendTeams}
+                    onChange={(e) => setSendTeams(e.target.checked)}
+                    disabled={!isMsConnected}
+                    className="rounded border-[var(--color-border-input)] text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+                  />
+                  <span
+                    className={`text-sm ${isMsConnected ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-secondary)]"}`}
+                  >
+                    Skapa Teams-möte
+                    {!isMsConnected && (
+                      <span className="text-xs ml-1">(Microsoft ej kopplad)</span>
+                    )}
+                  </span>
+                </label>
+              </div>
+            )}
+
+            {/* ── Step 2: Konfigurera demo ── */}
+            {step === 2 && (
+              <div className="space-y-5">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-text-secondary)]">
+                  Konfigurera demo
+                </p>
+
+                {/* Bokadirekt question */}
+                <div className="space-y-2">
+                  <label className={labelClass}>Har kunden Bokadirekt?</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--color-text-primary)]">
+                      <input
+                        type="radio"
+                        name="hasBokadirekt"
+                        value="yes"
+                        checked={hasBokadirekt === "yes"}
+                        onChange={() => {
+                          setHasBokadirekt("yes");
+                          setDemoSource(null);
+                        }}
+                        className="text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+                      />
+                      Ja
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--color-text-primary)]">
+                      <input
+                        type="radio"
+                        name="hasBokadirekt"
+                        value="no"
+                        checked={hasBokadirekt === "no"}
+                        onChange={() => setHasBokadirekt("no")}
+                        className="text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+                      />
+                      Nej
+                    </label>
+                  </div>
+                </div>
+
+                {/* Bokadirekt URL */}
+                {hasBokadirekt === "yes" && (
+                  <div className="space-y-1.5">
+                    <label className={labelClass}>Bokadirekt-länk</label>
+                    <input
+                      type="url"
+                      value={bokadirektUrl}
+                      onChange={(e) => setBokadirektUrl(e.target.value)}
+                      placeholder="https://www.bokadirekt.se/places/..."
+                      className={inputClass}
+                    />
+                  </div>
+                )}
+
+                {/* No Bokadirekt: choose source */}
+                {hasBokadirekt === "no" && (
+                  <div className="space-y-3">
+                    <label className={labelClass}>Källa för demo</label>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--color-text-primary)]">
+                        <input
+                          type="radio"
+                          name="demoSource"
+                          value="existing_website"
+                          checked={demoSource === "existing_website"}
+                          onChange={() => setDemoSource("existing_website")}
+                          className="text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+                        />
+                        Befintlig hemsida
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--color-text-primary)]">
+                        <input
+                          type="radio"
+                          name="demoSource"
+                          value="manual"
+                          checked={demoSource === "manual"}
+                          onChange={() => setDemoSource("manual")}
+                          className="text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+                        />
+                        Manuellt
+                      </label>
+                    </div>
+
+                    {demoSource === "existing_website" && (
+                      <div className="space-y-1.5">
+                        <label className={labelClass}>Hemsida-URL</label>
+                        <input
+                          type="url"
+                          value={existingWebsiteUrl}
+                          onChange={(e) => setExistingWebsiteUrl(e.target.value)}
+                          placeholder="https://www.företaget.se"
+                          className={inputClass}
+                        />
+                      </div>
+                    )}
+
+                    {demoSource === "manual" && (
+                      <div className="space-y-2">
+                        <div className="space-y-1.5">
+                          <label className={labelClass}>Företagsinformation</label>
+                          <textarea
+                            value={manualInfo}
+                            onChange={(e) => setManualInfo(e.target.value)}
+                            rows={4}
+                            placeholder="Beskriv företaget, tjänster, målgrupp..."
+                            className={`${inputClass} resize-y`}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className={labelClass}>Logotyp (valfritt)</label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            aria-label="Ladda upp logotyp"
+                            onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
+                            className="block w-full text-sm text-[var(--color-text-secondary)] file:mr-3 file:py-1.5 file:px-3 file:rounded-[6px] file:border-0 file:text-sm file:font-medium file:bg-slate-100 file:text-[var(--color-text-primary)] hover:file:bg-slate-200 cursor-pointer"
+                          />
+                          {logoFile && (
+                            <p className="text-xs text-[var(--color-text-secondary)]">
+                              Vald fil: {logoFile.name}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="px-6 space-y-2">
+              <p className="text-sm text-[var(--color-danger)] bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                {error}
+              </p>
+              <Button variant="secondary" onClick={handleSubmit}>
+                Försök igen
+              </Button>
             </div>
           )}
-        </div>
 
-        {/* Error */}
-        {error && (
-          <div className="px-6">
-            <p className="text-sm text-[var(--color-danger)] bg-red-50 border border-red-200 rounded-md px-3 py-2">
-              {error}
-            </p>
+          {/* Footer */}
+          <div className="flex justify-between gap-3 px-6 py-4 border-t border-[var(--color-border)]">
+            {step === 1 ? (
+              <>
+                <Button variant="secondary" onClick={onClose}>
+                  Avbryt
+                </Button>
+                <Button variant="primary" onClick={handleNext} disabled={!step1Valid}>
+                  Nästa
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="secondary"
+                  onClick={handleBack}
+                  disabled={submitOutcome.isPending}
+                >
+                  Tillbaka
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleSubmit}
+                  disabled={!isStep2Valid() || submitOutcome.isPending}
+                >
+                  {submitOutcome.isPending ? "Genererar demo..." : "Slutför"}
+                </Button>
+              </>
+            )}
           </div>
-        )}
-
-        {/* Footer */}
-        <div className="flex justify-between gap-3 px-6 py-4 border-t border-[var(--color-border)]">
-          {step === 1 ? (
-            <>
-              <Button variant="secondary" onClick={onClose}>
-                Avbryt
-              </Button>
-              <Button variant="primary" onClick={handleNext} disabled={!step1Valid}>
-                Nästa
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="secondary"
-                onClick={handleBack}
-                disabled={submitOutcome.isPending}
-              >
-                Tillbaka
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleSubmit}
-                disabled={!isStep2Valid() || submitOutcome.isPending}
-              >
-                {submitOutcome.isPending ? "Bokar..." : "Slutför"}
-              </Button>
-            </>
-          )}
         </div>
       </div>
-    </div>
+    </>
   );
 }
