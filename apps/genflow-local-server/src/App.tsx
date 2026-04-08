@@ -27,22 +27,16 @@ export default function App() {
 
   const log = useCallback((msg: string) => {
     let type: LogEntry["type"] = "info";
-    if (msg.includes("Klar:")) {
-      type = "success";
-    } else if (msg.includes("Misslyckades:")) {
-      type = "error";
-    }
+    if (msg.includes("Klar:") || msg.includes("✓")) type = "success";
+    else if (msg.includes("Misslyckades:") || msg.includes("✗")) type = "error";
 
     setLogs((prev) => [...prev.slice(-200), { time: formatTime(), msg, type }]);
-
     if (type === "success") setCompleted((c) => c + 1);
     if (type === "error") setFailed((f) => f + 1);
   }, []);
 
   useEffect(() => {
-    if (logRef.current) {
-      logRef.current.scrollTop = logRef.current.scrollHeight;
-    }
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [logs]);
 
   const handleToggle = () => {
@@ -62,11 +56,22 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* Header */}
+      {/* Header — centered */}
       <div className="header">
-        <h1>Siteflow Generator</h1>
-        <div className={`status-dot ${running ? "active" : ""}`} />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+          <img src="./icon.png" alt="Genflow" className="logo" />
+          <div className="header-text">
+            <h1>Genflow</h1>
+            <div className="sub">Lokal genereringsserver</div>
+          </div>
+          <div className={`status-pill ${running ? "online" : "offline"}`}>
+            <span className="dot" />
+            {running ? "Ansluten" : "Frånkopplad"}
+          </div>
+        </div>
       </div>
+
+      <div className="divider" />
 
       {/* Settings toggle */}
       <button
@@ -119,11 +124,11 @@ export default function App() {
       {/* Stats */}
       <div className="stats">
         <div className="stat success">
-          <span>Genomförda:</span>
+          <span>Genomförda</span>
           <span className="count">{completed}</span>
         </div>
         <div className="stat fail">
-          <span>Misslyckade:</span>
+          <span>Misslyckade</span>
           <span className="count">{failed}</span>
         </div>
       </div>
@@ -131,7 +136,7 @@ export default function App() {
       {/* Log panel */}
       <div className="log-panel" ref={logRef}>
         {logs.length === 0 && (
-          <div className="log-line">Klicka Starta för att börja...</div>
+          <div className="empty-log">Klicka Starta för att börja...</div>
         )}
         {logs.map((entry, i) => (
           <div key={i} className={`log-line ${entry.type}`}>
