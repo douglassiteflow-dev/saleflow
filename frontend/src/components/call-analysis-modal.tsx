@@ -7,7 +7,7 @@ interface ScoreDetail {
   comment: string;
 }
 
-interface Analysis {
+export interface Analysis {
   conversation: { speaker: string; text: string }[];
   summary: string;
   meeting_time: string | null;
