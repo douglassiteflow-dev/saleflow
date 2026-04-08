@@ -167,6 +167,71 @@ defmodule SaleflowWeb.DealController do
     end
   end
 
+  @doc """
+  Send contract to customer.
+  Creates a Contract record, sends email with link + verification code, advances deal to contract_sent.
+  """
+  def send_contract(conn, %{"id" => id} = params) do
+    user = conn.assigns.current_user
+
+    with {:ok, deal} <- get_deal(id),
+         :ok <- check_ownership(deal, user),
+         {:ok, lead} <- Sales.get_lead(deal.lead_id) do
+      email = params["recipient_email"] || lead.epost
+      name = params["recipient_name"] || lead.företag
+
+      unless email do
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "Ingen email angiven"})
+      else
+        unless params["amount"] do
+          conn |> put_status(:unprocessable_entity) |> json(%{error: "Belopp krävs"})
+        else
+          case Saleflow.Contracts.create_contract(%{
+                 deal_id: deal.id,
+                 user_id: user.id,
+                 recipient_email: email,
+                 recipient_name: name,
+                 amount: params["amount"],
+                 currency: params["currency"] || "SEK",
+                 terms: params["terms"],
+                 seller_name: user.name
+               }) do
+            {:ok, contract} ->
+              send_contract_email(email, lead.företag, contract)
+              Saleflow.Contracts.mark_sent(contract)
+              Sales.advance_deal(deal)
+              broadcast_dashboard_update("contract_sent")
+
+              json(conn, %{
+                contract: %{
+                  id: contract.id,
+                  contract_number: contract.contract_number,
+                  status: :sent,
+                  access_token: contract.access_token,
+                  verification_code: contract.verification_code,
+                  recipient_email: contract.recipient_email,
+                  recipient_name: contract.recipient_name,
+                  amount: contract.amount,
+                  currency: contract.currency
+                }
+              })
+
+            {:error, _} ->
+              conn
+              |> put_status(:unprocessable_entity)
+              |> json(%{error: "Kunde inte skapa avtal"})
+          end
+        end
+      end
+    else
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "Deal not found"})
+
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "Access denied"})
+    end
+  end
+
   # ---------------------------------------------------------------------------
   # Flowing AI proxy actions (admin-only)
   # ---------------------------------------------------------------------------
@@ -365,6 +430,45 @@ defmodule SaleflowWeb.DealController do
 
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
+
+  defp send_contract_email(email, company_name, contract) do
+    base_url = Application.get_env(:saleflow, :contract_base_url, "https://siteflow.se")
+    link = "#{base_url}/contract/#{contract.access_token}"
+
+    html = """
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 32px;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <h1 style="color: #0f172a; font-size: 24px; margin-bottom: 8px;">Avtal</h1>
+        <p style="color: #64748b; font-size: 14px;">Avtalsnummer: #{contract.contract_number}</p>
+      </div>
+
+      <p style="color: #1e293b; font-size: 16px; margin-bottom: 16px;">Hej #{contract.recipient_name},</p>
+      <p style="color: #475569; margin-bottom: 24px;">Du har fått ett avtal från Siteflow att granska och signera.</p>
+
+      <div style="background: #f1f5f9; border-radius: 8px; padding: 24px; text-align: center; margin-bottom: 24px;">
+        <p style="color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Din verifieringskod</p>
+        <p style="color: #0f172a; font-size: 32px; font-weight: 700; letter-spacing: 4px;">#{contract.verification_code}</p>
+      </div>
+
+      <p style="color: #475569; margin-bottom: 24px;">Använd koden ovan för att öppna och granska avtalet via länken nedan:</p>
+
+      <p style="text-align: center; margin: 24px 0;">
+        <a href="#{link}" style="background: #0f172a; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
+          Visa avtalet
+        </a>
+      </p>
+
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+      <p style="color: #94a3b8; font-size: 12px; text-align: center;">Med vänliga hälsningar,<br>Siteflow</p>
+    </div>
+    """
+
+    Saleflow.Notifications.Mailer.send_email_async(
+      email,
+      "Avtal från Siteflow — #{company_name}",
+      html
+    )
+  end
 
   defp send_questionnaire_email(email, company_name, token) do
     base_url = Application.get_env(:saleflow, :questionnaire_base_url, "https://siteflow.se")
