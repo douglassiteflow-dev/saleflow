@@ -19,6 +19,10 @@ defmodule SaleflowWeb.Router do
     plug SaleflowWeb.Plugs.RequireAdmin
   end
 
+  pipeline :require_gen_key do
+    plug SaleflowWeb.Plugs.RequireGenKey
+  end
+
   # Public questionnaire endpoints (no auth required)
   scope "/api/q", SaleflowWeb do
     pipe_through :api
@@ -188,6 +192,16 @@ defmodule SaleflowWeb.Router do
     post "/playbooks", PlaybookController, :create
     put "/playbooks/:id", PlaybookController, :update
     delete "/playbooks/:id", PlaybookController, :delete
+  end
+
+  # GenFlow API (API-key authenticated)
+  scope "/api/gen-jobs", SaleflowWeb do
+    pipe_through [:api, :require_gen_key]
+
+    get "/pending", GenJobController, :pending
+    post "/:id/pick", GenJobController, :pick
+    post "/:id/complete", GenJobController, :complete
+    post "/:id/fail", GenJobController, :fail
   end
 
   # SPA fallback — serve index.html for all non-API routes
