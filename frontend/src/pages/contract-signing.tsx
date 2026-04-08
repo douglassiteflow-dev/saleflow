@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import {
   fetchContract,
@@ -252,7 +252,7 @@ function ViewScreen({
   const currentSectionRef = useRef("forsattsblad");
   const sectionTimesRef = useRef<Record<string, number>>({});
   const lastTickRef = useRef(Date.now());
-  const trackingTimerRef = useRef<ReturnType<typeof setInterval>>();
+  const trackingTimerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   // Track section visibility
   useEffect(() => {

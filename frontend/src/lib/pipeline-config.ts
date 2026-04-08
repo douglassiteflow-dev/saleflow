@@ -69,7 +69,7 @@ export const ACTIVE_STAGES: DealStage[] = [
 ];
 
 export function getStageConfig(stage: string): StageConfig {
-  return STAGE_CONFIG[stage] ?? STAGE_CONFIG.cancelled;
+  return (STAGE_CONFIG[stage] ?? STAGE_CONFIG["cancelled"]) as StageConfig;
 }
 
 export function daysFromDate(dateStr: string): number {

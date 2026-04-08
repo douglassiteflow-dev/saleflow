@@ -247,8 +247,6 @@ interface NextActionCardProps {
 }
 
 function NextActionCard({ deal, lead, upcomingMeeting, actionLabel, onAdvance, isPending }: NextActionCardProps) {
-  const stageConfig = getStageConfig(deal.stage);
-
   // meeting_completed: send questionnaire form
   if (deal.stage === "meeting_completed") {
     return (

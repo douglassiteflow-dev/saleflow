@@ -20,10 +20,9 @@ export function DashboardPage() {
   const activeDeals = (deals ?? []).filter((d) => d.stage !== "won" && d.stage !== "cancelled");
   const wonDeals = (deals ?? []).filter((d) => d.stage === "won");
 
-  const stageCounts = ACTIVE_STAGES.map((key) => ({
-    key,
-    ...getStageConfig(key),
-    count: activeDeals.filter((d) => d.stage === key).length,
+  const stageCounts = ACTIVE_STAGES.map((stageKey) => ({
+    ...getStageConfig(stageKey),
+    count: activeDeals.filter((d) => d.stage === stageKey).length,
   })).filter((s) => s.count > 0);
 
   return (
