@@ -55,14 +55,15 @@ config :saleflow, Oban,
       {"*/15 * * * *", Saleflow.Workers.MeetingStatusWorker},
       {"*/10 * * * *", Saleflow.Workers.GoalCheckWorker},
       {"0 16 * * 1-5", Saleflow.Workers.DailyTranscriptionWorker},
-      {"10 16 * * 1-5", Saleflow.Workers.DailyReportWorker},
-      {"*/5 * * * *", Saleflow.Workers.RecordingSyncWorker}
+      {"10 16 * * 1-5", Saleflow.Workers.CoachReportWorker},
+      {"*/5 * * * *", Saleflow.Workers.RecordingSyncWorker},
+      {"15 16 * * 1-5", Saleflow.Workers.DealHealthWorker}
     ]}
   ]
 
 # Resend mailer
 config :saleflow, :resend_api_key, System.get_env("RESEND_API_KEY")
-config :saleflow, :resend_from, "Saleflow <noreply@saleflow.se>"
+config :saleflow, :resend_from, "Saleflow <noreply@siteflow.se>"
 config :saleflow, :mailer_sandbox, false
 
 # Import environment specific config. This must remain at the bottom

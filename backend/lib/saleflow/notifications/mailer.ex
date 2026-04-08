@@ -75,7 +75,7 @@ defmodule Saleflow.Notifications.Mailer do
   @doc false
   def do_send(to, subject, html_body) do
     api_key = Application.get_env(:saleflow, :resend_api_key)
-    from = Application.get_env(:saleflow, :resend_from, "Saleflow <noreply@saleflow.se>")
+    from = Application.get_env(:saleflow, :resend_from, "Saleflow <noreply@siteflow.se>")
 
     payload = %{
       from: from,

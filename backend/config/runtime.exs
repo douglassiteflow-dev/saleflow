@@ -90,7 +90,7 @@ if config_env() == :prod do
 
   # Resend mailer
   config :saleflow, :resend_api_key, System.get_env("RESEND_API_KEY")
-  config :saleflow, :resend_from, "Saleflow <noreply@saleflow.se>"
+  config :saleflow, :resend_from, "Saleflow <noreply@siteflow.se>"
   config :saleflow, :mailer_sandbox, false
 
   # Token signing secret
