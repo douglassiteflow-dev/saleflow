@@ -24,7 +24,7 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
       deal = create_deal_simple!()
       q = create_questionnaire!(deal)
 
-      resp = get(build_conn(), "/q/#{q.token}")
+      resp = get(build_conn(), "/api/q/#{q.token}")
       body = json_response(resp, 200)
 
       assert body["questionnaire"]["id"] == q.id
@@ -34,7 +34,7 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
     end
 
     test "returns 404 for invalid token" do
-      resp = get(build_conn(), "/q/totally-invalid-token-does-not-exist")
+      resp = get(build_conn(), "/api/q/totally-invalid-token-does-not-exist")
       assert json_response(resp, 404)
     end
   end
@@ -48,7 +48,7 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
       deal = create_deal_simple!()
       q = create_questionnaire!(deal)
 
-      resp = patch(build_conn(), "/q/#{q.token}", %{"capacity" => "10-50"})
+      resp = patch(build_conn(), "/api/q/#{q.token}", %{"capacity" => "10-50"})
       body = json_response(resp, 200)
 
       assert body["questionnaire"]["capacity"] == "10-50"
@@ -59,7 +59,7 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
       q = create_questionnaire!(deal)
       assert q.status == :pending
 
-      resp = patch(build_conn(), "/q/#{q.token}", %{"capacity" => "1-10"})
+      resp = patch(build_conn(), "/api/q/#{q.token}", %{"capacity" => "1-10"})
       body = json_response(resp, 200)
 
       assert body["questionnaire"]["status"] == "in_progress"
@@ -69,14 +69,14 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
       deal = create_deal_simple!()
       q = create_questionnaire!(deal)
 
-      resp = patch(build_conn(), "/q/#{q.token}", %{"addon_services" => ["seo", "ads"]})
+      resp = patch(build_conn(), "/api/q/#{q.token}", %{"addon_services" => ["seo", "ads"]})
       body = json_response(resp, 200)
 
       assert body["questionnaire"]["addon_services"] == ["seo", "ads"]
     end
 
     test "returns 404 for invalid token" do
-      resp = patch(build_conn(), "/q/nonexistent-token-xyz", %{"capacity" => "1-10"})
+      resp = patch(build_conn(), "/api/q/nonexistent-token-xyz", %{"capacity" => "1-10"})
       assert json_response(resp, 404)
     end
   end
@@ -90,7 +90,7 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
       deal = create_deal_simple!()
       q = create_questionnaire!(deal)
 
-      resp = post(build_conn(), "/q/#{q.token}/complete")
+      resp = post(build_conn(), "/api/q/#{q.token}/complete")
       body = json_response(resp, 200)
 
       assert body["questionnaire"]["status"] == "completed"
@@ -98,7 +98,7 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
     end
 
     test "returns 404 for invalid token" do
-      resp = post(build_conn(), "/q/nonexistent-token-xyz/complete")
+      resp = post(build_conn(), "/api/q/nonexistent-token-xyz/complete")
       assert json_response(resp, 404)
     end
   end
@@ -112,7 +112,7 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
       deal = create_deal_simple!()
       q = create_questionnaire!(deal)
 
-      resp = post(build_conn(), "/q/#{q.token}/upload")
+      resp = post(build_conn(), "/api/q/#{q.token}/upload")
       assert json_response(resp, 400)
     end
 
@@ -126,7 +126,7 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
         content_type: "application/x-executable"
       }
 
-      resp = post(build_conn(), "/q/#{q.token}/upload", %{"file" => upload})
+      resp = post(build_conn(), "/api/q/#{q.token}/upload", %{"file" => upload})
       body = json_response(resp, 415)
       assert body["error"] =~ "Filtypen"
     end
