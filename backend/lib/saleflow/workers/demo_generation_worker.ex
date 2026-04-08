@@ -38,12 +38,13 @@ defmodule Saleflow.Workers.DemoGenerationWorker do
           if File.exists?(site_index) do
             website_path = Path.join([out_dir, "site"])
 
-            {:ok, _} =
+            {:ok, demo_config} =
               Sales.generation_complete(demo_config, %{
                 website_path: website_path,
                 preview_url: "/demos/#{id}/site/index.html"
               })
 
+            maybe_advance_deal(demo_config)
             broadcast(id, %{status: "complete", website_path: website_path})
             Logger.info("DemoGenerationWorker: completed for #{id}")
             :ok
@@ -96,6 +97,31 @@ defmodule Saleflow.Workers.DemoGenerationWorker do
       "demo_generation:#{id}",
       {:demo_generation, payload}
     )
+  end
+
+  @doc false
+  def maybe_advance_deal(demo_config) do
+    with {:ok, meetings} <- Sales.list_meetings_for_demo_config(demo_config.id),
+         meeting when not is_nil(meeting) <- Enum.find(meetings, &(&1.deal_id != nil)),
+         {:ok, deal} <- Sales.get_deal(meeting.deal_id),
+         true <- deal.stage == :booking_wizard,
+         {:ok, deal} <- Sales.update_deal(deal, %{website_url: demo_config.preview_url}),
+         {:ok, _} <- Sales.advance_deal(deal) do
+      Logger.info("DemoGenerationWorker: advanced deal #{deal.id} to demo_scheduled")
+      :ok
+    else
+      nil ->
+        Logger.info("DemoGenerationWorker: no meeting with deal_id found, skipping advance")
+        :ok
+
+      false ->
+        Logger.info("DemoGenerationWorker: deal not at booking_wizard, skipping advance")
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("DemoGenerationWorker: failed to advance deal: #{inspect(reason)}")
+        :ok
+    end
   end
 
   defp runner do
