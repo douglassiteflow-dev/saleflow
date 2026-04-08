@@ -55,8 +55,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export async function fetchQuestionnaire(token: string): Promise<QuestionnaireData> {
-  return request<{ data: QuestionnaireData }>(`/api/public/questionnaires/${token}`).then(
-    (r) => r.data,
+  return request<{ questionnaire: QuestionnaireData }>(`/q/${token}`).then(
+    (r) => r.questionnaire,
   );
 }
 
@@ -64,23 +64,23 @@ export async function saveAnswers(
   token: string,
   answers: Partial<QuestionnaireData>,
 ): Promise<QuestionnaireData> {
-  return request<{ data: QuestionnaireData }>(`/api/public/questionnaires/${token}`, {
-    method: "PUT",
-    body: JSON.stringify({ questionnaire: answers }),
-  }).then((r) => r.data);
+  return request<{ questionnaire: QuestionnaireData }>(`/q/${token}`, {
+    method: "PATCH",
+    body: JSON.stringify(answers),
+  }).then((r) => r.questionnaire);
 }
 
 export async function completeQuestionnaire(token: string): Promise<QuestionnaireData> {
-  return request<{ data: QuestionnaireData }>(`/api/public/questionnaires/${token}/complete`, {
+  return request<{ questionnaire: QuestionnaireData }>(`/q/${token}/complete`, {
     method: "POST",
-  }).then((r) => r.data);
+  }).then((r) => r.questionnaire);
 }
 
 export async function uploadMedia(token: string, file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`${API_BASE}/api/public/questionnaires/${token}/upload`, {
+  const response = await fetch(`${API_BASE}/q/${token}/upload`, {
     method: "POST",
     body: formData,
   });
