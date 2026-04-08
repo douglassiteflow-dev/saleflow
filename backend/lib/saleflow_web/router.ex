@@ -20,7 +20,7 @@ defmodule SaleflowWeb.Router do
   end
 
   # Public questionnaire endpoints (no auth required)
-  scope "/q", SaleflowWeb do
+  scope "/api/q", SaleflowWeb do
     pipe_through :api
 
     get "/:token", QuestionnairePublicController, :show

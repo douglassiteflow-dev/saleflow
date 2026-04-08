@@ -55,7 +55,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export async function fetchQuestionnaire(token: string): Promise<QuestionnaireData> {
-  return request<{ questionnaire: QuestionnaireData }>(`/q/${token}`).then(
+  return request<{ questionnaire: QuestionnaireData }>(`/api/q/${token}`).then(
     (r) => r.questionnaire,
   );
 }
@@ -64,7 +64,7 @@ export async function saveAnswers(
   token: string,
   answers: Partial<QuestionnaireData>,
 ): Promise<QuestionnaireData> {
-  return request<{ questionnaire: QuestionnaireData }>(`/q/${token}`, {
+  return request<{ questionnaire: QuestionnaireData }>(`/api/q/${token}`, {
     method: "PATCH",
     body: JSON.stringify(answers),
   }).then((r) => r.questionnaire);
