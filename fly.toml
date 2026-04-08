@@ -4,9 +4,6 @@ primary_region = "arn"
 [build]
   dockerfile = "Dockerfile"
 
-[deploy]
-  release_command = "bin/saleflow eval 'Saleflow.Release.migrate()'"
-
 [env]
   PHX_HOST = "sale.siteflow.se"
   PHX_SERVER = "true"
