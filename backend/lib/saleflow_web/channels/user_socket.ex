@@ -4,6 +4,7 @@ defmodule SaleflowWeb.UserSocket do
   channel "calls:live", SaleflowWeb.CallsChannel
   channel "dashboard:updates", SaleflowWeb.DashboardChannel
   channel "notifications:*", SaleflowWeb.NotificationChannel
+  channel "contract:*", SaleflowWeb.ContractChannel
 
   @impl true
   def connect(%{"token" => token}, socket, _connect_info) do
