@@ -422,6 +422,9 @@ export interface DemoConfigDetail extends DemoConfig {
     meeting_date: string;
     meeting_time: string;
     status: string;
+    teams_join_url: string | null;
+    attendee_email: string | null;
+    attendee_name: string | null;
   }[];
 }
 

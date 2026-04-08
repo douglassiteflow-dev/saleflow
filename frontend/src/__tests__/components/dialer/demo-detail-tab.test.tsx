@@ -12,6 +12,10 @@ vi.mock("@/api/demo-configs", () => ({
   useRetryDemoConfig: vi.fn(),
 }));
 
+vi.mock("@/components/send-invite-button", () => ({
+  SendInviteButton: (props: any) => props.teamsJoinUrl ? null : <button data-testid="send-invite">Skicka inbjudan</button>,
+}));
+
 vi.mock("@/lib/format", () => ({
   formatPhone: (v: string) => v,
   formatDate: (v: string) => v,
@@ -243,7 +247,7 @@ describe("DemoDetailTab", () => {
         stage: "followup",
         preview_url: "https://preview.example.com/dc-1",
         meetings: [
-          { id: "m-1", title: "Demo med Acme", meeting_date: "2026-04-10", meeting_time: "14:00", status: "scheduled" },
+          { id: "m-1", title: "Demo med Acme", meeting_date: "2026-04-10", meeting_time: "14:00", status: "scheduled", teams_join_url: null, attendee_email: null, attendee_name: null },
         ],
       }),
       isLoading: false,

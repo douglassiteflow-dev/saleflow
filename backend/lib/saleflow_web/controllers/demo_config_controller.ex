@@ -290,6 +290,9 @@ defmodule SaleflowWeb.DemoConfigController do
       status: meeting.status,
       deal_id: meeting.deal_id,
       demo_config_id: meeting.demo_config_id,
+      teams_join_url: meeting.teams_join_url,
+      attendee_email: meeting.attendee_email,
+      attendee_name: meeting.attendee_name,
       inserted_at: meeting.inserted_at,
       updated_at: meeting.updated_at
     }

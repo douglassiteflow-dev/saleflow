@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useDemoConfigDetail, useAdvanceDemoConfig, useRetryDemoConfig } from "@/api/demo-configs";
 import { DemoStageIndicator } from "./demo-stage-indicator";
+import { SendInviteButton } from "@/components/send-invite-button";
 import { formatPhone, formatDate, formatTime } from "@/lib/format";
 import Loader from "@/components/kokonutui/loader";
 
@@ -220,9 +221,22 @@ function FollowupContent({ data }: { data: NonNullable<ReturnType<typeof useDemo
                   <span className="font-medium text-[var(--color-text-primary)]">{m.title}</span>
                   <span className="text-[10px] text-[var(--color-text-secondary)]">{m.status}</span>
                 </div>
-                <p className="text-[var(--color-text-secondary)]">
-                  {formatDate(m.meeting_date)} {formatTime(m.meeting_time)}
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-[var(--color-text-secondary)]">
+                    {formatDate(m.meeting_date)} {formatTime(m.meeting_time)}
+                  </p>
+                  <SendInviteButton
+                    meetingId={m.id}
+                    teamsJoinUrl={m.teams_join_url}
+                    attendeeEmail={m.attendee_email}
+                    attendeeName={m.attendee_name}
+                    leadEmail={data.lead?.email}
+                    leadName={data.lead?.company_name}
+                    meetingDate={m.meeting_date}
+                    meetingTime={m.meeting_time}
+                    size="sm"
+                  />
+                </div>
               </div>
             ))}
           </div>
