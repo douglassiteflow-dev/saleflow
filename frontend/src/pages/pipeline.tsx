@@ -2,25 +2,11 @@ import { useNavigate } from "react-router-dom";
 import { useDeals } from "@/api/deals";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { STAGE_LABELS } from "@/lib/constants";
+import { ACTIVE_STAGES, getStageConfig, formatDaysAgo } from "@/lib/pipeline-config";
 import type { DealStage } from "@/api/types";
 import Loader from "@/components/kokonutui/loader";
 
-const STAGE_ORDER: Exclude<DealStage, "won" | "cancelled">[] = [
-  "booking_wizard",
-  "demo_scheduled",
-  "meeting_completed",
-  "questionnaire_sent",
-  "contract_sent",
-];
-
-function timeInStage(updatedAt: string): string {
-  const diff = Date.now() - new Date(updatedAt).getTime();
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  if (days === 0) return "Idag";
-  if (days === 1) return "1 dag";
-  return `${days} dagar`;
-}
+const STAGE_ORDER: Exclude<DealStage, "won" | "cancelled">[] = ACTIVE_STAGES as Exclude<DealStage, "won" | "cancelled">[];
 
 export function PipelinePage() {
   const navigate = useNavigate();
@@ -59,7 +45,7 @@ export function PipelinePage() {
         Object.entries(grouped).map(([stage, stageDeals]) => (
           <div key={stage} className="space-y-2">
             <h2 className="text-[14px] font-medium uppercase tracking-[0.05em] text-[var(--color-text-secondary)]">
-              {STAGE_LABELS[stage] ?? stage} ({stageDeals.length})
+              {getStageConfig(stage).label} ({stageDeals.length})
             </h2>
             <Card>
               <div className="overflow-x-auto">
@@ -98,7 +84,7 @@ export function PipelinePage() {
                           {deal.user_name ?? "—"}
                         </td>
                         <td className="px-4 py-3 font-mono text-[var(--color-text-secondary)]">
-                          {timeInStage(deal.updated_at)}
+                          {formatDaysAgo(deal.updated_at)}
                         </td>
                         <td className="px-4 py-3">
                           <Badge status={deal.stage === "meeting_completed" ? "in_progress" : "scheduled"} />

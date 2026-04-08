@@ -1,15 +1,7 @@
 import { useDeals } from "@/api/deals";
 import { cn } from "@/lib/cn";
-import { STAGE_LABELS } from "@/lib/constants";
+import { getStageConfig } from "@/lib/pipeline-config";
 import type { Deal } from "@/api/types";
-
-const STAGE_COLORS: Record<string, string> = {
-  booking_wizard: "bg-blue-50 text-blue-700 border-blue-200",
-  demo_scheduled: "bg-purple-50 text-purple-700 border-purple-200",
-  meeting_completed: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  questionnaire_sent: "bg-cyan-50 text-cyan-700 border-cyan-200",
-  contract_sent: "bg-orange-50 text-orange-700 border-orange-200",
-};
 
 interface DealsTabProps {
   onSelectDeal: (dealId: string) => void;
@@ -57,8 +49,7 @@ export function DealsTab({ onSelectDeal }: DealsTabProps) {
 
 function DealRow({ deal, onClick }: { deal: Deal; onClick: () => void }) {
   const name = deal.lead_name ?? deal.lead_id;
-  const label = STAGE_LABELS[deal.stage] ?? deal.stage;
-  const color = STAGE_COLORS[deal.stage] ?? "bg-[var(--color-bg-panel)] text-[var(--color-text-secondary)] border-[var(--color-border)]";
+  const stageConfig = getStageConfig(deal.stage);
 
   return (
     <tr
@@ -67,8 +58,8 @@ function DealRow({ deal, onClick }: { deal: Deal; onClick: () => void }) {
     >
       <td className="px-5 py-2.5 font-medium text-[var(--color-text-primary)]">{name}</td>
       <td className="px-5 py-2.5">
-        <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium border", color)}>
-          {label}
+        <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium border", stageConfig.color, stageConfig.textColor)}>
+          {stageConfig.label}
         </span>
       </td>
     </tr>

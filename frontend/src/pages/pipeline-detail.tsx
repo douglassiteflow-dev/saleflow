@@ -5,19 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DealStageIndicator } from "@/components/deal-stage-indicator";
 import { formatDate, formatTime, formatPhone } from "@/lib/format";
-import type { DealStage } from "@/api/types";
 import Loader from "@/components/kokonutui/loader";
 import { useState } from "react";
-import { useSendQuestionnaire } from "@/api/questionnaire-admin";
-import { useSendContract } from "@/api/contract-admin";
-
-const ACTION_LABELS: Partial<Record<DealStage, string>> = {
-  booking_wizard: "Schemalägg demo",
-  demo_scheduled: "Markera möte genomfört",
-  meeting_completed: "Skicka formulär",
-  questionnaire_sent: "Skicka avtal",
-  contract_sent: "Markera som kund",
-};
+import { getStageConfig } from "@/lib/pipeline-config";
+import { SendQuestionnaireForm } from "@/components/pipeline/send-questionnaire-form";
+import { SendContractForm } from "@/components/pipeline/send-contract-form";
 
 export function PipelineDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,16 +18,8 @@ export function PipelineDetailPage() {
   const advanceDeal = useAdvanceDeal();
   const updateDeal = useUpdateDeal();
 
-  const sendQuestionnaire = useSendQuestionnaire();
-  const sendContract = useSendContract();
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState("");
-  const [questionnaireEmail, setQuestionnaireEmail] = useState("");
-  const [questionnaireSent, setQuestionnaireSent] = useState(false);
-  const [contractAmount, setContractAmount] = useState("");
-  const [contractTerms, setContractTerms] = useState("");
-  const [contractEmail, setContractEmail] = useState("");
-  const [contractSent, setContractSent] = useState(false);
 
   if (isLoading || !data) {
     return (
@@ -46,16 +30,6 @@ export function PipelineDetailPage() {
   }
 
   const { deal, lead, meetings } = data;
-
-  // Pre-fill questionnaire email once data is available (only on first render)
-  if (questionnaireEmail === "" && lead.epost) {
-    setQuestionnaireEmail(lead.epost);
-  }
-
-  // Pre-fill contract email once data is available (only on first render)
-  if (contractEmail === "" && lead.epost) {
-    setContractEmail(lead.epost);
-  }
 
   function handleAdvance() {
     if (!id) return;
@@ -82,7 +56,7 @@ export function PipelineDetailPage() {
     ? `https://www.google.com/maps/search/${encodeURIComponent(mapsQuery)}`
     : null;
 
-  const actionLabel = ACTION_LABELS[deal.stage];
+  const { actionLabel } = getStageConfig(deal.stage);
 
   return (
     <div className="space-y-6">
@@ -109,105 +83,12 @@ export function PipelineDetailPage() {
           {deal.stage === "meeting_completed" ? (
             <Card>
               <CardTitle className="mb-4">Nästa steg</CardTitle>
-              {questionnaireSent ? (
-                <p className="text-sm text-emerald-700 font-medium">
-                  Formuläret har skickats!
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">
-                      Kundens e-post
-                    </label>
-                    <input
-                      type="email"
-                      value={questionnaireEmail}
-                      onChange={(e) => setQuestionnaireEmail(e.target.value)}
-                      placeholder="kund@exempel.se"
-                      className="flex w-full rounded-md border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <Button
-                    variant="primary"
-                    disabled={sendQuestionnaire.isPending || !questionnaireEmail}
-                    onClick={() => {
-                      if (!id) return;
-                      sendQuestionnaire.mutate(
-                        { dealId: id, customerEmail: questionnaireEmail },
-                        { onSuccess: () => setQuestionnaireSent(true) },
-                      );
-                    }}
-                  >
-                    {sendQuestionnaire.isPending ? "Skickar..." : "Skicka formulär"}
-                  </Button>
-                </div>
-              )}
+              <SendQuestionnaireForm dealId={deal.id} defaultEmail={lead.epost ?? null} />
             </Card>
           ) : deal.stage === "questionnaire_sent" ? (
             <Card>
               <CardTitle className="mb-4">Nästa steg</CardTitle>
-              {contractSent ? (
-                <p className="text-sm text-emerald-700 font-medium">
-                  Avtalet har skickats!
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">
-                      Pris (SEK)
-                    </label>
-                    <input
-                      type="number"
-                      value={contractAmount}
-                      onChange={(e) => setContractAmount(e.target.value)}
-                      placeholder="0"
-                      className="flex w-full rounded-md border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">
-                      Villkor
-                    </label>
-                    <textarea
-                      value={contractTerms}
-                      onChange={(e) => setContractTerms(e.target.value)}
-                      placeholder="Avtalsvillkor (valfritt)"
-                      rows={3}
-                      className="flex w-full rounded-md border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 py-2 text-sm resize-y"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)] mb-1">
-                      Kundens email
-                    </label>
-                    <input
-                      type="email"
-                      value={contractEmail}
-                      onChange={(e) => setContractEmail(e.target.value)}
-                      placeholder="kund@exempel.se"
-                      className="flex w-full rounded-md border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <Button
-                    variant="primary"
-                    disabled={sendContract.isPending || !contractAmount || !contractEmail}
-                    onClick={() => {
-                      if (!id) return;
-                      sendContract.mutate(
-                        {
-                          dealId: id,
-                          amount: Number(contractAmount),
-                          terms: contractTerms || undefined,
-                          recipientEmail: contractEmail,
-                        },
-                        { onSuccess: () => setContractSent(true) },
-                      );
-                    }}
-                  >
-                    {sendContract.isPending ? "Skickar..." : "Skicka avtal"}
-                  </Button>
-                </div>
-              )}
+              <SendContractForm dealId={deal.id} defaultEmail={lead.epost ?? null} defaultName={lead.företag ?? null} />
             </Card>
           ) : actionLabel ? (
             <Card>

@@ -3,8 +3,8 @@ import { useDealDetail } from "@/api/deals";
 import { DealStageIndicator } from "@/components/deal-stage-indicator";
 import { formatPhone, formatDate, formatTime } from "@/lib/format";
 import Loader from "@/components/kokonutui/loader";
-import { useSendQuestionnaire } from "@/api/questionnaire-admin";
-import { useSendContract } from "@/api/contract-admin";
+import { SendQuestionnaireForm } from "@/components/pipeline/send-questionnaire-form";
+import { SendContractForm } from "@/components/pipeline/send-contract-form";
 
 interface DealDetailTabProps {
   dealId: string;
@@ -14,14 +14,6 @@ interface DealDetailTabProps {
 export function DealDetailTab({ dealId, onBack }: DealDetailTabProps) {
   const { data, isLoading } = useDealDetail(dealId);
   const [copied, setCopied] = useState(false);
-  const sendQuestionnaire = useSendQuestionnaire();
-  const [questionnaireEmail, setQuestionnaireEmail] = useState("");
-  const [questionnaireSent, setQuestionnaireSent] = useState(false);
-  const sendContract = useSendContract();
-  const [contractAmount, setContractAmount] = useState("");
-  const [contractTerms, setContractTerms] = useState("");
-  const [contractEmail, setContractEmail] = useState("");
-  const [contractSent, setContractSent] = useState(false);
 
   if (isLoading || !data) {
     return (
@@ -33,16 +25,6 @@ export function DealDetailTab({ dealId, onBack }: DealDetailTabProps) {
 
   const { deal, lead, meetings } = data;
   const companyName = deal.lead_name ?? lead.företag;
-
-  // Pre-fill questionnaire email once data is available
-  if (questionnaireEmail === "" && lead.epost) {
-    setQuestionnaireEmail(lead.epost);
-  }
-
-  // Pre-fill contract email once data is available
-  if (contractEmail === "" && lead.epost) {
-    setContractEmail(lead.epost);
-  }
 
   function handleCopyUrl() {
     if (!deal.website_url) return;
@@ -97,32 +79,7 @@ export function DealDetailTab({ dealId, onBack }: DealDetailTabProps) {
           <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-2">
             Skicka formulär
           </p>
-          {questionnaireSent ? (
-            <p className="text-[13px] text-emerald-700 font-medium">Formuläret har skickats!</p>
-          ) : (
-            <div className="space-y-2">
-              <input
-                type="email"
-                value={questionnaireEmail}
-                onChange={(e) => setQuestionnaireEmail(e.target.value)}
-                placeholder="kund@exempel.se"
-                className="flex w-full rounded-md border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-2.5 py-1.5 text-[13px]"
-              />
-              <button
-                type="button"
-                disabled={sendQuestionnaire.isPending || !questionnaireEmail}
-                onClick={() => {
-                  sendQuestionnaire.mutate(
-                    { dealId, customerEmail: questionnaireEmail },
-                    { onSuccess: () => setQuestionnaireSent(true) },
-                  );
-                }}
-                className="w-full rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {sendQuestionnaire.isPending ? "Skickar..." : "Skicka formulär"}
-              </button>
-            </div>
-          )}
+          <SendQuestionnaireForm dealId={deal.id} defaultEmail={lead.epost ?? null} compact />
         </div>
       )}
 
@@ -132,51 +89,7 @@ export function DealDetailTab({ dealId, onBack }: DealDetailTabProps) {
           <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-2">
             Skicka avtal
           </p>
-          {contractSent ? (
-            <p className="text-[13px] text-emerald-700 font-medium">Avtalet har skickats!</p>
-          ) : (
-            <div className="space-y-2">
-              <input
-                type="number"
-                value={contractAmount}
-                onChange={(e) => setContractAmount(e.target.value)}
-                placeholder="Pris (SEK)"
-                className="flex w-full rounded-md border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-2.5 py-1.5 text-[13px]"
-              />
-              <textarea
-                value={contractTerms}
-                onChange={(e) => setContractTerms(e.target.value)}
-                placeholder="Villkor (valfritt)"
-                rows={2}
-                className="flex w-full rounded-md border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-2.5 py-1.5 text-[13px] resize-y"
-              />
-              <input
-                type="email"
-                value={contractEmail}
-                onChange={(e) => setContractEmail(e.target.value)}
-                placeholder="Kundens email"
-                className="flex w-full rounded-md border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-2.5 py-1.5 text-[13px]"
-              />
-              <button
-                type="button"
-                disabled={sendContract.isPending || !contractAmount || !contractEmail}
-                onClick={() => {
-                  sendContract.mutate(
-                    {
-                      dealId,
-                      amount: Number(contractAmount),
-                      terms: contractTerms || undefined,
-                      recipientEmail: contractEmail,
-                    },
-                    { onSuccess: () => setContractSent(true) },
-                  );
-                }}
-                className="w-full rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {sendContract.isPending ? "Skickar..." : "Skicka avtal"}
-              </button>
-            </div>
-          )}
+          <SendContractForm dealId={deal.id} defaultEmail={lead.epost ?? null} defaultName={lead.företag ?? null} compact />
         </div>
       )}
 
