@@ -22,6 +22,7 @@ import { AppPlaceholderPage } from "@/pages/app-placeholder";
 import { DownloadAppPage } from "@/pages/download-app";
 import { AppTelavoxPage } from "@/pages/app-telavox";
 import { AppTeamsPage } from "@/pages/app-teams";
+import { QuestionnairePage } from "@/pages/questionnaire";
 
 // Lazy imports: admin pages, profile
 const AdminLogsPage = lazy(() => import("@/pages/admin-logs").then((m) => ({ default: m.AdminLogsPage })));
@@ -62,6 +63,8 @@ export function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/download-app" element={<DownloadAppPage />} />
+          {/* Public questionnaire — no auth required */}
+          <Route path="/q/:token" element={<QuestionnairePage />} />
           {/* Desktop app route — dialer without sidebar/topbar (agents + admins) */}
           <Route element={<ProtectedRoute />}>
             <Route path="/app" element={<DialerPage />} />
