@@ -3,6 +3,7 @@ import { useDealDetail } from "@/api/deals";
 import { DealStageIndicator } from "@/components/deal-stage-indicator";
 import { formatPhone, formatDate, formatTime } from "@/lib/format";
 import Loader from "@/components/kokonutui/loader";
+import { useSendQuestionnaire } from "@/api/questionnaire-admin";
 
 interface DealDetailTabProps {
   dealId: string;
@@ -12,6 +13,9 @@ interface DealDetailTabProps {
 export function DealDetailTab({ dealId, onBack }: DealDetailTabProps) {
   const { data, isLoading } = useDealDetail(dealId);
   const [copied, setCopied] = useState(false);
+  const sendQuestionnaire = useSendQuestionnaire();
+  const [questionnaireEmail, setQuestionnaireEmail] = useState("");
+  const [questionnaireSent, setQuestionnaireSent] = useState(false);
 
   if (isLoading || !data) {
     return (
@@ -23,6 +27,11 @@ export function DealDetailTab({ dealId, onBack }: DealDetailTabProps) {
 
   const { deal, lead, meetings } = data;
   const companyName = deal.lead_name ?? lead.företag;
+
+  // Pre-fill questionnaire email once data is available
+  if (questionnaireEmail === "" && lead.epost) {
+    setQuestionnaireEmail(lead.epost);
+  }
 
   function handleCopyUrl() {
     if (!deal.website_url) return;
@@ -68,6 +77,41 @@ export function DealDetailTab({ dealId, onBack }: DealDetailTabProps) {
               {copied ? "Kopierad!" : "Kopiera"}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Skicka formulär — meeting_completed stage */}
+      {deal.stage === "meeting_completed" && (
+        <div className="mx-5 mt-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-panel)] p-4">
+          <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-2">
+            Skicka formulär
+          </p>
+          {questionnaireSent ? (
+            <p className="text-[13px] text-emerald-700 font-medium">Formuläret har skickats!</p>
+          ) : (
+            <div className="space-y-2">
+              <input
+                type="email"
+                value={questionnaireEmail}
+                onChange={(e) => setQuestionnaireEmail(e.target.value)}
+                placeholder="kund@exempel.se"
+                className="flex w-full rounded-md border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-2.5 py-1.5 text-[13px]"
+              />
+              <button
+                type="button"
+                disabled={sendQuestionnaire.isPending || !questionnaireEmail}
+                onClick={() => {
+                  sendQuestionnaire.mutate(
+                    { dealId, customerEmail: questionnaireEmail },
+                    { onSuccess: () => setQuestionnaireSent(true) },
+                  );
+                }}
+                className="w-full rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {sendQuestionnaire.isPending ? "Skickar..." : "Skicka formulär"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
