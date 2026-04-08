@@ -281,6 +281,67 @@ defmodule SaleflowWeb.DealControllerTest do
   # Auto-create deal on meeting_booked outcome
   # ---------------------------------------------------------------------------
 
+  # ---------------------------------------------------------------------------
+  # POST /api/deals/:id/send-questionnaire
+  # ---------------------------------------------------------------------------
+
+  describe "POST /api/deals/:id/send-questionnaire" do
+    test "creates questionnaire and advances deal to questionnaire_sent", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      deal = create_deal!(lead, agent)
+
+      # Advance to meeting_completed stage (required before questionnaire_sent)
+      {:ok, deal} = Sales.advance_deal(deal)
+      {:ok, deal} = Sales.advance_deal(deal)
+      assert deal.stage == :meeting_completed
+
+      resp =
+        post(agent_conn, "/api/deals/#{deal.id}/send-questionnaire", %{
+          "customer_email" => "kund@example.se"
+        })
+
+      body = json_response(resp, 200)
+      assert body["questionnaire"]["customer_email"] == "kund@example.se"
+      assert body["questionnaire"]["status"] == "pending"
+      assert is_binary(body["questionnaire"]["token"])
+
+      # Deal should have advanced to questionnaire_sent
+      {:ok, refreshed} = Sales.get_deal(deal.id)
+      assert refreshed.stage == :questionnaire_sent
+    end
+
+    test "returns 404 for non-existent deal", %{conn: conn} do
+      {agent_conn, _agent} = create_agent!(conn)
+
+      resp =
+        post(agent_conn, "/api/deals/#{Ecto.UUID.generate()}/send-questionnaire", %{
+          "customer_email" => "kund@example.se"
+        })
+
+      assert json_response(resp, 404)
+    end
+
+    test "agent cannot send questionnaire for another agent's deal", %{conn: conn} do
+      lead = create_lead!()
+      {_other_conn, other_agent} = create_agent!(conn, %{name: "Other"})
+      deal = create_deal!(lead, other_agent)
+
+      {agent_conn, _agent} = create_agent!(build_conn(), %{name: "Me"})
+
+      resp =
+        post(agent_conn, "/api/deals/#{deal.id}/send-questionnaire", %{
+          "customer_email" => "kund@example.se"
+        })
+
+      assert json_response(resp, 403)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # POST /api/leads/:id/outcome (meeting_booked auto-deal)
+  # ---------------------------------------------------------------------------
+
   describe "POST /api/leads/:id/outcome (meeting_booked auto-deal)" do
     test "creates a deal when none exists", %{conn: conn} do
       lead = create_lead!()
