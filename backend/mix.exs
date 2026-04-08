@@ -71,6 +71,8 @@ defmodule Saleflow.MixProject do
       {:ex_aws_s3, "~> 2.5"},
       {:hackney, "~> 1.20"},
       {:sweet_xml, "~> 0.7"},
+      # PDF generation
+      {:chromic_pdf, "~> 1.17"},
       # CORS
       {:cors_plug, "~> 3.0"},
       # Test coverage

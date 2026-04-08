@@ -117,8 +117,22 @@ defmodule SaleflowWeb.ContractPublicController do
   end
 
   @doc "GET /api/contracts/:token/pdf — download contract PDF"
-  def pdf(conn, %{"token" => _token}) do
-    conn |> put_status(501) |> json(%{error: "PDF generation coming soon"})
+  def pdf(conn, %{"token" => token}) do
+    with {:ok, contract} when not is_nil(contract) <- Contracts.get_contract_by_token(token),
+         {:ok, deal} <- Saleflow.Sales.get_deal(contract.deal_id),
+         {:ok, lead} <- Saleflow.Sales.get_lead(deal.lead_id),
+         {:ok, pdf_binary} <- Saleflow.Contracts.PdfGenerator.generate(contract, lead) do
+      conn
+      |> put_resp_content_type("application/pdf")
+      |> put_resp_header(
+        "content-disposition",
+        "attachment; filename=\"#{contract.contract_number}.pdf\""
+      )
+      |> send_resp(200, pdf_binary)
+    else
+      _ ->
+        conn |> put_status(500) |> json(%{error: "Kunde inte generera PDF"})
+    end
   end
 
   @doc "PATCH /api/contracts/:token — update tracking data"
