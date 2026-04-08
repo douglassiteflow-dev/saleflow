@@ -29,6 +29,17 @@ defmodule SaleflowWeb.Router do
     post "/:token/upload", QuestionnairePublicController, :upload
   end
 
+  # Public contract endpoints (no auth required)
+  scope "/api/contracts", SaleflowWeb do
+    pipe_through :api
+
+    get "/:token", ContractPublicController, :show
+    post "/:token/verify", ContractPublicController, :verify
+    post "/:token/sign", ContractPublicController, :sign
+    get "/:token/pdf", ContractPublicController, :pdf
+    patch "/:token", ContractPublicController, :track
+  end
+
   # Public
   scope "/api", SaleflowWeb do
     pipe_through :api
@@ -87,6 +98,7 @@ defmodule SaleflowWeb.Router do
     post "/deals/:id/advance", DealController, :advance
     patch "/deals/:id", DealController, :update
     post "/deals/:id/send-questionnaire", DealController, :send_questionnaire
+    post "/deals/:id/send-contract", DealController, :send_contract
 
     # Demo Configs
     get "/demo-configs", DemoConfigController, :index
