@@ -15,5 +15,9 @@ config :saleflow, SaleflowWeb.Endpoint,
 # Do not print debug messages in production
 config :logger, level: :info
 
+# Skip ChromicPDF in prod (Chrome not available in container)
+# PDF generation happens via the genflow-local-server app instead
+config :saleflow, :skip_chromic_pdf, true
+
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.
