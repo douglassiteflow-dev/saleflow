@@ -19,6 +19,16 @@ defmodule SaleflowWeb.Router do
     plug SaleflowWeb.Plugs.RequireAdmin
   end
 
+  # Public questionnaire endpoints (no auth required)
+  scope "/q", SaleflowWeb do
+    pipe_through :api
+
+    get "/:token", QuestionnairePublicController, :show
+    patch "/:token", QuestionnairePublicController, :save
+    post "/:token/complete", QuestionnairePublicController, :complete
+    post "/:token/upload", QuestionnairePublicController, :upload
+  end
+
   # Public
   scope "/api", SaleflowWeb do
     pipe_through :api
@@ -76,6 +86,7 @@ defmodule SaleflowWeb.Router do
     get "/deals/:id", DealController, :show
     post "/deals/:id/advance", DealController, :advance
     patch "/deals/:id", DealController, :update
+    post "/deals/:id/send-questionnaire", DealController, :send_questionnaire
 
     # Demo Configs
     get "/demo-configs", DemoConfigController, :index
@@ -105,6 +116,7 @@ defmodule SaleflowWeb.Router do
     # Calls
     post "/calls/dial", CallController, :dial
     post "/calls/hangup", CallController, :hangup
+    get "/calls/search", CallSearchController, :search
     get "/calls/history", CallController, :history
     get "/calls/daily-summary", CallController, :daily_summary
     get "/calls/daily-report", CallController, :daily_report
