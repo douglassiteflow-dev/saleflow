@@ -249,7 +249,14 @@ export function DialerPage() {
       )}
 
       {activeTab === "meeting-detail" && selectedMeetingId && (
-        <MeetingDetailTab meetingId={selectedMeetingId} onBack={() => setActiveTab("meetings")} />
+        <MeetingDetailTab
+          meetingId={selectedMeetingId}
+          onBack={() => setActiveTab("meetings")}
+          onGoToDemo={(demoConfigId) => {
+            setSelectedDemoConfigId(demoConfigId);
+            setActiveTab("demo-detail" as any);
+          }}
+        />
       )}
 
       {activeTab === "lead-detail" && selectedLeadId && (

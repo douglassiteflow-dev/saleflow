@@ -11,9 +11,10 @@ import Loader from "@/components/kokonutui/loader";
 interface MeetingDetailTabProps {
   meetingId: string;
   onBack: () => void;
+  onGoToDemo?: (demoConfigId: string) => void;
 }
 
-export function MeetingDetailTab({ meetingId, onBack }: MeetingDetailTabProps) {
+export function MeetingDetailTab({ meetingId, onBack, onGoToDemo }: MeetingDetailTabProps) {
   const { data, isLoading } = useMeetingDetail(meetingId);
   const updateMeeting = useUpdateMeeting();
   const cancelMeeting = useCancelMeeting();
@@ -123,9 +124,20 @@ export function MeetingDetailTab({ meetingId, onBack }: MeetingDetailTabProps) {
             </>
           )}
           {(meeting.status === "cancelled" || meeting.status === "completed") && (
-            <button type="button" onClick={handleRebook} className="rounded-md bg-[var(--color-accent)] px-3 py-1 text-[11px] font-medium text-white hover:brightness-110 transition-all">
-              Återställ & boka om
-            </button>
+            <>
+              <button type="button" onClick={handleRebook} className="rounded-md bg-[var(--color-accent)] px-3 py-1 text-[11px] font-medium text-white hover:brightness-110 transition-all">
+                Återställ & boka om
+              </button>
+              {(meeting as any).demo_config_id && (
+                <button
+                  type="button"
+                  onClick={() => onGoToDemo?.((meeting as any).demo_config_id)}
+                  className="rounded-md bg-[var(--color-success)] px-3 py-1 text-[11px] font-medium text-white hover:brightness-110 transition-all"
+                >
+                  Gå till demo →
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>

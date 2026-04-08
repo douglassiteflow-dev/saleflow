@@ -115,6 +115,11 @@ defmodule SaleflowWeb.MeetingController do
 
       case Sales.update_meeting(meeting, update_params) do
         {:ok, updated} ->
+          # Auto-advance DemoConfig when meeting completed
+          if updated.status == :completed and meeting.status != :completed do
+            maybe_advance_demo_config(updated)
+          end
+
           broadcast_dashboard_update("meeting_updated")
           json(conn, %{meeting: serialize_meeting(updated)})
 
@@ -470,4 +475,53 @@ defmodule SaleflowWeb.MeetingController do
   defp parse_status("completed"), do: :completed
   defp parse_status("cancelled"), do: :cancelled
   defp parse_status(_), do: nil
+
+  # ---------------------------------------------------------------------------
+  # Auto-advance DemoConfig when meeting completed
+  # ---------------------------------------------------------------------------
+
+  defp maybe_advance_demo_config(meeting) do
+    case find_active_demo_config(meeting.lead_id) do
+      nil -> :ok
+      dc ->
+        # Advance demo_ready → followup
+        if dc.stage == :demo_ready do
+          Sales.advance_to_followup(dc)
+        end
+
+        # Create notification for agent
+        create_meeting_completed_notification(meeting, dc)
+    end
+  end
+
+  defp create_meeting_completed_notification(meeting, demo_config) do
+    require Ash.Query
+
+    # Get lead name
+    lead_name =
+      case Saleflow.Repo.query("SELECT företag FROM leads WHERE id = $1", [Ecto.UUID.dump!(meeting.lead_id)]) do
+        {:ok, %{rows: [[name]]}} -> name
+        _ -> "Kund"
+      end
+
+    message =
+      case demo_config.stage do
+        s when s in [:demo_ready, "demo_ready"] ->
+          "Demo klar för #{lead_name} — dags för uppföljning"
+        s when s in [:followup, "followup"] ->
+          "Möte genomfört med #{lead_name} — fortsätt uppföljning"
+        _ ->
+          "Möte genomfört med #{lead_name}"
+      end
+
+    Saleflow.Repo.query("""
+      INSERT INTO notifications (id, user_id, title, message, type, resource_type, resource_id, inserted_at, updated_at)
+      VALUES (gen_random_uuid(), $1, $2, $3, 'meeting_completed', 'DemoConfig', $4, NOW(), NOW())
+    """, [
+      Ecto.UUID.dump!(meeting.user_id),
+      "Möte genomfört",
+      message,
+      Ecto.UUID.dump!(demo_config.id)
+    ])
+  end
 end
