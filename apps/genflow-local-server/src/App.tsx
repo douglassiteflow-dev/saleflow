@@ -73,7 +73,7 @@ export default function App() {
         className="settings-toggle"
         onClick={() => setSettingsOpen(!settingsOpen)}
       >
-        <span>Installningar</span>
+        <span>Inställningar</span>
         <span>{settingsOpen ? "▲" : "▼"}</span>
       </button>
 
@@ -119,7 +119,7 @@ export default function App() {
       {/* Stats */}
       <div className="stats">
         <div className="stat success">
-          <span>Genomforda:</span>
+          <span>Genomförda:</span>
           <span className="count">{completed}</span>
         </div>
         <div className="stat fail">
@@ -131,7 +131,7 @@ export default function App() {
       {/* Log panel */}
       <div className="log-panel" ref={logRef}>
         {logs.length === 0 && (
-          <div className="log-line">Klicka Starta for att borja...</div>
+          <div className="log-line">Klicka Starta för att börja...</div>
         )}
         {logs.map((entry, i) => (
           <div key={i} className={`log-line ${entry.type}`}>
