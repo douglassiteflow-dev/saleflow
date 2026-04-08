@@ -4,8 +4,8 @@ defmodule Saleflow.Sales.Deal do
 
   ## Stages (fixed order, cannot skip)
 
-      meeting_booked → needs_website → generating_website → reviewing →
-      deployed → demo_followup → contract_sent → signed → dns_launch → won
+      booking_wizard → demo_scheduled → meeting_completed →
+      questionnaire_sent → contract_sent → won
   """
 
   use Ash.Resource,
@@ -13,15 +13,11 @@ defmodule Saleflow.Sales.Deal do
     domain: Saleflow.Sales
 
   @stages [
-    :meeting_booked,
-    :needs_website,
-    :generating_website,
-    :reviewing,
-    :deployed,
-    :demo_followup,
+    :booking_wizard,
+    :demo_scheduled,
+    :meeting_completed,
+    :questionnaire_sent,
     :contract_sent,
-    :signed,
-    :dns_launch,
     :won
   ]
 
@@ -57,29 +53,20 @@ defmodule Saleflow.Sales.Deal do
 
     attribute :stage, :atom do
       constraints one_of: [
-        :meeting_booked,
-        :needs_website,
-        :generating_website,
-        :reviewing,
-        :deployed,
-        :demo_followup,
+        :booking_wizard,
+        :demo_scheduled,
+        :meeting_completed,
+        :questionnaire_sent,
         :contract_sent,
-        :signed,
-        :dns_launch,
         :won,
         :cancelled
       ]
-      default :meeting_booked
+      default :booking_wizard
       allow_nil? false
       public? true
     end
 
     attribute :website_url, :string do
-      allow_nil? true
-      public? true
-    end
-
-    attribute :contract_url, :string do
       allow_nil? true
       public? true
     end
@@ -97,6 +84,17 @@ defmodule Saleflow.Sales.Deal do
 
     attribute :notes, :string do
       allow_nil? true
+      public? true
+    end
+
+    attribute :meeting_outcome, :string do
+      allow_nil? true
+      public? true
+    end
+
+    attribute :needs_followup, :boolean do
+      default false
+      allow_nil? false
       public? true
     end
 
@@ -134,7 +132,7 @@ defmodule Saleflow.Sales.Deal do
     end
 
     update :cancel do
-      description "Cancel a deal (e.g. when all meetings are cancelled)"
+      description "Cancel a deal"
       require_atomic? false
 
       change fn changeset, _context ->
@@ -147,7 +145,7 @@ defmodule Saleflow.Sales.Deal do
     update :update_fields do
       description "Update editable fields on a deal"
       require_atomic? false
-      accept [:notes, :website_url, :contract_url, :domain, :domain_sponsored]
+      accept [:notes, :website_url, :domain, :domain_sponsored, :meeting_outcome, :needs_followup]
 
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "deal.updated"}
     end
