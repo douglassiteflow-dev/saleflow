@@ -10,6 +10,9 @@ defmodule SaleflowWeb.GenJobController do
 
       {:ok, job} ->
         json(conn, %{job: serialize(job)})
+
+      {:error, _} ->
+        json(conn, %{job: nil})
     end
   end
 
