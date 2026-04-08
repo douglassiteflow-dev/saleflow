@@ -2,7 +2,7 @@ defmodule Saleflow.Repo.Migrations.CreateGenerationJobs do
   use Ecto.Migration
 
   def change do
-    create table(:generation_jobs, primary_key: false) do
+    create_if_not_exists table(:generation_jobs, primary_key: false) do
       add :id, :uuid, primary_key: true
       add :deal_id, references(:deals, type: :uuid, on_delete: :nilify_all)
       add :demo_config_id, references(:demo_configs, type: :uuid, on_delete: :nilify_all)
@@ -17,7 +17,7 @@ defmodule Saleflow.Repo.Migrations.CreateGenerationJobs do
       timestamps()
     end
 
-    create index(:generation_jobs, [:status])
-    create index(:generation_jobs, [:deal_id])
+    create_if_not_exists index(:generation_jobs, [:status])
+    create_if_not_exists index(:generation_jobs, [:deal_id])
   end
 end

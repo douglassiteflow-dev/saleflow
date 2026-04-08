@@ -2,7 +2,7 @@ defmodule Saleflow.Repo.Migrations.CreatePlaybooks do
   use Ecto.Migration
 
   def change do
-    create table(:playbooks, primary_key: false) do
+    create_if_not_exists table(:playbooks, primary_key: false) do
       add :id, :uuid, primary_key: true
       add :name, :string, null: false
       add :opening, :text

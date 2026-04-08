@@ -2,7 +2,7 @@ defmodule Saleflow.Repo.Migrations.CreateQuestionnaires do
   use Ecto.Migration
 
   def change do
-    create table(:questionnaire_templates, primary_key: false) do
+    create_if_not_exists table(:questionnaire_templates, primary_key: false) do
       add :id, :uuid, primary_key: true
       add :name, :string, null: false
       add :questions, :map, default: %{}
@@ -11,7 +11,7 @@ defmodule Saleflow.Repo.Migrations.CreateQuestionnaires do
       timestamps()
     end
 
-    create table(:questionnaires, primary_key: false) do
+    create_if_not_exists table(:questionnaires, primary_key: false) do
       add :id, :uuid, primary_key: true
       add :deal_id, references(:deals, type: :uuid, on_delete: :nilify_all)
       add :token, :string, null: false
@@ -32,7 +32,7 @@ defmodule Saleflow.Repo.Migrations.CreateQuestionnaires do
       timestamps()
     end
 
-    create unique_index(:questionnaires, [:token])
-    create unique_index(:questionnaires, [:deal_id])
+    create_if_not_exists unique_index(:questionnaires, [:token])
+    create_if_not_exists unique_index(:questionnaires, [:deal_id])
   end
 end

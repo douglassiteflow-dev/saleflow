@@ -2,7 +2,7 @@ defmodule Saleflow.Repo.Migrations.CreateContracts do
   use Ecto.Migration
 
   def change do
-    create table(:contract_templates, primary_key: false) do
+    create_if_not_exists table(:contract_templates, primary_key: false) do
       add :id, :uuid, primary_key: true
       add :name, :string, null: false
       add :header_html, :text, default: ""
@@ -17,9 +17,9 @@ defmodule Saleflow.Repo.Migrations.CreateContracts do
       timestamps()
     end
 
-    create index(:contract_templates, [:user_id])
+    create_if_not_exists index(:contract_templates, [:user_id])
 
-    create table(:contracts, primary_key: false) do
+    create_if_not_exists table(:contracts, primary_key: false) do
       add :id, :uuid, primary_key: true
       add :deal_id, references(:deals, type: :uuid, on_delete: :nilify_all)
       add :user_id, references(:users, type: :uuid, on_delete: :nilify_all)
@@ -54,10 +54,10 @@ defmodule Saleflow.Repo.Migrations.CreateContracts do
       timestamps()
     end
 
-    create unique_index(:contracts, [:access_token])
-    create index(:contracts, [:deal_id])
-    create index(:contracts, [:user_id])
-    create index(:contracts, [:status])
-    create index(:contracts, [:contract_number])
+    create_if_not_exists unique_index(:contracts, [:access_token])
+    create_if_not_exists index(:contracts, [:deal_id])
+    create_if_not_exists index(:contracts, [:user_id])
+    create_if_not_exists index(:contracts, [:status])
+    create_if_not_exists index(:contracts, [:contract_number])
   end
 end
