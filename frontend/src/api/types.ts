@@ -404,6 +404,7 @@ export interface DemoConfig {
   preview_url: string | null;
   notes: string | null;
   error: string | null;
+  health_score: number | null;
   inserted_at: string;
   updated_at: string;
 }
@@ -456,4 +457,16 @@ export interface SentimentAnalysis {
   positive_pct: number;
   negative_pct: number;
   neutral_pct: number;
+}
+
+export interface CallSearchResult {
+  id: string;
+  received_at: string;
+  duration: number;
+  scorecard_avg: number | null;
+  sentiment: string | null;
+  summary: string | null;
+  outcome: string | null;
+  agent_name: string | null;
+  snippet: string;
 }

@@ -39,6 +39,7 @@ const PipelineDetailPage = lazy(() => import("@/pages/pipeline-detail").then((m)
 const CustomersPage = lazy(() => import("@/pages/customers").then((m) => ({ default: m.CustomersPage })));
 const CustomerDetailPage = lazy(() => import("@/pages/customer-detail").then((m) => ({ default: m.CustomerDetailPage })));
 const DailySummaryPage = lazy(() => import("@/pages/daily-summary").then((m) => ({ default: m.DailySummaryPage })));
+const CallLibraryPage = lazy(() => import("@/pages/call-library").then((m) => ({ default: m.CallLibraryPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -92,6 +93,7 @@ export function App() {
               <Route path="/pipeline/:id" element={<Suspense fallback={<LazyFallback />}><PipelineDetailPage /></Suspense>} />
               <Route path="/customers" element={<Suspense fallback={<LazyFallback />}><CustomersPage /></Suspense>} />
               <Route path="/customers/:id" element={<Suspense fallback={<LazyFallback />}><CustomerDetailPage /></Suspense>} />
+              <Route path="/call-library" element={<Suspense fallback={<LazyFallback />}><CallLibraryPage /></Suspense>} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to={(window as any).saleflowDesktop ? "/app" : "/login"} replace />} />
