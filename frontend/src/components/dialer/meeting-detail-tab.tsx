@@ -3,6 +3,7 @@ import { useMeetingDetail, useUpdateMeeting, useCancelMeeting } from "@/api/meet
 import { useDial } from "@/api/telavox";
 import { useCreateTeamsMeeting } from "@/api/microsoft";
 import { Badge } from "@/components/ui/badge";
+import { InfoRow } from "@/components/ui/info-row";
 import { HistoryTimeline } from "@/components/history-timeline";
 import { formatDate, formatTime, formatPhone } from "@/lib/format";
 import { todayISO } from "@/lib/date";
@@ -173,14 +174,14 @@ export function MeetingDetailTab({ meetingId, onBack, onGoToDemo }: MeetingDetai
             </div>
           ) : (
             <div className="space-y-0">
-              <DetailRow label="Datum" value={formatDate(meeting.meeting_date)} />
-              <DetailRow label="Tid" value={formatTime(meeting.meeting_time)} mono />
-              <DetailRow label="Längd" value={`${meeting.duration_minutes ?? 30} min`} />
-              <DetailRow label="Agent" value={meeting.user_name ?? "—"} />
-              {meeting.attendee_name && <DetailRow label="Kontakt" value={meeting.attendee_name} />}
-              {meeting.attendee_email && <DetailRow label="E-post" value={meeting.attendee_email} />}
-              <DetailRow label="Anteckningar" value={meeting.notes ?? "Inga"} />
-              <DetailRow label="Påminnelse" value={meeting.reminded_at ? `Skickad ${formatDate(meeting.reminded_at)}` : "Inte skickad"} />
+              <InfoRow label="Datum" value={formatDate(meeting.meeting_date)} />
+              <InfoRow label="Tid" value={formatTime(meeting.meeting_time)} mono />
+              <InfoRow label="Längd" value={`${meeting.duration_minutes ?? 30} min`} />
+              <InfoRow label="Agent" value={meeting.user_name ?? "—"} />
+              {meeting.attendee_name && <InfoRow label="Kontakt" value={meeting.attendee_name} />}
+              {meeting.attendee_email && <InfoRow label="E-post" value={meeting.attendee_email} />}
+              <InfoRow label="Anteckningar" value={meeting.notes ?? "Inga"} />
+              <InfoRow label="Påminnelse" value={meeting.reminded_at ? `Skickad ${formatDate(meeting.reminded_at)}` : "Inte skickad"} />
             </div>
           )}
         </div>
@@ -189,13 +190,13 @@ export function MeetingDetailTab({ meetingId, onBack, onGoToDemo }: MeetingDetai
         <div className="p-5">
           <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">{lead.företag}</p>
           <div className="space-y-0">
-            <DetailRow label="Telefon" value={formatPhone(lead.telefon)} mono />
-            {lead.adress && <DetailRow label="Adress" value={lead.adress} />}
-            {lead.stad && <DetailRow label="Stad" value={lead.stad} />}
-            {lead.bransch && <DetailRow label="Bransch" value={lead.bransch} />}
-            {lead.omsättning_tkr && <DetailRow label="Omsättning" value={`${lead.omsättning_tkr} tkr`} />}
-            {lead.vd_namn && <DetailRow label="VD" value={lead.vd_namn} />}
-            {lead.källa && <DetailRow label="Källa" value={lead.källa} />}
+            <InfoRow label="Telefon" value={formatPhone(lead.telefon)} mono />
+            {lead.adress && <InfoRow label="Adress" value={lead.adress} />}
+            {lead.stad && <InfoRow label="Stad" value={lead.stad} />}
+            {lead.bransch && <InfoRow label="Bransch" value={lead.bransch} />}
+            {lead.omsättning_tkr && <InfoRow label="Omsättning" value={`${lead.omsättning_tkr} tkr`} />}
+            {lead.vd_namn && <InfoRow label="VD" value={lead.vd_namn} />}
+            {lead.källa && <InfoRow label="Källa" value={lead.källa} />}
           </div>
         </div>
       </div>
@@ -213,11 +214,3 @@ export function MeetingDetailTab({ meetingId, onBack, onGoToDemo }: MeetingDetai
   );
 }
 
-function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="flex items-baseline py-2 border-b border-[var(--color-border)] last:border-0">
-      <span className="w-24 shrink-0 text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">{label}</span>
-      <span className={`text-[13px] text-[var(--color-text-primary)] ${mono ? "font-mono" : ""}`}>{value}</span>
-    </div>
-  );
-}

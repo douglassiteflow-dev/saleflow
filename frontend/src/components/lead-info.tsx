@@ -2,35 +2,10 @@ import { useState } from "react";
 import type { Lead } from "@/api/types";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { InfoRow } from "@/components/ui/info-row";
 import { formatPhone } from "@/lib/format";
-import { cn } from "@/lib/cn";
 import { api } from "@/api/client";
 import { useQueryClient } from "@tanstack/react-query";
-
-interface InfoRowProps {
-  label: string;
-  value: React.ReactNode;
-  mono?: boolean;
-}
-
-function InfoRow({ label, value, mono }: InfoRowProps) {
-  if (value === null || value === undefined || value === "") return null;
-  return (
-    <div className="flex flex-col gap-0.5 py-2 border-b border-[var(--color-border)] last:border-0">
-      <span className="text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
-        {label}
-      </span>
-      <span
-        className={cn(
-          "text-sm text-[var(--color-text-primary)]",
-          mono && "font-mono text-[13px]",
-        )}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
 
 interface LeadInfoProps {
   lead: Lead;
@@ -66,17 +41,14 @@ export function LeadInfo({ lead }: LeadInfoProps) {
       </div>
 
       <div>
-        <InfoRow
-          label="Telefon"
-          value={
-            <button
-              onClick={() => navigator.clipboard.writeText(lead.telefon)}
-              className="font-mono text-indigo-600 hover:text-indigo-700 cursor-pointer"
-            >
-              {formatPhone(lead.telefon)}
-            </button>
-          }
-        />
+        <InfoRow label="Telefon">
+          <button
+            onClick={() => navigator.clipboard.writeText(lead.telefon)}
+            className="font-mono text-indigo-600 hover:text-indigo-700 cursor-pointer"
+          >
+            {formatPhone(lead.telefon)}
+          </button>
+        </InfoRow>
         <div className="flex flex-col gap-0.5 py-2 border-b border-[var(--color-border)]">
           <span className="text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
             Telefon 2
@@ -155,28 +127,22 @@ export function LeadInfo({ lead }: LeadInfoProps) {
         <InfoRow label="Bolagsform" value={lead.bolagsform} />
         <InfoRow label="Hemsida" value={lead.hemsida} />
         {lead.källa && (
-          <InfoRow
-            label="Källa"
-            value={
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-700">
-                {lead.källa}
-              </span>
-            }
-          />
+          <InfoRow label="Källa">
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-700">
+              {lead.källa}
+            </span>
+          </InfoRow>
         )}
-        <InfoRow
-          label="E-post"
-          value={
-            lead.epost ? (
-              <a
-                href={`mailto:${lead.epost}`}
-                className="text-indigo-600 hover:text-indigo-700 transition-colors"
-              >
-                {lead.epost}
-              </a>
-            ) : undefined
-          }
-        />
+        {lead.epost && (
+          <InfoRow label="E-post">
+            <a
+              href={`mailto:${lead.epost}`}
+              className="text-indigo-600 hover:text-indigo-700 transition-colors"
+            >
+              {lead.epost}
+            </a>
+          </InfoRow>
+        )}
       </div>
     </Card>
   );

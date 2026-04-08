@@ -8,6 +8,7 @@ import {
   type QuestionnaireData,
 } from "@/api/questionnaire";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/cn";
 import { inputClass, labelClass } from "@/lib/form-styles";
 
@@ -353,7 +354,7 @@ export function QuestionnairePage() {
     return (
       <PageShell>
         <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+          <Spinner size="lg" className="border-indigo-600" />
           <p className="text-sm text-[var(--color-text-secondary)]">Laddar formulär...</p>
         </div>
       </PageShell>

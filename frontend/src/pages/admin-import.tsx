@@ -3,6 +3,7 @@ import { useImportLeads } from "@/api/admin";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import type { ImportResult } from "@/api/types";
 
 export function AdminImportPage() {
@@ -120,7 +121,7 @@ export function AdminImportPage() {
           {importLeads.isPending && (
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <div className="w-4 h-4 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
+                <Spinner size="sm" className="border-[var(--color-accent)] border-t-transparent" />
                 <p className="text-sm text-[var(--color-text-secondary)]">
                   Importerar leads, detta kan ta några minuter för stora filer...
                 </p>

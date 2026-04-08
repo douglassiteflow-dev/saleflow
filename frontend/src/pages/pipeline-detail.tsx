@@ -3,6 +3,7 @@ import { useDealDetail, useAdvanceDeal, useUpdateDeal } from "@/api/deals";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InfoRow } from "@/components/ui/info-row";
 import { DealStageIndicator } from "@/components/deal-stage-indicator";
 import { formatDate, formatTime, formatPhone } from "@/lib/format";
 import Loader from "@/components/kokonutui/loader";
@@ -194,17 +195,14 @@ export function PipelineDetailPage() {
               <Badge status={lead.status} />
             </div>
             <div className="space-y-0">
-              <InfoRow
-                label="Telefon"
-                value={
-                  <button
-                    onClick={() => navigator.clipboard.writeText(lead.telefon)}
-                    className="font-mono text-indigo-600 hover:text-indigo-700 cursor-pointer"
-                  >
-                    {formatPhone(lead.telefon)}
-                  </button>
-                }
-              />
+              <InfoRow label="Telefon">
+                <button
+                  onClick={() => navigator.clipboard.writeText(lead.telefon)}
+                  className="font-mono text-indigo-600 hover:text-indigo-700 cursor-pointer"
+                >
+                  {formatPhone(lead.telefon)}
+                </button>
+              </InfoRow>
               <InfoRow label="E-post" value={lead.epost} />
               <InfoRow label="Adress" value={lead.adress} />
               <InfoRow label="Postnummer" value={lead.postnummer} />
@@ -381,26 +379,3 @@ function NextActionCard({ deal, lead, upcomingMeeting, actionLabel, onAdvance, i
   return null;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Info row — compact key-value for sidebar                           */
-/* ------------------------------------------------------------------ */
-
-function InfoRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
-  if (value === null || value === undefined || value === "") return null;
-  return (
-    <div className="flex flex-col gap-0.5 py-2 border-b border-[var(--color-border)] last:border-0">
-      <span className="text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
-        {label}
-      </span>
-      <span className="text-sm text-[var(--color-text-primary)]">
-        {value}
-      </span>
-    </div>
-  );
-}

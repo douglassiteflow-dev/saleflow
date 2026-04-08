@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useDealDetail } from "@/api/deals";
 import { DealStageIndicator } from "@/components/deal-stage-indicator";
+import { InfoRow } from "@/components/ui/info-row";
 import { formatPhone, formatDate, formatTime } from "@/lib/format";
 import Loader from "@/components/kokonutui/loader";
 import { SendQuestionnaireForm } from "@/components/pipeline/send-questionnaire-form";
@@ -120,13 +121,13 @@ export function DealDetailTab({ dealId, onBack }: DealDetailTabProps) {
         <div className="p-5">
           <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">Kundinfo</p>
           <div className="space-y-0">
-            <DetailRow label="Företag" value={lead.företag} bold />
-            <DetailRow label="Telefon" value={formatPhone(lead.telefon)} mono />
-            {lead.epost && <DetailRow label="E-post" value={lead.epost} />}
-            {lead.adress && <DetailRow label="Adress" value={lead.adress} />}
-            {lead.postnummer && <DetailRow label="Postnr" value={lead.postnummer} />}
-            {lead.stad && <DetailRow label="Stad" value={lead.stad} />}
-            {lead.bransch && <DetailRow label="Bransch" value={lead.bransch} />}
+            <InfoRow label="Företag" value={lead.företag} bold />
+            <InfoRow label="Telefon" value={formatPhone(lead.telefon)} mono />
+            {lead.epost && <InfoRow label="E-post" value={lead.epost} />}
+            {lead.adress && <InfoRow label="Adress" value={lead.adress} />}
+            {lead.postnummer && <InfoRow label="Postnr" value={lead.postnummer} />}
+            {lead.stad && <InfoRow label="Stad" value={lead.stad} />}
+            {lead.bransch && <InfoRow label="Bransch" value={lead.bransch} />}
           </div>
         </div>
       </div>
@@ -134,11 +135,3 @@ export function DealDetailTab({ dealId, onBack }: DealDetailTabProps) {
   );
 }
 
-function DetailRow({ label, value, mono, bold }: { label: string; value: string; mono?: boolean; bold?: boolean }) {
-  return (
-    <div className="flex items-baseline py-2 border-b border-[var(--color-border)] last:border-0">
-      <span className="w-24 shrink-0 text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">{label}</span>
-      <span className={`text-[13px] text-[var(--color-text-primary)] ${mono ? "font-mono" : ""} ${bold ? "font-medium" : ""}`}>{value}</span>
-    </div>
-  );
-}

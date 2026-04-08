@@ -4,6 +4,7 @@ import { useMeetings, useCancelMeeting } from "@/api/meetings";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { MeetingForm } from "@/components/meeting-form";
 import { MeetingCalendar } from "@/components/meeting-calendar";
 import { formatDate, formatTime } from "@/lib/format";
@@ -144,9 +145,7 @@ export function MeetingsPage() {
         {isLoading ? (
           <Loader size="sm" title="Laddar möten" />
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            Inga möten att visa.
-          </p>
+          <EmptyState message="Inga möten att visa." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

@@ -9,6 +9,7 @@ import {
   type ContractData,
 } from "@/api/contract-public";
 import { SignatureCanvas } from "@/components/signature-canvas";
+import { Spinner } from "@/components/ui/spinner";
 import { inputClass } from "@/lib/form-styles";
 import { formatDate } from "@/lib/format";
 
@@ -42,11 +43,11 @@ function isExpired(contract: ContractData): boolean {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function Spinner() {
+function LoadingScreen() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="flex flex-col items-center gap-4">
-        <div className="animate-spin h-8 w-8 border-2 border-gray-300 border-t-gray-900 rounded-full" />
+        <Spinner size="lg" className="border-gray-300 border-t-gray-900" />
         <p className="text-sm text-gray-500">Laddar avtal...</p>
       </div>
     </div>
@@ -461,7 +462,7 @@ function ViewScreen({
             >
               {signing ? (
                 <span className="inline-flex items-center gap-2">
-                  <span className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full" />
+                  <Spinner size="sm" className="border-white/30 border-t-white" />
                   Signerar...
                 </span>
               ) : (
@@ -522,7 +523,7 @@ export function ContractSigningPage() {
   }
 
   if (pageState === "loading" || !contract) {
-    return <Spinner />;
+    return <LoadingScreen />;
   }
 
   if (isExpired(contract)) {

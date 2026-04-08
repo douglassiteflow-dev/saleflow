@@ -7,6 +7,7 @@ import { SendInviteButton } from "@/components/send-invite-button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InfoRow } from "@/components/ui/info-row";
 import { Input } from "@/components/ui/input";
 import { TimeSelect } from "@/components/ui/time-select";
 import { HistoryTimeline } from "@/components/history-timeline";
@@ -242,17 +243,14 @@ export function MeetingDetailPage() {
               <InfoRow label="Längd" value={`${meeting.duration_minutes ?? 30} min`} />
               <InfoRow label="Agent" value={meeting.user_name ?? "—"} />
               {lead.epost && (
-                <InfoRow
-                  label="Deltagare (inbjuden)"
-                  value={
-                    <a
-                      href={`mailto:${lead.epost}`}
-                      className="text-indigo-600 hover:text-indigo-700 transition-colors"
-                    >
-                      {lead.epost}
-                    </a>
-                  }
-                />
+                <InfoRow label="Deltagare (inbjuden)">
+                  <a
+                    href={`mailto:${lead.epost}`}
+                    className="text-indigo-600 hover:text-indigo-700 transition-colors"
+                  >
+                    {lead.epost}
+                  </a>
+                </InfoRow>
               )}
               <InfoRow label="Anteckningar" value={meeting.notes ?? "Inga anteckningar"} />
               <InfoRow
@@ -274,19 +272,16 @@ export function MeetingDetailPage() {
             <Badge status={lead.status} />
           </div>
           <div className="space-y-3">
-            <InfoRow
-              label="Telefon"
-              value={
-                <button
-                  type="button"
-                  onClick={() => dial.mutate(lead.id, { onSuccess: () => setCallModalOpen(true) })}
-                  disabled={dial.isPending}
-                  className="font-mono text-indigo-600 hover:text-indigo-700 transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  {formatPhone(lead.telefon)}
-                </button>
-              }
-            />
+            <InfoRow label="Telefon">
+              <button
+                type="button"
+                onClick={() => dial.mutate(lead.id, { onSuccess: () => setCallModalOpen(true) })}
+                disabled={dial.isPending}
+                className="font-mono text-indigo-600 hover:text-indigo-700 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {formatPhone(lead.telefon)}
+              </button>
+            </InfoRow>
             <InfoRow label="Adress" value={lead.adress} />
             <InfoRow label="Postnummer" value={lead.postnummer} />
             <InfoRow label="Stad" value={lead.stad} />
@@ -297,14 +292,11 @@ export function MeetingDetailPage() {
             />
             <InfoRow label="VD" value={lead.vd_namn} />
             {lead.källa && (
-              <InfoRow
-                label="Källa"
-                value={
-                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-[var(--color-bg-panel)] text-slate-700">
-                    {lead.källa}
-                  </span>
-                }
-              />
+              <InfoRow label="Källa">
+                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-[var(--color-bg-panel)] text-slate-700">
+                  {lead.källa}
+                </span>
+              </InfoRow>
             )}
             {mapsUrl && (
               <div className="pt-2">
@@ -336,27 +328,3 @@ export function MeetingDetailPage() {
   );
 }
 
-// Helper component
-function InfoRow({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: React.ReactNode;
-  mono?: boolean;
-}) {
-  if (value === null || value === undefined || value === "") return null;
-  return (
-    <div className="flex flex-col gap-0.5 py-2 border-b border-[var(--color-border)] last:border-0">
-      <span className="text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
-        {label}
-      </span>
-      <span
-        className={`text-sm text-[var(--color-text-primary)] ${mono ? "font-mono text-[13px]" : ""}`}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}

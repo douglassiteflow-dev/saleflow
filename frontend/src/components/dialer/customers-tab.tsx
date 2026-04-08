@@ -1,4 +1,5 @@
 import { useDeals } from "@/api/deals";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { Deal } from "@/api/types";
 
 interface CustomersTabProps {
@@ -21,7 +22,7 @@ export function CustomersTab({ onSelectDeal }: CustomersTabProps) {
   if (customers.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-sm text-[var(--color-text-secondary)]">Inga kunder ännu</p>
+        <EmptyState message="Inga kunder ännu" />
       </div>
     );
   }

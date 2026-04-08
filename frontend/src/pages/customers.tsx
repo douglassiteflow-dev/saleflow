@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useDeals } from "@/api/deals";
 import { formatDate } from "@/lib/format";
 import Loader from "@/components/kokonutui/loader";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export function CustomersPage() {
   const navigate = useNavigate();
@@ -28,9 +29,7 @@ export function CustomersPage() {
           <Loader size="sm" title="Laddar kunder" />
         </div>
       ) : customers.length === 0 ? (
-        <p className="text-sm text-[var(--color-text-secondary)]">
-          Inga kunder än
-        </p>
+        <EmptyState message="Inga kunder än" />
       ) : (
         <div className="rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-primary)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <table className="w-full text-sm">

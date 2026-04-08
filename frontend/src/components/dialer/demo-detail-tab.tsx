@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useDemoConfigDetail, useAdvanceDemoConfig, useRetryDemoConfig } from "@/api/demo-configs";
 import { DemoStageIndicator } from "./demo-stage-indicator";
 import { SendInviteButton } from "@/components/send-invite-button";
+import { InfoRow } from "@/components/ui/info-row";
 import { formatPhone, formatDate, formatTime } from "@/lib/format";
 import Loader from "@/components/kokonutui/loader";
 
@@ -249,28 +250,12 @@ function FollowupContent({ data }: { data: NonNullable<ReturnType<typeof useDemo
           Kundinfo
         </p>
         <div className="space-y-0">
-          <DetailRow label="Företag" value={data.lead.company_name} bold />
-          {data.lead.phone && <DetailRow label="Telefon" value={formatPhone(data.lead.phone)} mono />}
-          {data.lead.email && <DetailRow label="E-post" value={data.lead.email} />}
+          <InfoRow label="Företag" value={data.lead.company_name} bold />
+          {data.lead.phone && <InfoRow label="Telefon" value={formatPhone(data.lead.phone)} mono />}
+          {data.lead.email && <InfoRow label="E-post" value={data.lead.email} />}
         </div>
       </div>
     </div>
   );
 }
 
-/* ── Shared ── */
-
-function DetailRow({ label, value, mono, bold }: { label: string; value: string; mono?: boolean; bold?: boolean }) {
-  return (
-    <div className="flex items-baseline py-2 border-b border-[var(--color-border)] last:border-0">
-      <span className="w-24 shrink-0 text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">
-        {label}
-      </span>
-      <span
-        className={`text-[13px] text-[var(--color-text-primary)] ${mono ? "font-mono" : ""} ${bold ? "font-medium" : ""}`}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}

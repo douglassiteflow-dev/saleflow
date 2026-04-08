@@ -3,6 +3,7 @@ import { useDeals } from "@/api/deals";
 import { ACTIVE_STAGES, getStageConfig, formatDaysAgo, daysFromDate } from "@/lib/pipeline-config";
 import type { DealStage, Deal } from "@/api/types";
 import Loader from "@/components/kokonutui/loader";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const STAGE_ORDER: Exclude<DealStage, "won" | "cancelled">[] = ACTIVE_STAGES as Exclude<DealStage, "won" | "cancelled">[];
 
@@ -49,9 +50,7 @@ export function PipelinePage() {
           <Loader size="sm" title="Laddar pipeline" />
         </div>
       ) : activeDeals.length === 0 ? (
-        <p className="text-sm text-[var(--color-text-secondary)]">
-          Inga aktiva deals
-        </p>
+        <EmptyState message="Inga aktiva deals" />
       ) : (
         <div className="space-y-6">
           {Object.entries(grouped).map(([stage, stageDeals]) => {

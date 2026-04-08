@@ -2,6 +2,7 @@ import { useLeadDetail } from "@/api/leads";
 import { useLeadComments, useCreateComment } from "@/api/comments";
 import { useDial } from "@/api/telavox";
 import { Badge } from "@/components/ui/badge";
+import { InfoRow } from "@/components/ui/info-row";
 import { HistoryTimeline } from "@/components/history-timeline";
 import { CallModal } from "@/components/dialer/call-modal";
 import { formatPhone } from "@/lib/format";
@@ -72,18 +73,18 @@ export function LeadDetailTab({ leadId, onBack }: LeadDetailTabProps) {
         <div className="p-5 border-r border-[var(--color-border)]">
           <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">Kundinfo</p>
           <div className="space-y-0">
-            <DetailRow label="Företag" value={lead.företag} bold />
-            <DetailRow label="Telefon" value={formatPhone(lead.telefon)} mono />
-            {lead.telefon_2 && <DetailRow label="Telefon 2" value={formatPhone(lead.telefon_2)} mono />}
-            {lead.epost && <DetailRow label="E-post" value={lead.epost} />}
-            {lead.adress && <DetailRow label="Adress" value={lead.adress} />}
-            {lead.postnummer && <DetailRow label="Postnr" value={lead.postnummer} />}
-            {lead.stad && <DetailRow label="Stad" value={lead.stad} />}
-            {lead.bransch && <DetailRow label="Bransch" value={lead.bransch} />}
-            {lead.omsättning_tkr && <DetailRow label="Omsättning" value={`${lead.omsättning_tkr} tkr`} />}
-            {lead.vd_namn && <DetailRow label="VD" value={lead.vd_namn} />}
-            {lead.orgnr && <DetailRow label="Org.nr" value={lead.orgnr} />}
-            {lead.källa && <DetailRow label="Källa" value={lead.källa} />}
+            <InfoRow label="Företag" value={lead.företag} bold />
+            <InfoRow label="Telefon" value={formatPhone(lead.telefon)} mono />
+            {lead.telefon_2 && <InfoRow label="Telefon 2" value={formatPhone(lead.telefon_2)} mono />}
+            {lead.epost && <InfoRow label="E-post" value={lead.epost} />}
+            {lead.adress && <InfoRow label="Adress" value={lead.adress} />}
+            {lead.postnummer && <InfoRow label="Postnr" value={lead.postnummer} />}
+            {lead.stad && <InfoRow label="Stad" value={lead.stad} />}
+            {lead.bransch && <InfoRow label="Bransch" value={lead.bransch} />}
+            {lead.omsättning_tkr && <InfoRow label="Omsättning" value={`${lead.omsättning_tkr} tkr`} />}
+            {lead.vd_namn && <InfoRow label="VD" value={lead.vd_namn} />}
+            {lead.orgnr && <InfoRow label="Org.nr" value={lead.orgnr} />}
+            {lead.källa && <InfoRow label="Källa" value={lead.källa} />}
           </div>
 
           {/* Quick links */}
@@ -155,14 +156,6 @@ export function LeadDetailTab({ leadId, onBack }: LeadDetailTabProps) {
   );
 }
 
-function DetailRow({ label, value, mono, bold }: { label: string; value: string; mono?: boolean; bold?: boolean }) {
-  return (
-    <div className="flex items-baseline py-2 border-b border-[var(--color-border)] last:border-0">
-      <span className="w-24 shrink-0 text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">{label}</span>
-      <span className={`text-[13px] text-[var(--color-text-primary)] ${mono ? "font-mono" : ""} ${bold ? "font-medium" : ""}`}>{value}</span>
-    </div>
-  );
-}
 
 function QuickLink({ label, url }: { label: string; url: string }) {
   return (

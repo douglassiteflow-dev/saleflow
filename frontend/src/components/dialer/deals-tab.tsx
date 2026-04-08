@@ -1,6 +1,7 @@
 import { useDeals } from "@/api/deals";
 import { cn } from "@/lib/cn";
 import { getStageConfig } from "@/lib/pipeline-config";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { Deal } from "@/api/types";
 
 interface DealsTabProps {
@@ -23,7 +24,7 @@ export function DealsTab({ onSelectDeal }: DealsTabProps) {
   if (activeDeals.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-sm text-[var(--color-text-secondary)]">Inga deals ännu</p>
+        <EmptyState message="Inga deals ännu" />
       </div>
     );
   }
