@@ -481,16 +481,43 @@ defmodule SaleflowWeb.MeetingController do
   # ---------------------------------------------------------------------------
 
   defp maybe_advance_demo_config(meeting) do
-    case find_active_demo_config(meeting.lead_id) do
-      nil -> :ok
+    dc = case find_active_demo_config(meeting.lead_id) do
+      nil ->
+        # Skapa DemoConfig i followup-stage (mötet genomfört = redo för uppföljning)
+        case Sales.create_demo_config(%{
+          lead_id: meeting.lead_id,
+          user_id: meeting.user_id
+        }) do
+          {:ok, new_dc} ->
+            # Avancera direkt till followup
+            case Sales.start_generation(new_dc) do
+              {:ok, gen_dc} ->
+                case Sales.generation_complete(gen_dc, %{website_path: nil, preview_url: nil}) do
+                  {:ok, ready_dc} -> Sales.advance_to_followup(ready_dc) |> elem(1)
+                  _ -> new_dc
+                end
+              _ -> new_dc
+            end
+          _ -> nil
+        end
+
       dc ->
         # Advance demo_ready → followup
         if dc.stage == :demo_ready do
-          Sales.advance_to_followup(dc)
+          case Sales.advance_to_followup(dc) do
+            {:ok, updated} -> updated
+            _ -> dc
+          end
+        else
+          dc
         end
+    end
 
-        # Create notification for agent
-        create_meeting_completed_notification(meeting, dc)
+    if dc do
+      # Koppla mötet till demo-configen
+      Sales.update_meeting(meeting, %{demo_config_id: dc.id})
+      # Skapa notifikation
+      create_meeting_completed_notification(meeting, dc)
     end
   end
 
