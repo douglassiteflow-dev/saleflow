@@ -85,6 +85,7 @@ defmodule SaleflowWeb.CallController do
   def recording(conn, %{"id" => phone_call_id}) do
     user = conn.assigns.current_user
 
+    # TODO: move to Saleflow.Sales context module (e.g. Sales.get_phone_call_recording/1)
     case Saleflow.Repo.query(
            "SELECT recording_key, user_id FROM phone_calls WHERE id = $1",
            [Ecto.UUID.dump!(phone_call_id)]
@@ -125,6 +126,7 @@ defmodule SaleflowWeb.CallController do
           {from, to}
       end
 
+    # TODO: move to Saleflow.Stats or Saleflow.Sales context module (e.g. Sales.list_call_history/2)
     query = """
     SELECT
       COALESCE(cl.id, pc.id) as id,
@@ -184,6 +186,7 @@ defmodule SaleflowWeb.CallController do
     json(conn, %{calls: calls})
   end
 
+  # TODO: move to Saleflow.Sales context module (e.g. Sales.get_lead_phone/1)
   defp get_lead_phone(lead_id) do
     query = "SELECT telefon FROM leads WHERE id = $1 LIMIT 1"
 
@@ -197,6 +200,7 @@ defmodule SaleflowWeb.CallController do
   def daily_summary(conn, params) do
     date = parse_date(params["date"]) || Date.utc_today()
 
+    # TODO: move to Saleflow.Stats or Saleflow.Sales context module (e.g. Stats.daily_call_summary/1)
     {:ok, %{rows: rows}} =
       Saleflow.Repo.query(
         """
@@ -285,6 +289,7 @@ defmodule SaleflowWeb.CallController do
     end
   end
 
+  # TODO: move to Saleflow.Sales context module (e.g. Sales.get_lead_name/1)
   defp get_lead_name(lead_id) do
     case Saleflow.Repo.query("SELECT företag FROM leads WHERE id = $1 LIMIT 1", [Ecto.UUID.dump!(lead_id)]) do
       {:ok, %{rows: [[name]]}} when is_binary(name) -> name

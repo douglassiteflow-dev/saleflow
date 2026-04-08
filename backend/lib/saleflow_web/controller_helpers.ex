@@ -31,6 +31,14 @@ defmodule SaleflowWeb.ControllerHelpers do
   # User name maps
   # ---------------------------------------------------------------------------
 
+  @doc "Batch-load leads by IDs, returning an id => lead map (no N+1)."
+  def build_lead_map(ids) do
+    case Saleflow.Sales.get_leads_by_ids(Enum.uniq(ids)) do
+      {:ok, map} -> map
+      _ -> %{}
+    end
+  end
+
   @doc "Build a global user_id => name map from all users."
   def build_global_user_name_map do
     case Accounts.list_users() do

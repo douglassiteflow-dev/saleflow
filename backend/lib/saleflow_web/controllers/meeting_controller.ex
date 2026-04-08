@@ -240,18 +240,8 @@ defmodule SaleflowWeb.MeetingController do
   end
 
   defp enrich_meetings(meetings) do
-    # Build lead_id -> lead map
     lead_ids = meetings |> Enum.map(& &1.lead_id) |> Enum.uniq()
-
-    lead_map =
-      Enum.reduce(lead_ids, %{}, fn lid, acc ->
-        case Sales.get_lead(lid) do
-          {:ok, lead} -> Map.put(acc, lid, lead)
-          _ -> acc
-        end
-      end)
-
-    # Build user_id -> name map
+    lead_map = build_lead_map(lead_ids)
     user_names = build_global_user_name_map()
 
     Enum.map(meetings, fn m ->

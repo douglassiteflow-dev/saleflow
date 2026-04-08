@@ -321,15 +321,7 @@ defmodule SaleflowWeb.DealController do
 
   defp enrich_deals(deals) do
     lead_ids = deals |> Enum.map(& &1.lead_id) |> Enum.uniq()
-
-    lead_map =
-      Enum.reduce(lead_ids, %{}, fn lid, acc ->
-        case Sales.get_lead(lid) do
-          {:ok, lead} -> Map.put(acc, lid, lead)
-          _ -> acc
-        end
-      end)
-
+    lead_map = build_lead_map(lead_ids)
     user_names = build_global_user_name_map()
 
     Enum.map(deals, fn d ->

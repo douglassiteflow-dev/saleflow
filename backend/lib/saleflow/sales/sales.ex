@@ -174,6 +174,25 @@ defmodule Saleflow.Sales do
     |> Ash.get(id)
   end
 
+  @doc """
+  Batch-loads leads by a list of IDs in a single query.
+
+  Returns `{:ok, %{id => lead}}` map so callers can look up leads without N+1 queries.
+  """
+  @spec get_leads_by_ids(list(Ecto.UUID.t())) ::
+          {:ok, %{Ecto.UUID.t() => Saleflow.Sales.Lead.t()}} | {:error, Ash.Error.t()}
+  def get_leads_by_ids(ids) when is_list(ids) do
+    require Ash.Query
+
+    Saleflow.Sales.Lead
+    |> Ash.Query.filter(id in ^ids)
+    |> Ash.read()
+    |> case do
+      {:ok, leads} -> {:ok, Enum.into(leads, %{}, fn l -> {l.id, l} end)}
+      error -> error
+    end
+  end
+
   # ---------------------------------------------------------------------------
   # Assignment functions
   # ---------------------------------------------------------------------------

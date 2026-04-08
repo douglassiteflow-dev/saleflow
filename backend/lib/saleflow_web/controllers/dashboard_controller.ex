@@ -5,7 +5,7 @@ defmodule SaleflowWeb.DashboardController do
   alias Saleflow.Stats
   alias Saleflow.Repo
 
-  import SaleflowWeb.ControllerHelpers, only: [build_global_user_name_map: 0]
+  import SaleflowWeb.ControllerHelpers, only: [build_global_user_name_map: 0, build_lead_map: 1]
   import SaleflowWeb.Serializers
 
   @doc """
@@ -114,6 +114,7 @@ defmodule SaleflowWeb.DashboardController do
     today = Date.utc_today()
     start_of_week = Date.add(today, -(Date.day_of_week(today) - 1))
 
+    # TODO: move to Saleflow.Stats context module (e.g. Stats.meetings_this_week/2)
     {:ok, %{rows: [[count]]}} =
       Repo.query(
         "SELECT COUNT(*) FROM meetings WHERE user_id = $1 AND inserted_at::date >= $2 AND inserted_at::date <= $3 AND status != 'cancelled'",
@@ -143,6 +144,7 @@ defmodule SaleflowWeb.DashboardController do
 
         _ ->
           # Agent: only leads they have assignments for
+          # TODO: move to Saleflow.Sales context module (e.g. Sales.list_assigned_lead_ids/1)
           {:ok, %{rows: rows}} =
             Repo.query(
               "SELECT DISTINCT lead_id FROM assignments WHERE user_id = $1",
@@ -160,15 +162,7 @@ defmodule SaleflowWeb.DashboardController do
 
   defp enrich_meetings(meetings) do
     lead_ids = meetings |> Enum.map(& &1.lead_id) |> Enum.uniq()
-
-    lead_map =
-      Enum.reduce(lead_ids, %{}, fn lid, acc ->
-        case Sales.get_lead(lid) do
-          {:ok, lead} -> Map.put(acc, lid, lead)
-          _ -> acc
-        end
-      end)
-
+    lead_map = build_lead_map(lead_ids)
     user_names = build_global_user_name_map()
 
     Enum.map(meetings, fn m ->
