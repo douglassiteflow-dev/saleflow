@@ -162,11 +162,11 @@ defmodule SaleflowWeb.DealControllerTest do
       lead = create_lead!()
       {agent_conn, agent} = create_agent!(conn)
       deal = create_deal!(lead, agent)
-      assert deal.stage == :meeting_booked
+      assert deal.stage == :booking_wizard
 
       resp = post(agent_conn, "/api/deals/#{deal.id}/advance")
       body = json_response(resp, 200)
-      assert body["deal"]["stage"] == "needs_website"
+      assert body["deal"]["stage"] == "demo_scheduled"
     end
 
     test "agent cannot advance another agent's deal", %{conn: conn} do
@@ -188,7 +188,7 @@ defmodule SaleflowWeb.DealControllerTest do
       {admin_conn, _admin} = create_admin!(build_conn())
 
       resp = post(admin_conn, "/api/deals/#{deal.id}/advance")
-      assert json_response(resp, 200)["deal"]["stage"] == "needs_website"
+      assert json_response(resp, 200)["deal"]["stage"] == "demo_scheduled"
     end
   end
 
@@ -207,20 +207,46 @@ defmodule SaleflowWeb.DealControllerTest do
       assert body["deal"]["notes"] == "Updated notes"
     end
 
-    test "updates website_url and contract_url", %{conn: conn} do
+    test "updates website_url", %{conn: conn} do
       lead = create_lead!()
       {agent_conn, agent} = create_agent!(conn)
       deal = create_deal!(lead, agent)
 
       resp =
         patch(agent_conn, "/api/deals/#{deal.id}", %{
-          "website_url" => "https://example.com",
-          "contract_url" => "https://contracts.example.com/123"
+          "website_url" => "https://example.com"
         })
 
       body = json_response(resp, 200)
       assert body["deal"]["website_url"] == "https://example.com"
-      assert body["deal"]["contract_url"] == "https://contracts.example.com/123"
+    end
+
+    test "updates meeting_outcome", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      deal = create_deal!(lead, agent)
+
+      resp =
+        patch(agent_conn, "/api/deals/#{deal.id}", %{
+          "meeting_outcome" => "Very interested, send contract"
+        })
+
+      body = json_response(resp, 200)
+      assert body["deal"]["meeting_outcome"] == "Very interested, send contract"
+    end
+
+    test "updates needs_followup", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      deal = create_deal!(lead, agent)
+
+      resp =
+        patch(agent_conn, "/api/deals/#{deal.id}", %{
+          "needs_followup" => true
+        })
+
+      body = json_response(resp, 200)
+      assert body["deal"]["needs_followup"] == true
     end
 
     test "updates domain and domain_sponsored", %{conn: conn} do
@@ -277,7 +303,7 @@ defmodule SaleflowWeb.DealControllerTest do
       {:ok, deals} = Sales.list_deals_for_user(agent.id)
       deal = Enum.find(deals, fn d -> d.lead_id == lead.id end)
       assert deal != nil
-      assert deal.stage == :meeting_booked
+      assert deal.stage == :booking_wizard
 
       # Verify meeting is linked to deal
       {:ok, meetings} = Sales.list_meetings_for_deal(deal.id)
