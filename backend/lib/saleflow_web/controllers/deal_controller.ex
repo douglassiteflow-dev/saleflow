@@ -116,6 +116,57 @@ defmodule SaleflowWeb.DealController do
     end
   end
 
+  @doc """
+  Send questionnaire to customer.
+  Creates a Questionnaire record, sends email with link, advances deal to questionnaire_sent.
+  """
+  def send_questionnaire(conn, %{"id" => id} = params) do
+    user = conn.assigns.current_user
+
+    with {:ok, deal} <- get_deal(id),
+         :ok <- check_ownership(deal, user),
+         {:ok, lead} <- Sales.get_lead(deal.lead_id) do
+      email = params["customer_email"] || lead.epost
+
+      unless email do
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "Ingen email angiven"})
+      else
+        token = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
+
+        case Sales.create_questionnaire(%{
+               deal_id: deal.id,
+               customer_email: email,
+               token: token
+             }) do
+          {:ok, questionnaire} ->
+            send_questionnaire_email(email, lead.företag, token)
+            Sales.advance_deal(deal)
+            broadcast_dashboard_update("questionnaire_sent")
+
+            json(conn, %{
+              questionnaire: %{
+                id: questionnaire.id,
+                token: questionnaire.token,
+                status: questionnaire.status,
+                customer_email: questionnaire.customer_email
+              }
+            })
+
+          {:error, _} ->
+            conn
+            |> put_status(:unprocessable_entity)
+            |> json(%{error: "Kunde inte skapa formulär"})
+        end
+      end
+    else
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "Deal not found"})
+
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "Access denied"})
+    end
+  end
+
   # ---------------------------------------------------------------------------
   # Flowing AI proxy actions (admin-only)
   # ---------------------------------------------------------------------------
@@ -314,4 +365,32 @@ defmodule SaleflowWeb.DealController do
 
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
+
+  defp send_questionnaire_email(email, company_name, token) do
+    base_url = Application.get_env(:saleflow, :questionnaire_base_url, "https://siteflow.se")
+    link = "#{base_url}/q/#{token}"
+
+    html = """
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Hej!</h2>
+      <p>Vi förbereder din nya hemsida och behöver lite information från dig.</p>
+      <p>Fyll i formuläret via länken nedan — det tar bara några minuter:</p>
+      <p style="margin: 24px 0;">
+        <a href="#{link}" style="background: #0f172a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
+          Fyll i formuläret
+        </a>
+      </p>
+      <p style="color: #64748b; font-size: 14px;">
+        Du kan spara och fortsätta senare — dina svar sparas automatiskt.
+      </p>
+      <p style="color: #64748b; font-size: 14px;">Med vänliga hälsningar,<br>Siteflow</p>
+    </div>
+    """
+
+    Saleflow.Notifications.Mailer.send_email_async(
+      email,
+      "Fyll i formuläret för din nya hemsida — #{company_name}",
+      html
+    )
+  end
 end
