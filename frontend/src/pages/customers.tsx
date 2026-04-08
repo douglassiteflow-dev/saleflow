@@ -18,7 +18,7 @@ export function CustomersPage() {
         </h1>
         {!isLoading && customers.length > 0 && (
           <p className="mt-0.5 text-[13px] text-[var(--color-text-secondary)]">
-            {customers.length} kunder totalt
+            {customers.length} {customers.length === 1 ? "kund" : "kunder"} totalt
           </p>
         )}
       </div>

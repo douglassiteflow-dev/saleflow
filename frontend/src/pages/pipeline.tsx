@@ -1,19 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { useDeals } from "@/api/deals";
-import { ACTIVE_STAGES, getStageConfig, formatDaysAgo } from "@/lib/pipeline-config";
+import { ACTIVE_STAGES, getStageConfig, formatDaysAgo, daysFromDate } from "@/lib/pipeline-config";
 import type { DealStage, Deal } from "@/api/types";
 import Loader from "@/components/kokonutui/loader";
 
 const STAGE_ORDER: Exclude<DealStage, "won" | "cancelled">[] = ACTIVE_STAGES as Exclude<DealStage, "won" | "cancelled">[];
 
-/** Return days since a date string */
-function daysInStage(dateStr: string): number {
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
-}
-
 /** Color class for time-in-stage warning */
 function timeWarningClass(dateStr: string): string {
-  const days = daysInStage(dateStr);
+  const days = daysFromDate(dateStr);
   if (days >= 14) return "text-red-600 font-medium";
   if (days >= 7) return "text-amber-600 font-medium";
   return "text-[var(--color-text-secondary)]";

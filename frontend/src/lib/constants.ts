@@ -1,5 +1,3 @@
-import type { DealStage } from "@/api/types";
-
 export const OUTCOME_LABELS: Record<string, string> = {
   meeting_booked: "Möte bokat",
   callback: "Återuppringning",
@@ -21,21 +19,3 @@ export const OUTCOME_COLORS: Record<string, string> = {
   customer: "bg-indigo-100 text-indigo-700",
   other: "bg-slate-100 text-slate-600",
 };
-
-export const STAGE_LABELS: Record<string, string> = {
-  booking_wizard: "Bokning pågår",
-  demo_scheduled: "Demo schemalagd",
-  meeting_completed: "Möte genomfört",
-  questionnaire_sent: "Formulär skickat",
-  contract_sent: "Avtal skickat",
-  won: "Kund",
-  cancelled: "Avbruten",
-};
-
-export const PIPELINE_STAGES: { key: DealStage; label: string }[] = [
-  { key: "booking_wizard", label: "Bokning pågår" },
-  { key: "demo_scheduled", label: "Demo schemalagd" },
-  { key: "meeting_completed", label: "Möte genomfört" },
-  { key: "questionnaire_sent", label: "Formulär skickat" },
-  { key: "contract_sent", label: "Avtal skickat" },
-];

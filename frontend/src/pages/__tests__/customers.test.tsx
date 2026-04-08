@@ -79,7 +79,7 @@ describe("CustomersPage", () => {
     });
     render(<CustomersPage />, { wrapper: Wrapper });
     expect(screen.getByText("Kunder")).toBeInTheDocument();
-    expect(screen.getByText("1 kunder totalt")).toBeInTheDocument();
+    expect(screen.getByText("1 kund totalt")).toBeInTheDocument();
   });
 
   it("shows domain in table", () => {

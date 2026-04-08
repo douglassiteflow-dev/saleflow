@@ -39,4 +39,21 @@ describe("DealStageIndicator", () => {
       expect(step).toHaveAttribute("data-state", "completed");
     }
   });
+
+  it("marks all stages cancelled when cancelled", () => {
+    render(<DealStageIndicator currentStage="cancelled" />);
+
+    const steps = screen.getAllByTestId("stage-step");
+    for (const step of steps) {
+      expect(step).toHaveAttribute("data-state", "cancelled");
+    }
+  });
+
+  it("shows current stage with larger font", () => {
+    render(<DealStageIndicator currentStage="demo_scheduled" />);
+
+    const currentLabel = screen.getByText("Demo schemalagd");
+    expect(currentLabel.className).toContain("font-semibold");
+    expect(currentLabel.className).toContain("text-[13px]");
+  });
 });

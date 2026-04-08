@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn";
 import { Check, X } from "lucide-react";
-import { STAGE_LABELS } from "@/lib/constants";
+import { getStageConfig } from "@/lib/pipeline-config";
 import type { DealStage } from "@/api/types";
 
 const STAGE_KEYS: DealStage[] = [
@@ -12,7 +12,7 @@ const STAGE_KEYS: DealStage[] = [
   "won",
 ];
 
-const STAGES = STAGE_KEYS.map((key) => ({ key, label: STAGE_LABELS[key] ?? key }));
+const STAGES = STAGE_KEYS.map((key) => ({ key, label: getStageConfig(key).label }));
 
 type StepState = "completed" | "current" | "upcoming" | "cancelled";
 

@@ -72,8 +72,12 @@ export function getStageConfig(stage: string): StageConfig {
   return STAGE_CONFIG[stage] ?? STAGE_CONFIG.cancelled;
 }
 
+export function daysFromDate(dateStr: string): number {
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+}
+
 export function formatDaysAgo(dateStr: string): string {
-  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+  const days = daysFromDate(dateStr);
   if (days === 0) return "Idag";
   if (days === 1) return "1 dag";
   return `${days} dagar`;

@@ -66,7 +66,7 @@ describe("PipelinePage", () => {
     expect(screen.getByText("Inga aktiva deals")).toBeInTheDocument();
   });
 
-  it("groups deals by stage", () => {
+  it("groups deals by stage with section headers and count badges", () => {
     useDealsMock.mockReturnValue({
       data: [
         { ...baseDeal, id: "d1", stage: "booking_wizard", lead_name: "Alpha AB", user_name: "Agent A" },
@@ -76,8 +76,13 @@ describe("PipelinePage", () => {
       isLoading: false,
     });
     render(<PipelinePage />, { wrapper: Wrapper });
-    expect(screen.getByText("Bokning pågår (2)")).toBeInTheDocument();
-    expect(screen.getByText("Möte genomfört (1)")).toBeInTheDocument();
+    // Stage labels shown as section headers
+    expect(screen.getByText("Bokning pågår")).toBeInTheDocument();
+    expect(screen.getByText("Möte genomfört")).toBeInTheDocument();
+    // Count badges rendered separately
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
+    // Deal names
     expect(screen.getByText("Alpha AB")).toBeInTheDocument();
     expect(screen.getByText("Beta AB")).toBeInTheDocument();
     expect(screen.getByText("Gamma AB")).toBeInTheDocument();
@@ -91,9 +96,9 @@ describe("PipelinePage", () => {
       isLoading: false,
     });
     render(<PipelinePage />, { wrapper: Wrapper });
-    expect(screen.getByText("Möte genomfört (1)")).toBeInTheDocument();
-    expect(screen.queryByText(/Bokning pågår/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Demo schemalagd/)).not.toBeInTheDocument();
+    expect(screen.getByText("Möte genomfört")).toBeInTheDocument();
+    expect(screen.queryByText("Bokning pågår")).not.toBeInTheDocument();
+    expect(screen.queryByText("Demo schemalagd")).not.toBeInTheDocument();
   });
 
   it("renders page title", () => {
@@ -110,12 +115,13 @@ describe("PipelinePage", () => {
       isLoading: false,
     });
     render(<PipelinePage />, { wrapper: Wrapper });
-    const row = screen.getByText("Click AB").closest("tr");
+    // New layout uses div[role=button] instead of tr
+    const row = screen.getByText("Click AB").closest("[role='button']");
     if (row) fireEvent.click(row);
     expect(navigateMock).toHaveBeenCalledWith("/pipeline/d1");
   });
 
-  it("shows agent name in table", () => {
+  it("shows agent name in deal row", () => {
     useDealsMock.mockReturnValue({
       data: [
         { ...baseDeal, id: "d1", stage: "demo_scheduled", lead_name: "Test AB", user_name: "Jane Doe" },
@@ -124,5 +130,17 @@ describe("PipelinePage", () => {
     });
     render(<PipelinePage />, { wrapper: Wrapper });
     expect(screen.getByText("Jane Doe")).toBeInTheDocument();
+  });
+
+  it("shows active deals count in subtitle", () => {
+    useDealsMock.mockReturnValue({
+      data: [
+        { ...baseDeal, id: "d1", stage: "booking_wizard", lead_name: "A AB", user_name: "Agent" },
+        { ...baseDeal, id: "d2", stage: "demo_scheduled", lead_name: "B AB", user_name: "Agent" },
+      ],
+      isLoading: false,
+    });
+    render(<PipelinePage />, { wrapper: Wrapper });
+    expect(screen.getByText(/2 aktiva deals/)).toBeInTheDocument();
   });
 });

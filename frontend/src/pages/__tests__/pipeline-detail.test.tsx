@@ -137,6 +137,17 @@ describe("PipelineDetailPage", () => {
     expect(steps.length).toBe(6);
   });
 
+  it("shows stage label as subtitle", () => {
+    useDealDetailMock.mockReturnValue({
+      data: { deal: mockDeal, lead: mockLead, meetings: mockMeetings, audit_logs: [] },
+      isLoading: false,
+    });
+    render(<PipelineDetailPage />, { wrapper: Wrapper });
+    // Stage label appears as subtitle under company name and in the stage indicator
+    const labels = screen.getAllByText("Demo schemalagd");
+    expect(labels.length).toBeGreaterThanOrEqual(2);
+  });
+
   it("renders meetings list", () => {
     useDealDetailMock.mockReturnValue({
       data: { deal: mockDeal, lead: mockLead, meetings: mockMeetings, audit_logs: [] },
@@ -154,6 +165,15 @@ describe("PipelineDetailPage", () => {
     });
     render(<PipelineDetailPage />, { wrapper: Wrapper });
     expect(screen.getByText("Markera möte genomfört")).toBeInTheDocument();
+  });
+
+  it("shows next-step label for action card", () => {
+    useDealDetailMock.mockReturnValue({
+      data: { deal: mockDeal, lead: mockLead, meetings: mockMeetings, audit_logs: [] },
+      isLoading: false,
+    });
+    render(<PipelineDetailPage />, { wrapper: Wrapper });
+    expect(screen.getByText("Nästa steg")).toBeInTheDocument();
   });
 
   it("shows website URL when present", () => {
@@ -181,5 +201,29 @@ describe("PipelineDetailPage", () => {
     });
     render(<PipelineDetailPage />, { wrapper: Wrapper });
     expect(screen.getByText("Visa på Google Maps")).toBeInTheDocument();
+  });
+
+  it("shows won summary card for won deals", () => {
+    const wonDeal = { ...mockDeal, stage: "won" as const };
+    useDealDetailMock.mockReturnValue({
+      data: { deal: wonDeal, lead: mockLead, meetings: mockMeetings, audit_logs: [] },
+      isLoading: false,
+    });
+    render(<PipelineDetailPage />, { wrapper: Wrapper });
+    // "Kund" appears in subtitle, stage indicator, and the won summary card
+    const kundLabels = screen.getAllByText("Kund");
+    expect(kundLabels.length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/blev kund efter/)).toBeInTheDocument();
+  });
+
+  it("shows contract status card for contract_sent stage", () => {
+    const contractDeal = { ...mockDeal, stage: "contract_sent" as const };
+    useDealDetailMock.mockReturnValue({
+      data: { deal: contractDeal, lead: mockLead, meetings: mockMeetings, audit_logs: [] },
+      isLoading: false,
+    });
+    render(<PipelineDetailPage />, { wrapper: Wrapper });
+    expect(screen.getByText(/inväntar signering/)).toBeInTheDocument();
+    expect(screen.getByText("Markera som kund")).toBeInTheDocument();
   });
 });

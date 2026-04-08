@@ -15,7 +15,21 @@ export function SendQuestionnaireForm({
 }: SendQuestionnaireFormProps) {
   const [email, setEmail] = useState(defaultEmail ?? "");
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const sendQuestionnaire = useSendQuestionnaire();
+
+  const isDisabled = sendQuestionnaire.isPending || !email || !email.includes("@");
+
+  function handleSend() {
+    setError(null);
+    sendQuestionnaire.mutate(
+      { dealId, customerEmail: email },
+      {
+        onSuccess: () => setSent(true),
+        onError: () => setError("Något gick fel. Försök igen."),
+      },
+    );
+  }
 
   if (sent) {
     return (
@@ -35,15 +49,13 @@ export function SendQuestionnaireForm({
           placeholder="kund@exempel.se"
           className="flex w-full rounded-md border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-2.5 py-1.5 text-[13px]"
         />
+        {error && (
+          <p className="text-[12px] text-red-600">{error}</p>
+        )}
         <button
           type="button"
-          disabled={sendQuestionnaire.isPending || !email}
-          onClick={() => {
-            sendQuestionnaire.mutate(
-              { dealId, customerEmail: email },
-              { onSuccess: () => setSent(true) },
-            );
-          }}
+          disabled={isDisabled}
+          onClick={handleSend}
           className="w-full rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {sendQuestionnaire.isPending ? "Skickar..." : "Skicka formulär"}
@@ -66,15 +78,13 @@ export function SendQuestionnaireForm({
           className="flex w-full rounded-md border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 py-2 text-sm"
         />
       </div>
+      {error && (
+        <p className="text-sm text-red-600">{error}</p>
+      )}
       <Button
         variant="primary"
-        disabled={sendQuestionnaire.isPending || !email}
-        onClick={() => {
-          sendQuestionnaire.mutate(
-            { dealId, customerEmail: email },
-            { onSuccess: () => setSent(true) },
-          );
-        }}
+        disabled={isDisabled}
+        onClick={handleSend}
       >
         {sendQuestionnaire.isPending ? "Skickar..." : "Skicka formulär"}
       </Button>

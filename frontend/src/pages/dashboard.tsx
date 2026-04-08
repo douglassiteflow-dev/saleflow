@@ -4,7 +4,7 @@ import { useMe } from "@/api/auth";
 import { Leaderboard } from "@/components/leaderboard";
 import { StatCard } from "@/components/stat-card";
 import { LiveCalls } from "@/components/live-calls";
-import { PIPELINE_STAGES } from "@/lib/constants";
+import { ACTIVE_STAGES, getStageConfig } from "@/lib/pipeline-config";
 
 function formatDate(): string {
   return new Date().toLocaleDateString("sv-SE", {
@@ -27,9 +27,10 @@ export function DashboardPage() {
   const activeDeals = (deals ?? []).filter((d) => d.stage !== "won" && d.stage !== "cancelled");
   const wonDeals = (deals ?? []).filter((d) => d.stage === "won");
 
-  const stageCounts = PIPELINE_STAGES.map((s) => ({
-    ...s,
-    count: activeDeals.filter((d) => d.stage === s.key).length,
+  const stageCounts = ACTIVE_STAGES.map((key) => ({
+    key,
+    ...getStageConfig(key),
+    count: activeDeals.filter((d) => d.stage === key).length,
   })).filter((s) => s.count > 0);
 
   return (
