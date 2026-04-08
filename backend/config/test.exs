@@ -59,3 +59,6 @@ config :saleflow, :assemblyai_req_options, [plug: {Req.Test, Saleflow.AssemblyAI
 
 # Speed up poll loop in tests — 0ms between retries
 config :saleflow, :assemblyai_poll_interval_ms, 0
+
+# Skip ChromicPDF in tests (Chrome may not be available in CI/test)
+config :saleflow, :skip_chromic_pdf, true

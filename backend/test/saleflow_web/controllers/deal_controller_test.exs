@@ -402,4 +402,92 @@ defmodule SaleflowWeb.DealControllerTest do
       assert length(meetings) == 1
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # POST /api/deals/:id/send-contract
+  # ---------------------------------------------------------------------------
+
+  describe "POST /api/deals/:id/send-contract" do
+    test "creates contract, advances deal to contract_sent, returns contract data", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      deal = create_deal!(lead, agent)
+
+      # Advance to questionnaire_sent stage (required before contract_sent)
+      {:ok, deal} = Sales.advance_deal(deal)
+      {:ok, deal} = Sales.advance_deal(deal)
+      {:ok, deal} = Sales.advance_deal(deal)
+      assert deal.stage == :questionnaire_sent
+
+      resp =
+        post(agent_conn, "/api/deals/#{deal.id}/send-contract", %{
+          "recipient_email" => "kund@example.se",
+          "recipient_name" => "Kund AB",
+          "amount" => 9500,
+          "terms" => "Anpassade villkor"
+        })
+
+      body = json_response(resp, 200)
+      assert body["contract"]["amount"] == 9500
+      assert body["contract"]["recipient_email"] == "kund@example.se"
+      assert body["contract"]["recipient_name"] == "Kund AB"
+      assert body["contract"]["status"] == "sent"
+      assert is_binary(body["contract"]["contract_number"])
+      assert is_binary(body["contract"]["access_token"])
+      assert is_binary(body["contract"]["verification_code"])
+
+      # Deal should have advanced to contract_sent
+      {:ok, refreshed} = Sales.get_deal(deal.id)
+      assert refreshed.stage == :contract_sent
+    end
+
+    test "requires amount param", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      deal = create_deal!(lead, agent)
+
+      # Advance to questionnaire_sent
+      {:ok, deal} = Sales.advance_deal(deal)
+      {:ok, deal} = Sales.advance_deal(deal)
+      {:ok, deal} = Sales.advance_deal(deal)
+      assert deal.stage == :questionnaire_sent
+
+      resp =
+        post(agent_conn, "/api/deals/#{deal.id}/send-contract", %{
+          "recipient_email" => "kund@example.se",
+          "recipient_name" => "Kund AB"
+        })
+
+      assert json_response(resp, 422)
+      assert json_response(resp, 422)["error"] =~ "Belopp"
+    end
+
+    test "returns 404 for non-existent deal", %{conn: conn} do
+      {agent_conn, _agent} = create_agent!(conn)
+
+      resp =
+        post(agent_conn, "/api/deals/#{Ecto.UUID.generate()}/send-contract", %{
+          "amount" => 5000,
+          "recipient_email" => "kund@example.se"
+        })
+
+      assert json_response(resp, 404)
+    end
+
+    test "returns 403 for wrong owner", %{conn: conn} do
+      lead = create_lead!()
+      {_other_conn, other_agent} = create_agent!(conn, %{name: "Other"})
+      deal = create_deal!(lead, other_agent)
+
+      {agent_conn, _agent} = create_agent!(build_conn(), %{name: "Me"})
+
+      resp =
+        post(agent_conn, "/api/deals/#{deal.id}/send-contract", %{
+          "amount" => 5000,
+          "recipient_email" => "kund@example.se"
+        })
+
+      assert json_response(resp, 403)
+    end
+  end
 end

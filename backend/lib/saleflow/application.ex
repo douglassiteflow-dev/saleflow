@@ -9,21 +9,22 @@ defmodule Saleflow.Application do
 
   @impl true
   def start(_type, _args) do
-    children = [
-      SaleflowWeb.Telemetry,
-      Saleflow.Repo,
-      {DNSCluster, query: Application.get_env(:saleflow, :dns_cluster_query) || :ignore},
-      {Phoenix.PubSub, name: Saleflow.PubSub},
-      {AshAuthentication.Supervisor, otp_app: :saleflow},
-      Saleflow.Auth.GeoIP,
-      {Oban, Application.fetch_env!(:saleflow, Oban)},
-      # PDF generation via headless Chrome
-      ChromicPDF,
-      # Active calls tracker (in-memory, frontend-driven)
-      Saleflow.Calls.ActiveCalls,
-      # Start to serve requests, typically the last entry
-      SaleflowWeb.Endpoint
-    ]
+    children =
+      [
+        SaleflowWeb.Telemetry,
+        Saleflow.Repo,
+        {DNSCluster, query: Application.get_env(:saleflow, :dns_cluster_query) || :ignore},
+        {Phoenix.PubSub, name: Saleflow.PubSub},
+        {AshAuthentication.Supervisor, otp_app: :saleflow},
+        Saleflow.Auth.GeoIP,
+        {Oban, Application.fetch_env!(:saleflow, Oban)},
+        # Active calls tracker (in-memory, frontend-driven)
+        Saleflow.Calls.ActiveCalls,
+        # Start to serve requests, typically the last entry
+        SaleflowWeb.Endpoint
+      ] ++
+        # PDF generation via headless Chrome (skip in test — Chrome not always available)
+        if(Application.get_env(:saleflow, :skip_chromic_pdf, false), do: [], else: [ChromicPDF])
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
