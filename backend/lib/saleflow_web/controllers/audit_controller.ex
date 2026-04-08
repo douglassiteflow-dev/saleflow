@@ -4,6 +4,8 @@ defmodule SaleflowWeb.AuditController do
   alias Saleflow.Audit
   alias Saleflow.Accounts
 
+  import SaleflowWeb.ControllerHelpers, only: [maybe_put: 3]
+
   @doc """
   List audit logs with optional action filter.
 
@@ -92,7 +94,4 @@ defmodule SaleflowWeb.AuditController do
     }
   end
 
-  defp maybe_put(map, _key, nil), do: map
-  defp maybe_put(map, _key, ""), do: map
-  defp maybe_put(map, key, value), do: Map.put(map, key, value)
 end

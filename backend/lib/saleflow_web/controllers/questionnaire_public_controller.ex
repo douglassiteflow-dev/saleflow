@@ -3,6 +3,8 @@ defmodule SaleflowWeb.QuestionnairePublicController do
 
   alias Saleflow.Sales
 
+  import SaleflowWeb.ControllerHelpers, only: [maybe_put: 3]
+
   @doc "GET /q/:token — fetch questionnaire data and questions"
   def show(conn, %{"token" => token}) do
     case Sales.get_questionnaire_by_token(token) do
@@ -44,9 +46,14 @@ defmodule SaleflowWeb.QuestionnairePublicController do
     end
   end
 
+  @allowed_upload_types ~w(image/jpeg image/png image/gif image/webp video/mp4 video/quicktime application/pdf application/vnd.openxmlformats-officedocument.spreadsheetml.sheet)
+  @max_upload_size 50 * 1024 * 1024
+
   @doc "POST /q/:token/upload — upload media file, return URL"
   def upload(conn, %{"token" => token, "file" => %Plug.Upload{} = upload}) do
-    with {:ok, q} <- Sales.get_questionnaire_by_token(token) do
+    with {:ok, q} <- Sales.get_questionnaire_by_token(token),
+         :ok <- validate_content_type(upload.content_type),
+         :ok <- validate_file_size(upload.path) do
       key = "questionnaires/#{q.id}/#{Ecto.UUID.generate()}-#{upload.filename}"
       data = File.read!(upload.path)
 
@@ -66,6 +73,12 @@ defmodule SaleflowWeb.QuestionnairePublicController do
     else
       {:error, :not_found} ->
         conn |> put_status(:not_found) |> json(%{error: "Formuläret hittades inte"})
+
+      {:error, :unsupported_media_type} ->
+        conn |> put_status(:unsupported_media_type) |> json(%{error: "Filtypen stöds inte"})
+
+      {:error, :request_entity_too_large} ->
+        conn |> put_status(:request_entity_too_large) |> json(%{error: "Filen är för stor (max 50 MB)"})
     end
   end
 
@@ -114,8 +127,13 @@ defmodule SaleflowWeb.QuestionnairePublicController do
     |> maybe_put(:media_urls, params["media_urls"])
   end
 
-  defp maybe_put(map, _key, nil), do: map
-  defp maybe_put(map, key, value), do: Map.put(map, key, value)
+  defp validate_content_type(content_type) do
+    if content_type in @allowed_upload_types, do: :ok, else: {:error, :unsupported_media_type}
+  end
+
+  defp validate_file_size(path) do
+    if File.stat!(path).size <= @max_upload_size, do: :ok, else: {:error, :request_entity_too_large}
+  end
 
   defp maybe_notify_deal_owner(questionnaire) do
     if questionnaire.deal_id do

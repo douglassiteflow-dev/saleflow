@@ -149,5 +149,20 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
       resp = post(build_conn(), "/q/#{q.token}/upload")
       assert json_response(resp, 400)
     end
+
+    test "rejects unsupported file type" do
+      deal = create_deal!()
+      q = create_questionnaire!(deal)
+
+      upload = %Plug.Upload{
+        path: __ENV__.file,
+        filename: "malware.exe",
+        content_type: "application/x-executable"
+      }
+
+      resp = post(build_conn(), "/q/#{q.token}/upload", %{"file" => upload})
+      body = json_response(resp, 415)
+      assert body["error"] =~ "Filtypen"
+    end
   end
 end

@@ -5,6 +5,8 @@ defmodule SaleflowWeb.LeadController do
   alias Saleflow.Audit
   alias Saleflow.Accounts
 
+  import SaleflowWeb.ControllerHelpers, only: [maybe_put: 3]
+
   @doc """
   List or search leads. Pass `?q=term` to search by company name.
   """
@@ -134,9 +136,6 @@ defmodule SaleflowWeb.LeadController do
         conn |> put_status(:unprocessable_entity) |> json(%{error: "Failed to update lead"})
     end
   end
-
-  defp maybe_put(map, _key, nil), do: map
-  defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
   @doc """
   Submit an outcome for a lead: logs the call, releases the assignment,

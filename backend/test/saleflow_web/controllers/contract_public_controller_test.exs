@@ -78,13 +78,13 @@ defmodule SaleflowWeb.ContractPublicControllerTest do
       body = json_response(resp, 200)
 
       assert body["id"] == contract.id
-      assert body["contractNumber"] == contract.contract_number
+      assert body["contract_number"] == contract.contract_number
       assert body["status"] == "draft"
       assert body["amount"] == 5000
       assert body["currency"] == "SEK"
-      assert body["sellerName"] == user.name
-      assert body["recipientName"] == "Test AB"
-      assert body["recipientEmail"] == "kund@test.se"
+      assert body["seller_name"] == user.name
+      assert body["recipient_name"] == "Test AB"
+      assert body["recipient_email"] == "kund@test.se"
     end
 
     test "returns 404 for invalid token" do
@@ -125,9 +125,9 @@ defmodule SaleflowWeb.ContractPublicControllerTest do
 
       assert body["id"] == contract.id
       assert body["status"] == "viewed"
-      assert body["contractNumber"] == contract.contract_number
+      assert body["contract_number"] == contract.contract_number
       assert body["amount"] == 5000
-      assert body["accessToken"] == contract.access_token
+      assert body["access_token"] == contract.access_token
     end
 
     test "wrong code returns 401" do
@@ -174,7 +174,7 @@ defmodule SaleflowWeb.ContractPublicControllerTest do
       body = json_response(resp, 200)
 
       assert body["signed"] == true
-      assert body["signedAt"] != nil
+      assert body["signed_at"] != nil
     end
 
     test "already signed contract returns 400" do

@@ -35,34 +35,27 @@ defmodule Saleflow.Workers.ContractReminderWorker do
   end
 
   defp send_reminder_email(contract) do
+    alias Saleflow.Notifications.EmailTemplate
+
     unless contract.recipient_email do
       Logger.warning("ContractReminderWorker: contract #{contract.contract_number} has no recipient_email, skipping")
     else
       base_url = Application.get_env(:saleflow, :contract_base_url, "https://siteflow.se")
       link = "#{base_url}/contract/#{contract.access_token}"
 
-      html = """
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin-bottom: 16px;">Påminnelse: Du har ett avtal som väntar</h2>
+      body = """
+      <h2 style="color: #0f172a; font-size: 20px; margin-bottom: 16px;">Påminnelse: Du har ett avtal som väntar</h2>
 
-        <p style="color: #475569; margin-bottom: 16px;">Hej #{contract.recipient_name || ""},</p>
-        <p style="color: #475569; margin-bottom: 24px;">Vi vill påminna dig om att du har ett avtal som väntar på din signering.</p>
+      <p style="color: #475569; margin-bottom: 16px;">Hej #{contract.recipient_name || ""},</p>
+      <p style="color: #475569; margin-bottom: 24px;">Vi vill påminna dig om att du har ett avtal som väntar på din signering.</p>
 
-        <p style="text-align: center; margin: 24px 0;">
-          <a href="#{link}" style="background: #0f172a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">
-            Visa avtalet
-          </a>
-        </p>
-
-        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
-        <p style="color: #94a3b8; font-size: 12px; text-align: center;">Med vänliga hälsningar,<br>Siteflow</p>
-      </div>
+      #{EmailTemplate.button("Visa avtalet", link)}
       """
 
       Saleflow.Notifications.Mailer.send_email_async(
         contract.recipient_email,
         "Påminnelse: Avtal väntar på signering",
-        html
+        EmailTemplate.wrap(body)
       )
 
       Logger.info("ContractReminderWorker: sent reminder for contract #{contract.contract_number}")

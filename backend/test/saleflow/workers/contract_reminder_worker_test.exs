@@ -7,6 +7,8 @@ defmodule Saleflow.Workers.ContractReminderWorkerTest do
 
   use Saleflow.DataCase, async: false
 
+  import ExUnit.CaptureLog
+
   alias Saleflow.Workers.ContractReminderWorker
   alias Saleflow.Contracts
   alias Saleflow.Sales
@@ -96,10 +98,15 @@ defmodule Saleflow.Workers.ContractReminderWorkerTest do
       # Set updated_at to 4 days ago
       set_contract_updated_at!(sent.id, 4)
 
-      assert :ok = ContractReminderWorker.perform(%Oban.Job{})
+      log =
+        capture_log(fn ->
+          assert :ok = ContractReminderWorker.perform(%Oban.Job{})
+          # Give async email task time to complete
+          Process.sleep(50)
+        end)
 
-      # Give async email task time to complete
-      Process.sleep(50)
+      assert log =~ "kund@test.se"
+      assert log =~ "Påminnelse"
     end
 
     test "sends reminders for contracts older than 3 days with status :draft" do
@@ -113,7 +120,14 @@ defmodule Saleflow.Workers.ContractReminderWorkerTest do
       # Set updated_at to 5 days ago
       set_contract_updated_at!(contract.id, 5)
 
-      assert :ok = ContractReminderWorker.perform(%Oban.Job{})
+      log =
+        capture_log(fn ->
+          assert :ok = ContractReminderWorker.perform(%Oban.Job{})
+          Process.sleep(50)
+        end)
+
+      assert log =~ "kund@test.se"
+      assert log =~ "Påminnelse"
     end
 
     test "does NOT send reminders for recently sent contracts (< 3 days)" do

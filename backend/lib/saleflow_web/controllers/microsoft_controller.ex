@@ -4,6 +4,8 @@ defmodule SaleflowWeb.MicrosoftController do
   alias Saleflow.Microsoft.Graph
   require Logger
 
+  import SaleflowWeb.ControllerHelpers, only: [maybe_put: 3]
+
   @scopes "openid profile email Calendars.ReadWrite OnlineMeetings.ReadWrite User.Read offline_access"
 
   @doc """
@@ -297,9 +299,6 @@ defmodule SaleflowWeb.MicrosoftController do
   defp build_datetime(date, time) do
     NaiveDateTime.new!(date, time)
   end
-
-  defp maybe_put(map, _key, nil), do: map
-  defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
   defp frontend_url do
     # In prod, derive from PHX_HOST; in dev, use localhost

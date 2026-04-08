@@ -3,6 +3,8 @@ defmodule SaleflowWeb.ListController do
 
   alias Saleflow.Sales
 
+  import SaleflowWeb.ControllerHelpers, only: [maybe_put: 3]
+
   @doc """
   List all lead lists with stats.
   """
@@ -198,9 +200,6 @@ defmodule SaleflowWeb.ListController do
       updated_at: lead.updated_at
     }
   end
-
-  defp maybe_put(map, _key, nil), do: map
-  defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
   defp maybe_put_status(map, nil), do: map
   defp maybe_put_status(map, "active"), do: Map.put(map, :status, :active)

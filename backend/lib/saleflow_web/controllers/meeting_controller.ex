@@ -5,6 +5,8 @@ defmodule SaleflowWeb.MeetingController do
   alias Saleflow.Accounts
   alias Saleflow.Audit
 
+  import SaleflowWeb.ControllerHelpers, only: [maybe_put: 3]
+
   @doc """
   List meetings.
   Agents see only their own meetings; admins see all.
@@ -430,9 +432,6 @@ defmodule SaleflowWeb.MeetingController do
       {:dashboard_update, %{event: event}}
     )
   end
-
-  defp maybe_put(map, _key, nil), do: map
-  defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
   defp parse_date(nil), do: Date.utc_today() |> Date.add(1)
 

@@ -126,7 +126,7 @@ defmodule Saleflow.Contracts.ContractTest do
                })
     end
 
-    test "rejects without recipient_email" do
+    test "allows nil recipient_email" do
       lead = create_lead!()
       user = create_user!()
       deal = create_deal!(lead, user)
@@ -149,7 +149,7 @@ defmodule Saleflow.Contracts.ContractTest do
       assert is_nil(contract.recipient_email)
     end
 
-    test "rejects without recipient_name" do
+    test "allows nil recipient_name" do
       lead = create_lead!()
       user = create_user!()
       deal = create_deal!(lead, user)
@@ -168,7 +168,7 @@ defmodule Saleflow.Contracts.ContractTest do
       assert is_nil(contract.recipient_name)
     end
 
-    test "rejects without seller_name" do
+    test "allows nil seller_name" do
       lead = create_lead!()
       user = create_user!()
       deal = create_deal!(lead, user)

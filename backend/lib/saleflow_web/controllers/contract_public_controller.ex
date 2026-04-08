@@ -15,17 +15,17 @@ defmodule SaleflowWeb.ContractPublicController do
         else
           conn |> json(%{
             id: contract.id,
-            contractNumber: contract.contract_number,
+            contract_number: contract.contract_number,
             status: contract.status,
             amount: contract.amount,
             currency: contract.currency,
             terms: contract.terms,
-            sellerName: contract.seller_name,
-            sellerSignedAt: contract.seller_signed_at,
-            recipientName: contract.recipient_name,
-            recipientEmail: contract.recipient_email,
-            expiresAt: contract.expires_at,
-            customerSignedAt: contract.customer_signed_at
+            seller_name: contract.seller_name,
+            seller_signed_at: contract.seller_signed_at,
+            recipient_name: contract.recipient_name,
+            recipient_email: contract.recipient_email,
+            expires_at: contract.expires_at,
+            customer_signed_at: contract.customer_signed_at
           })
         end
 
@@ -46,20 +46,20 @@ defmodule SaleflowWeb.ContractPublicController do
 
           conn |> json(%{
             id: updated.id,
-            contractNumber: updated.contract_number,
+            contract_number: updated.contract_number,
             status: updated.status,
             amount: updated.amount,
             currency: updated.currency,
             terms: updated.terms,
-            sellerName: updated.seller_name,
-            sellerSignedAt: updated.seller_signed_at,
-            recipientName: updated.recipient_name,
-            recipientEmail: updated.recipient_email,
-            customerName: updated.customer_name,
-            customerSignedAt: updated.customer_signed_at,
-            signedPdfUrl: updated.signed_pdf_url,
-            accessToken: updated.access_token,
-            expiresAt: updated.expires_at
+            seller_name: updated.seller_name,
+            seller_signed_at: updated.seller_signed_at,
+            recipient_name: updated.recipient_name,
+            recipient_email: updated.recipient_email,
+            customer_name: updated.customer_name,
+            customer_signed_at: updated.customer_signed_at,
+            signed_pdf_url: updated.signed_pdf_url,
+            access_token: updated.access_token,
+            expires_at: updated.expires_at
           })
         else
           conn |> put_status(401) |> json(%{error: "Felaktig kod"})
@@ -93,17 +93,17 @@ defmodule SaleflowWeb.ContractPublicController do
                   event: "status_change",
                   payload: %{
                     status: "signed",
-                    customerName: updated.customer_name,
-                    customerSignedAt: updated.customer_signed_at && DateTime.to_iso8601(updated.customer_signed_at),
-                    signedPdfUrl: updated.signed_pdf_url
+                    customer_name: updated.customer_name,
+                    customer_signed_at: updated.customer_signed_at && DateTime.to_iso8601(updated.customer_signed_at),
+                    signed_pdf_url: updated.signed_pdf_url
                   }
                 }
               )
 
               conn |> json(%{
                 signed: true,
-                signedAt: updated.customer_signed_at,
-                signedPdfUrl: updated.signed_pdf_url
+                signed_at: updated.customer_signed_at,
+                signed_pdf_url: updated.signed_pdf_url
               })
 
             {:error, _} ->
