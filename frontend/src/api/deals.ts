@@ -44,9 +44,10 @@ export interface UpdateDealParams {
   id: string;
   notes?: string;
   website_url?: string;
-  contract_url?: string;
   domain?: string;
   domain_sponsored?: boolean;
+  meeting_outcome?: string;
+  needs_followup?: boolean;
 }
 
 export function useUpdateDeal() {

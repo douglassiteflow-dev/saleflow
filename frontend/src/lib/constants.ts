@@ -23,27 +23,19 @@ export const OUTCOME_COLORS: Record<string, string> = {
 };
 
 export const STAGE_LABELS: Record<string, string> = {
-  meeting_booked: "Möte bokat",
-  needs_website: "Behöver hemsida",
-  generating_website: "Genereras",
-  reviewing: "Granskning",
-  deployed: "Deployad",
-  demo_followup: "Demo & uppföljning",
+  booking_wizard: "Bokning pågår",
+  demo_scheduled: "Demo schemalagd",
+  meeting_completed: "Möte genomfört",
+  questionnaire_sent: "Formulär skickat",
   contract_sent: "Avtal skickat",
-  signed: "Signerat",
-  dns_launch: "DNS & Lansering",
-  won: "Klar",
+  won: "Kund",
   cancelled: "Avbruten",
 };
 
 export const PIPELINE_STAGES: { key: DealStage; label: string }[] = [
-  { key: "meeting_booked", label: "Möte bokat" },
-  { key: "needs_website", label: "Behöver hemsida" },
-  { key: "generating_website", label: "Genereras" },
-  { key: "reviewing", label: "Granskning" },
-  { key: "deployed", label: "Deployad" },
-  { key: "demo_followup", label: "Demo & uppföljning" },
+  { key: "booking_wizard", label: "Bokning pågår" },
+  { key: "demo_scheduled", label: "Demo schemalagd" },
+  { key: "meeting_completed", label: "Möte genomfört" },
+  { key: "questionnaire_sent", label: "Formulär skickat" },
   { key: "contract_sent", label: "Avtal skickat" },
-  { key: "signed", label: "Signerat" },
-  { key: "dns_launch", label: "DNS & Lansering" },
 ];

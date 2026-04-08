@@ -343,15 +343,11 @@ export interface AppNotification {
 }
 
 export type DealStage =
-  | "meeting_booked"
-  | "needs_website"
-  | "generating_website"
-  | "reviewing"
-  | "deployed"
-  | "demo_followup"
+  | "booking_wizard"
+  | "demo_scheduled"
+  | "meeting_completed"
+  | "questionnaire_sent"
   | "contract_sent"
-  | "signed"
-  | "dns_launch"
   | "won"
   | "cancelled";
 
@@ -361,10 +357,11 @@ export interface Deal {
   user_id: string;
   stage: DealStage;
   website_url: string | null;
-  contract_url: string | null;
   domain: string | null;
   domain_sponsored: boolean;
   notes: string | null;
+  meeting_outcome: string | null;
+  needs_followup: boolean;
   lead_name: string | null;
   user_name: string | null;
   inserted_at: string;
