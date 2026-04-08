@@ -65,6 +65,26 @@ defmodule Saleflow.Workers.DemoGenerationWorkerTest do
     dc
   end
 
+  defp create_deal!(lead, user) do
+    {:ok, deal} = Sales.create_deal(%{lead_id: lead.id, user_id: user.id})
+    deal
+  end
+
+  defp create_meeting!(lead, user, opts \\ []) do
+    params =
+      %{
+        lead_id: lead.id,
+        user_id: user.id,
+        title: "Test Meeting",
+        meeting_date: ~D[2026-05-01],
+        meeting_time: ~T[10:00:00]
+      }
+      |> Map.merge(Map.new(opts))
+
+    {:ok, meeting} = Sales.create_meeting(params)
+    meeting
+  end
+
   defp build_job(demo_config_id) do
     %Oban.Job{args: %{"demo_config_id" => demo_config_id}}
   end
@@ -289,6 +309,105 @@ defmodule Saleflow.Workers.DemoGenerationWorkerTest do
 
       # Cleanup
       File.rm_rf!(out_dir)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Tests for maybe_advance_deal/1
+  # ---------------------------------------------------------------------------
+
+  describe "maybe_advance_deal/1" do
+    test "advances deal from booking_wizard to demo_scheduled and sets website_url" do
+      lead = create_lead!()
+      user = create_user!()
+      deal = create_deal!(lead, user)
+      dc = create_demo_config!(lead: lead, user: user)
+
+      # Link meeting to both deal and demo_config
+      _meeting = create_meeting!(lead, user, deal_id: deal.id, demo_config_id: dc.id)
+
+      # Manually transition demo_config to demo_ready with a preview_url
+      {:ok, dc} = Sales.start_generation(dc)
+
+      {:ok, dc} =
+        Sales.generation_complete(dc, %{
+          website_path: "/tmp/test-site",
+          preview_url: "/demos/#{dc.id}/site/index.html"
+        })
+
+      assert dc.stage == :demo_ready
+      assert deal.stage == :booking_wizard
+
+      # Call maybe_advance_deal directly
+      assert :ok = DemoGenerationWorker.maybe_advance_deal(dc)
+
+      # Assert deal is now at demo_scheduled with the correct website_url
+      {:ok, updated_deal} = Sales.get_deal(deal.id)
+      assert updated_deal.stage == :demo_scheduled
+      assert updated_deal.website_url == "/demos/#{dc.id}/site/index.html"
+    end
+
+    test "no-op when no meetings linked to demo_config" do
+      lead = create_lead!()
+      user = create_user!()
+      dc = create_demo_config!(lead: lead, user: user)
+
+      {:ok, dc} = Sales.start_generation(dc)
+
+      {:ok, dc} =
+        Sales.generation_complete(dc, %{
+          website_path: "/tmp/test-site",
+          preview_url: "/demos/#{dc.id}/site/index.html"
+        })
+
+      # No meeting created — should be a no-op
+      assert :ok = DemoGenerationWorker.maybe_advance_deal(dc)
+    end
+
+    test "no-op when meeting has no deal_id" do
+      lead = create_lead!()
+      user = create_user!()
+      dc = create_demo_config!(lead: lead, user: user)
+
+      # Meeting linked to demo_config but no deal_id
+      _meeting = create_meeting!(lead, user, demo_config_id: dc.id)
+
+      {:ok, dc} = Sales.start_generation(dc)
+
+      {:ok, dc} =
+        Sales.generation_complete(dc, %{
+          website_path: "/tmp/test-site",
+          preview_url: "/demos/#{dc.id}/site/index.html"
+        })
+
+      assert :ok = DemoGenerationWorker.maybe_advance_deal(dc)
+    end
+
+    test "no-op when deal is not at booking_wizard" do
+      lead = create_lead!()
+      user = create_user!()
+      deal = create_deal!(lead, user)
+
+      # Advance deal past booking_wizard
+      {:ok, deal} = Sales.advance_deal(deal)
+      assert deal.stage == :demo_scheduled
+
+      dc = create_demo_config!(lead: lead, user: user)
+      _meeting = create_meeting!(lead, user, deal_id: deal.id, demo_config_id: dc.id)
+
+      {:ok, dc} = Sales.start_generation(dc)
+
+      {:ok, dc} =
+        Sales.generation_complete(dc, %{
+          website_path: "/tmp/test-site",
+          preview_url: "/demos/#{dc.id}/site/index.html"
+        })
+
+      assert :ok = DemoGenerationWorker.maybe_advance_deal(dc)
+
+      # Deal should remain at demo_scheduled, not advance further
+      {:ok, unchanged_deal} = Sales.get_deal(deal.id)
+      assert unchanged_deal.stage == :demo_scheduled
     end
   end
 end
