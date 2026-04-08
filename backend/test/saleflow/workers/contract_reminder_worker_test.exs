@@ -13,55 +13,11 @@ defmodule Saleflow.Workers.ContractReminderWorkerTest do
   alias Saleflow.Contracts
   alias Saleflow.Sales
 
+  import Saleflow.Factory
+
   # ---------------------------------------------------------------------------
-  # Helpers
+  # Worker-specific helpers
   # ---------------------------------------------------------------------------
-
-  defp create_lead! do
-    unique = System.unique_integer([:positive])
-    {:ok, lead} = Sales.create_lead(%{företag: "Test AB #{unique}", telefon: "+46701234567"})
-    lead
-  end
-
-  defp create_user! do
-    unique = System.unique_integer([:positive])
-
-    {:ok, user} =
-      Saleflow.Accounts.User
-      |> Ash.Changeset.for_create(:register_with_password, %{
-        email: "worker#{unique}@test.se",
-        name: "Worker Agent #{unique}",
-        password: "Password123!",
-        password_confirmation: "Password123!"
-      })
-      |> Ash.create()
-
-    user
-  end
-
-  defp create_deal!(lead, user) do
-    {:ok, deal} = Sales.create_deal(%{lead_id: lead.id, user_id: user.id})
-    deal
-  end
-
-  defp create_contract!(deal, user, attrs \\ %{}) do
-    params =
-      Map.merge(
-        %{
-          deal_id: deal.id,
-          user_id: user.id,
-          recipient_email: "kund@test.se",
-          recipient_name: "Test AB",
-          amount: 5000,
-          terms: "Standard villkor",
-          seller_name: user.name
-        },
-        attrs
-      )
-
-    {:ok, contract} = Contracts.create_contract(params)
-    contract
-  end
 
   defp set_contract_updated_at!(contract_id, days_ago) do
     offset_seconds = days_ago * 24 * 60 * 60

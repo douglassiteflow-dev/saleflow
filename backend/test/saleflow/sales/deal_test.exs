@@ -1,29 +1,9 @@
 defmodule Saleflow.Sales.DealTest do
   use Saleflow.DataCase, async: true
 
+  import Saleflow.Factory
+
   alias Saleflow.Sales
-
-  defp create_lead! do
-    unique = System.unique_integer([:positive])
-    {:ok, lead} = Sales.create_lead(%{företag: "Test AB #{unique}", telefon: "+46701234567"})
-    lead
-  end
-
-  defp create_user! do
-    unique = System.unique_integer([:positive])
-
-    {:ok, user} =
-      Saleflow.Accounts.User
-      |> Ash.Changeset.for_create(:register_with_password, %{
-        email: "agent#{unique}@test.se",
-        name: "Agent #{unique}",
-        password: "Password123!",
-        password_confirmation: "Password123!"
-      })
-      |> Ash.create()
-
-    user
-  end
 
   describe "create_deal/1" do
     test "creates a deal with valid params" do

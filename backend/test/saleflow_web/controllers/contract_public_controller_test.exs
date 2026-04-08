@@ -1,6 +1,8 @@
 defmodule SaleflowWeb.ContractPublicControllerTest do
   use SaleflowWeb.ConnCase, async: true
 
+  import Saleflow.Factory
+
   alias Saleflow.Contracts
   alias Saleflow.Sales
 
@@ -8,61 +10,11 @@ defmodule SaleflowWeb.ContractPublicControllerTest do
   # Helpers
   # ---------------------------------------------------------------------------
 
-  defp create_lead! do
-    unique = System.unique_integer([:positive])
-    {:ok, lead} = Sales.create_lead(%{företag: "Test AB #{unique}", telefon: "+46701234567"})
-    lead
-  end
-
-  defp create_user! do
-    unique = System.unique_integer([:positive])
-
-    {:ok, user} =
-      Saleflow.Accounts.User
-      |> Ash.Changeset.for_create(:register_with_password, %{
-        email: "agent#{unique}@test.se",
-        name: "Agent #{unique}",
-        password: "Password123!",
-        password_confirmation: "Password123!"
-      })
-      |> Ash.create()
-
-    user
-  end
-
-  defp create_deal! do
+  defp create_deal_with_context! do
     lead = create_lead!()
     user = create_user!()
-    {:ok, deal} = Sales.create_deal(%{lead_id: lead.id, user_id: user.id})
+    deal = create_deal!(lead, user)
     {deal, lead, user}
-  end
-
-  defp create_contract!(deal, user, attrs \\ %{}) do
-    params =
-      Map.merge(
-        %{
-          deal_id: deal.id,
-          user_id: user.id,
-          recipient_email: "kund@test.se",
-          recipient_name: "Test AB",
-          amount: 5000,
-          terms: "Standard villkor",
-          seller_name: user.name
-        },
-        attrs
-      )
-
-    {:ok, contract} = Contracts.create_contract(params)
-    contract
-  end
-
-  defp advance_deal_to!(deal, target_stage) do
-    if deal.stage == target_stage do
-      deal
-    else
-      {:ok, advanced} = Sales.advance_deal(deal)
-      advance_deal_to!(advanced, target_stage)
-    end
   end
 
   # ---------------------------------------------------------------------------
@@ -71,7 +23,7 @@ defmodule SaleflowWeb.ContractPublicControllerTest do
 
   describe "GET /api/contracts/:token" do
     test "returns contract data for valid token" do
-      {deal, _lead, user} = create_deal!()
+      {deal, _lead, user} = create_deal_with_context!()
       contract = create_contract!(deal, user)
 
       resp = get(build_conn(), "/api/contracts/#{contract.access_token}")
@@ -94,7 +46,7 @@ defmodule SaleflowWeb.ContractPublicControllerTest do
     end
 
     test "returns 410 for expired contract" do
-      {deal, _lead, user} = create_deal!()
+      {deal, _lead, user} = create_deal_with_context!()
       # Create contract with an expires_at in the past
       yesterday = DateTime.utc_now() |> DateTime.add(-86_400, :second)
 
@@ -112,7 +64,7 @@ defmodule SaleflowWeb.ContractPublicControllerTest do
 
   describe "POST /api/contracts/:token/verify" do
     test "correct code returns full data and marks as viewed" do
-      {deal, _lead, user} = create_deal!()
+      {deal, _lead, user} = create_deal_with_context!()
       contract = create_contract!(deal, user)
 
       resp =
@@ -131,7 +83,7 @@ defmodule SaleflowWeb.ContractPublicControllerTest do
     end
 
     test "wrong code returns 401" do
-      {deal, _lead, user} = create_deal!()
+      {deal, _lead, user} = create_deal_with_context!()
       contract = create_contract!(deal, user)
 
       resp =
@@ -161,7 +113,7 @@ defmodule SaleflowWeb.ContractPublicControllerTest do
 
   describe "POST /api/contracts/:token/sign" do
     test "valid signature signs the contract" do
-      {deal, _lead, user} = create_deal!()
+      {deal, _lead, user} = create_deal_with_context!()
       contract = create_contract!(deal, user)
 
       resp =
@@ -178,7 +130,7 @@ defmodule SaleflowWeb.ContractPublicControllerTest do
     end
 
     test "already signed contract returns 400" do
-      {deal, _lead, user} = create_deal!()
+      {deal, _lead, user} = create_deal_with_context!()
       contract = create_contract!(deal, user)
 
       # Sign it first
@@ -205,7 +157,7 @@ defmodule SaleflowWeb.ContractPublicControllerTest do
     end
 
     test "signing advances linked Deal to next stage" do
-      {deal, _lead, user} = create_deal!()
+      {deal, _lead, user} = create_deal_with_context!()
 
       # Advance deal to contract_sent so signing advances to :won
       deal = advance_deal_to!(deal, :contract_sent)
@@ -240,7 +192,7 @@ defmodule SaleflowWeb.ContractPublicControllerTest do
 
   describe "PATCH /api/contracts/:token" do
     test "saves tracking data" do
-      {deal, _lead, user} = create_deal!()
+      {deal, _lead, user} = create_deal_with_context!()
       contract = create_contract!(deal, user)
 
       resp =

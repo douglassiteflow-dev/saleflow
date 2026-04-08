@@ -130,14 +130,12 @@ defmodule SaleflowWeb.DealController do
     with {:ok, deal} <- get_deal(id),
          :ok <- check_ownership(deal, user),
          {:ok, lead} <- Sales.get_lead(deal.lead_id) do
-      unless deal.stage == :meeting_completed do
-        conn |> put_status(:unprocessable_entity) |> json(%{error: "Deal måste vara i steget 'Möte genomfört'"})
+      if deal.stage != :meeting_completed do
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "Deal must be at stage 'meeting_completed'"})
       else
         email = params["customer_email"] || lead.epost
 
-        unless email do
-          conn |> put_status(:unprocessable_entity) |> json(%{error: "Ingen email angiven"})
-        else
+        if email do
           token = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
 
           case Sales.create_questionnaire(%{
@@ -164,14 +162,16 @@ defmodule SaleflowWeb.DealController do
                 {:error, _reason} ->
                   conn
                   |> put_status(:unprocessable_entity)
-                  |> json(%{error: "Kunde inte avancera deal"})
+                  |> json(%{error: "Could not advance deal"})
               end
 
             {:error, _} ->
               conn
               |> put_status(:unprocessable_entity)
-              |> json(%{error: "Kunde inte skapa formulär"})
+              |> json(%{error: "Could not create questionnaire"})
           end
+        else
+          conn |> put_status(:unprocessable_entity) |> json(%{error: "No email provided"})
         end
       end
     else
@@ -193,17 +193,17 @@ defmodule SaleflowWeb.DealController do
     with {:ok, deal} <- get_deal(id),
          :ok <- check_ownership(deal, user),
          {:ok, lead} <- Sales.get_lead(deal.lead_id) do
-      unless deal.stage == :questionnaire_sent do
-        conn |> put_status(:unprocessable_entity) |> json(%{error: "Deal måste vara i steget 'Formulär skickat'"})
+      if deal.stage != :questionnaire_sent do
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "Deal must be at stage 'questionnaire_sent'"})
       else
         email = params["recipient_email"] || lead.epost
         name = params["recipient_name"] || lead.företag
 
-        unless email do
-          conn |> put_status(:unprocessable_entity) |> json(%{error: "Ingen email angiven"})
+        if !email do
+          conn |> put_status(:unprocessable_entity) |> json(%{error: "No email provided"})
         else
-          unless params["amount"] do
-            conn |> put_status(:unprocessable_entity) |> json(%{error: "Belopp krävs"})
+          if !params["amount"] do
+            conn |> put_status(:unprocessable_entity) |> json(%{error: "Amount is required"})
           else
             case Saleflow.Contracts.create_contract(%{
                    deal_id: deal.id,
@@ -240,13 +240,13 @@ defmodule SaleflowWeb.DealController do
                   {:error, _reason} ->
                     conn
                     |> put_status(:unprocessable_entity)
-                    |> json(%{error: "Kunde inte avancera deal"})
+                    |> json(%{error: "Could not advance deal"})
                 end
 
               {:error, _} ->
                 conn
                 |> put_status(:unprocessable_entity)
-                |> json(%{error: "Kunde inte skapa avtal"})
+                |> json(%{error: "Could not create contract"})
             end
           end
         end

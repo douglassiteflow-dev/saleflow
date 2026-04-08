@@ -1,59 +1,11 @@
 defmodule Saleflow.Contracts.PdfGeneratorTest do
   use Saleflow.DataCase, async: true
 
+  import Saleflow.Factory
+
   alias Saleflow.Contracts.PdfGenerator
   alias Saleflow.Contracts
   alias Saleflow.Sales
-
-  # ---------------------------------------------------------------------------
-  # Helpers
-  # ---------------------------------------------------------------------------
-
-  defp create_lead! do
-    unique = System.unique_integer([:positive])
-    {:ok, lead} = Sales.create_lead(%{företag: "Test AB #{unique}", telefon: "+46701234567"})
-    lead
-  end
-
-  defp create_user! do
-    unique = System.unique_integer([:positive])
-
-    {:ok, user} =
-      Saleflow.Accounts.User
-      |> Ash.Changeset.for_create(:register_with_password, %{
-        email: "agent#{unique}@test.se",
-        name: "Agent #{unique}",
-        password: "Password123!",
-        password_confirmation: "Password123!"
-      })
-      |> Ash.create()
-
-    user
-  end
-
-  defp create_deal!(lead, user) do
-    {:ok, deal} = Sales.create_deal(%{lead_id: lead.id, user_id: user.id})
-    deal
-  end
-
-  defp create_contract!(deal, user, attrs \\ %{}) do
-    params =
-      Map.merge(
-        %{
-          deal_id: deal.id,
-          user_id: user.id,
-          recipient_email: "kund@test.se",
-          recipient_name: "Test AB",
-          amount: 5000,
-          terms: "Standard villkor",
-          seller_name: user.name
-        },
-        attrs
-      )
-
-    {:ok, contract} = Contracts.create_contract(params)
-    contract
-  end
 
   # ---------------------------------------------------------------------------
   # render_html/3

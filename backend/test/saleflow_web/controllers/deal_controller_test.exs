@@ -1,17 +1,13 @@
 defmodule SaleflowWeb.DealControllerTest do
   use SaleflowWeb.ConnCase
 
+  import Saleflow.Factory
+
   alias Saleflow.Sales
 
   # ---------------------------------------------------------------------------
-  # Helpers
+  # Controller-specific helpers
   # ---------------------------------------------------------------------------
-
-  defp create_lead! do
-    unique = System.unique_integer([:positive])
-    {:ok, lead} = Sales.create_lead(%{företag: "Test AB #{unique}", telefon: "+46701234567"})
-    lead
-  end
 
   defp create_agent!(conn, attrs \\ %{}) do
     register_and_log_in_user(conn, Map.merge(%{name: "Agent"}, attrs))
@@ -29,11 +25,6 @@ defmodule SaleflowWeb.DealControllerTest do
     # Re-fetch so role is up to date
     {:ok, admin} = Ash.get(Saleflow.Accounts.User, user.id)
     {conn, admin}
-  end
-
-  defp create_deal!(lead, user) do
-    {:ok, deal} = Sales.create_deal(%{lead_id: lead.id, user_id: user.id})
-    deal
   end
 
   defp create_meeting!(lead, user, opts \\ []) do
@@ -334,7 +325,7 @@ defmodule SaleflowWeb.DealControllerTest do
         })
 
       assert json_response(resp, 422)
-      assert json_response(resp, 422)["error"] =~ "Möte genomfört"
+      assert json_response(resp, 422)["error"] =~ "meeting_completed"
     end
 
     test "agent cannot send questionnaire for another agent's deal", %{conn: conn} do
@@ -474,7 +465,7 @@ defmodule SaleflowWeb.DealControllerTest do
         })
 
       assert json_response(resp, 422)
-      assert json_response(resp, 422)["error"] =~ "Belopp"
+      assert json_response(resp, 422)["error"] =~ "Amount"
     end
 
     test "returns 404 for non-existent deal", %{conn: conn} do
@@ -503,7 +494,7 @@ defmodule SaleflowWeb.DealControllerTest do
         })
 
       assert json_response(resp, 422)
-      assert json_response(resp, 422)["error"] =~ "Formulär skickat"
+      assert json_response(resp, 422)["error"] =~ "questionnaire_sent"
     end
 
     test "returns 403 for wrong owner", %{conn: conn} do

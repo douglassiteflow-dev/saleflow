@@ -25,31 +25,11 @@ defmodule Saleflow.Workers.DemoGenerationWorkerTest do
     :ok
   end
 
+  import Saleflow.Factory
+
   # ---------------------------------------------------------------------------
-  # Helpers
+  # Worker-specific helpers
   # ---------------------------------------------------------------------------
-
-  defp create_user! do
-    unique = System.unique_integer([:positive])
-
-    {:ok, user} =
-      Saleflow.Accounts.User
-      |> Ash.Changeset.for_create(:register_with_password, %{
-        email: "demogen#{unique}@test.se",
-        name: "Demo Agent #{unique}",
-        password: "Password123!",
-        password_confirmation: "Password123!"
-      })
-      |> Ash.create()
-
-    user
-  end
-
-  defp create_lead! do
-    unique = System.unique_integer([:positive])
-    {:ok, lead} = Sales.create_lead(%{företag: "DemoTest AB #{unique}", telefon: "+4670#{unique}"})
-    lead
-  end
 
   defp create_demo_config!(opts \\ []) do
     lead = Keyword.get_lazy(opts, :lead, fn -> create_lead!() end)
@@ -63,11 +43,6 @@ defmodule Saleflow.Workers.DemoGenerationWorkerTest do
       })
 
     dc
-  end
-
-  defp create_deal!(lead, user) do
-    {:ok, deal} = Sales.create_deal(%{lead_id: lead.id, user_id: user.id})
-    deal
   end
 
   defp create_meeting!(lead, user, opts \\ []) do

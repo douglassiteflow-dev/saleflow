@@ -90,8 +90,8 @@ defmodule Saleflow.Sales.Questionnaire do
       public? true
     end
 
-    create_timestamp :inserted_at
-    update_timestamp :updated_at
+    create_timestamp :inserted_at, public?: true
+    update_timestamp :updated_at, public?: true
   end
 
   actions do

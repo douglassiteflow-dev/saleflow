@@ -1,39 +1,18 @@
 defmodule Saleflow.Sales.QuestionnaireTest do
   use Saleflow.DataCase, async: true
 
+  import Saleflow.Factory
+
   alias Saleflow.Sales
 
   # ---------------------------------------------------------------------------
   # Helpers
   # ---------------------------------------------------------------------------
 
-  defp create_lead! do
-    unique = System.unique_integer([:positive])
-    {:ok, lead} = Sales.create_lead(%{företag: "Test AB #{unique}", telefon: "+46701234567"})
-    lead
-  end
-
-  defp create_user! do
-    unique = System.unique_integer([:positive])
-
-    {:ok, user} =
-      Saleflow.Accounts.User
-      |> Ash.Changeset.for_create(:register_with_password, %{
-        email: "agent#{unique}@test.se",
-        name: "Agent #{unique}",
-        password: "Password123!",
-        password_confirmation: "Password123!"
-      })
-      |> Ash.create()
-
-    user
-  end
-
-  defp create_deal! do
+  defp create_deal_simple! do
     lead = create_lead!()
     user = create_user!()
-    {:ok, deal} = Sales.create_deal(%{lead_id: lead.id, user_id: user.id})
-    deal
+    create_deal!(lead, user)
   end
 
   defp unique_token do
@@ -46,7 +25,7 @@ defmodule Saleflow.Sales.QuestionnaireTest do
 
   describe "create_questionnaire/1" do
     test "creates with valid params and default status is :pending" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
       token = unique_token()
 
       assert {:ok, q} =
@@ -63,7 +42,7 @@ defmodule Saleflow.Sales.QuestionnaireTest do
     end
 
     test "rejects without customer_email" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
 
       assert {:error, _} =
                Sales.create_questionnaire(%{
@@ -73,7 +52,7 @@ defmodule Saleflow.Sales.QuestionnaireTest do
     end
 
     test "rejects without token" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
 
       assert {:error, _} =
                Sales.create_questionnaire(%{
@@ -89,7 +68,7 @@ defmodule Saleflow.Sales.QuestionnaireTest do
 
   describe "save_questionnaire_answers/2" do
     test "updates capacity and transitions status to :in_progress" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
       {:ok, q} = Sales.create_questionnaire(%{deal_id: deal.id, customer_email: "k@t.se", token: unique_token()})
       assert q.status == :pending
 
@@ -99,7 +78,7 @@ defmodule Saleflow.Sales.QuestionnaireTest do
     end
 
     test "updates addon_services array" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
       {:ok, q} = Sales.create_questionnaire(%{deal_id: deal.id, customer_email: "k@t.se", token: unique_token()})
 
       assert {:ok, updated} = Sales.save_questionnaire_answers(q, %{addon_services: ["seo", "ads"]})
@@ -107,7 +86,7 @@ defmodule Saleflow.Sales.QuestionnaireTest do
     end
 
     test "stays :in_progress if already :in_progress" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
       {:ok, q} = Sales.create_questionnaire(%{deal_id: deal.id, customer_email: "k@t.se", token: unique_token()})
 
       {:ok, q_in_progress} = Sales.save_questionnaire_answers(q, %{capacity: "first"})
@@ -125,7 +104,7 @@ defmodule Saleflow.Sales.QuestionnaireTest do
 
   describe "complete_questionnaire/1" do
     test "sets status to :completed and completed_at" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
       {:ok, q} = Sales.create_questionnaire(%{deal_id: deal.id, customer_email: "k@t.se", token: unique_token()})
 
       assert {:ok, completed} = Sales.complete_questionnaire(q)
@@ -140,7 +119,7 @@ defmodule Saleflow.Sales.QuestionnaireTest do
 
   describe "get_questionnaire_by_token/1" do
     test "finds by token" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
       token = unique_token()
       {:ok, q} = Sales.create_questionnaire(%{deal_id: deal.id, customer_email: "k@t.se", token: token})
 
@@ -159,7 +138,7 @@ defmodule Saleflow.Sales.QuestionnaireTest do
 
   describe "get_questionnaire_for_deal/1" do
     test "returns questionnaire for deal" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
       {:ok, q} = Sales.create_questionnaire(%{deal_id: deal.id, customer_email: "k@t.se", token: unique_token()})
 
       assert {:ok, found} = Sales.get_questionnaire_for_deal(deal.id)
@@ -167,7 +146,7 @@ defmodule Saleflow.Sales.QuestionnaireTest do
     end
 
     test "returns nil when none exists" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
 
       assert {:ok, nil} = Sales.get_questionnaire_for_deal(deal.id)
     end

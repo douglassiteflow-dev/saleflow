@@ -1,52 +1,18 @@
 defmodule SaleflowWeb.QuestionnairePublicControllerTest do
   use SaleflowWeb.ConnCase, async: true
 
+  import Saleflow.Factory
+
   alias Saleflow.Sales
 
   # ---------------------------------------------------------------------------
   # Helpers
   # ---------------------------------------------------------------------------
 
-  defp create_lead! do
-    unique = System.unique_integer([:positive])
-    {:ok, lead} = Sales.create_lead(%{företag: "Test AB #{unique}", telefon: "+46701234567"})
-    lead
-  end
-
-  defp create_user! do
-    unique = System.unique_integer([:positive])
-
-    {:ok, user} =
-      Saleflow.Accounts.User
-      |> Ash.Changeset.for_create(:register_with_password, %{
-        email: "agent#{unique}@test.se",
-        name: "Agent #{unique}",
-        password: "Password123!",
-        password_confirmation: "Password123!"
-      })
-      |> Ash.create()
-
-    user
-  end
-
-  defp create_deal! do
+  defp create_deal_simple! do
     lead = create_lead!()
     user = create_user!()
-    {:ok, deal} = Sales.create_deal(%{lead_id: lead.id, user_id: user.id})
-    deal
-  end
-
-  defp create_questionnaire!(deal) do
-    token = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
-
-    {:ok, q} =
-      Sales.create_questionnaire(%{
-        deal_id: deal.id,
-        customer_email: "kund@test.se",
-        token: token
-      })
-
-    q
+    create_deal!(lead, user)
   end
 
   # ---------------------------------------------------------------------------
@@ -55,7 +21,7 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
 
   describe "GET /q/:token" do
     test "returns questionnaire data for valid token" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
       q = create_questionnaire!(deal)
 
       resp = get(build_conn(), "/q/#{q.token}")
@@ -79,7 +45,7 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
 
   describe "PATCH /q/:token" do
     test "saves capacity answer" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
       q = create_questionnaire!(deal)
 
       resp = patch(build_conn(), "/q/#{q.token}", %{"capacity" => "10-50"})
@@ -89,7 +55,7 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
     end
 
     test "transitions from pending to in_progress on first save" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
       q = create_questionnaire!(deal)
       assert q.status == :pending
 
@@ -100,7 +66,7 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
     end
 
     test "saves addon_services array" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
       q = create_questionnaire!(deal)
 
       resp = patch(build_conn(), "/q/#{q.token}", %{"addon_services" => ["seo", "ads"]})
@@ -121,7 +87,7 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
 
   describe "POST /q/:token/complete" do
     test "marks as completed with completed_at set" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
       q = create_questionnaire!(deal)
 
       resp = post(build_conn(), "/q/#{q.token}/complete")
@@ -143,7 +109,7 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
 
   describe "POST /q/:token/upload" do
     test "returns 400 when no file attached" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
       q = create_questionnaire!(deal)
 
       resp = post(build_conn(), "/q/#{q.token}/upload")
@@ -151,7 +117,7 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
     end
 
     test "rejects unsupported file type" do
-      deal = create_deal!()
+      deal = create_deal_simple!()
       q = create_questionnaire!(deal)
 
       upload = %Plug.Upload{

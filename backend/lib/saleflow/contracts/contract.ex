@@ -183,6 +183,8 @@ defmodule Saleflow.Contracts.Contract do
         :custom_fields
       ]
 
+      # seller_signed_at is auto-set at creation time — creating the contract
+      # implies seller approval. No separate seller signature flow.
       change fn changeset, _context ->
         number =
           "SF-#{Date.utc_today().year}-#{:rand.uniform(9999) |> Integer.to_string() |> String.pad_leading(4, "0")}"
