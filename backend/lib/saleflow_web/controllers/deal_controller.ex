@@ -80,7 +80,7 @@ defmodule SaleflowWeb.DealController do
   end
 
   @doc """
-  Update deal fields: notes, website_url, contract_url, domain, domain_sponsored.
+  Update deal fields: notes, website_url, meeting_outcome, needs_followup, domain, domain_sponsored.
   Authorization: admin or deal owner.
   """
   def update(conn, %{"id" => id} = params) do
@@ -92,7 +92,8 @@ defmodule SaleflowWeb.DealController do
         %{}
         |> maybe_put(:notes, params["notes"])
         |> maybe_put(:website_url, params["website_url"])
-        |> maybe_put(:contract_url, params["contract_url"])
+        |> maybe_put(:meeting_outcome, params["meeting_outcome"])
+        |> maybe_put(:needs_followup, params["needs_followup"])
         |> maybe_put(:domain, params["domain"])
         |> maybe_put(:domain_sponsored, params["domain_sponsored"])
 
@@ -218,7 +219,8 @@ defmodule SaleflowWeb.DealController do
       stage: deal.stage,
       notes: deal.notes,
       website_url: deal.website_url,
-      contract_url: deal.contract_url,
+      meeting_outcome: deal.meeting_outcome,
+      needs_followup: deal.needs_followup,
       domain: deal.domain,
       domain_sponsored: deal.domain_sponsored,
       inserted_at: deal.inserted_at,
