@@ -10,15 +10,11 @@ import Loader from "@/components/kokonutui/loader";
 import { useState } from "react";
 
 const ACTION_LABELS: Partial<Record<DealStage, string>> = {
-  meeting_booked: "Markera behöver hemsida",
-  needs_website: "Starta generering",
-  generating_website: "Skicka till granskning",
-  reviewing: "Markera deployad",
-  deployed: "Starta demo & uppföljning",
-  demo_followup: "Skicka avtal",
-  contract_sent: "Markera signerat",
-  signed: "Starta DNS & lansering",
-  dns_launch: "Markera klar",
+  booking_wizard: "Schemalägg demo",
+  demo_scheduled: "Markera möte genomfört",
+  meeting_completed: "Skicka formulär",
+  questionnaire_sent: "Skicka avtal",
+  contract_sent: "Markera som kund",
 };
 
 export function PipelineDetailPage() {

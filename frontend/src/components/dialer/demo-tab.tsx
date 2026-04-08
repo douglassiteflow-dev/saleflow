@@ -61,7 +61,19 @@ function DemoConfigRow({ config, onClick }: { config: DemoConfig; onClick: () =>
       onClick={onClick}
       className="border-b border-[var(--color-border)] hover:bg-[var(--color-bg-panel)] cursor-pointer transition-colors"
     >
-      <td className="px-5 py-2.5 font-medium text-[var(--color-text-primary)]">{name}</td>
+      <td className="px-5 py-2.5 font-medium text-[var(--color-text-primary)]">
+          <span
+            className={cn(
+              "inline-block w-2 h-2 rounded-full mr-2",
+              config.health_score == null && "bg-gray-300",
+              config.health_score != null && config.health_score > 70 && "bg-emerald-500",
+              config.health_score != null && config.health_score >= 40 && config.health_score <= 70 && "bg-amber-500",
+              config.health_score != null && config.health_score < 40 && "bg-red-500",
+            )}
+            title={config.health_score != null ? `Hälsa: ${config.health_score}%` : "Ej beräknad"}
+          />
+          {name}
+        </td>
       <td className="px-5 py-2.5">
         <span
           className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium border")}

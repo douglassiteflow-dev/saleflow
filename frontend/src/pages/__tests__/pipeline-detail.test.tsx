@@ -66,12 +66,13 @@ const mockDeal = {
   id: "d1",
   lead_id: "l1",
   user_id: "u1",
-  stage: "needs_website" as const,
+  stage: "demo_scheduled" as const,
   website_url: "https://acme.example.com",
-  contract_url: null,
   domain: null,
   domain_sponsored: false,
   notes: "Kontakta igen",
+  meeting_outcome: null,
+  needs_followup: false,
   lead_name: "Acme AB",
   user_name: "Agent A",
   inserted_at: "2024-01-01T00:00:00Z",
@@ -133,7 +134,7 @@ describe("PipelineDetailPage", () => {
     });
     render(<PipelineDetailPage />, { wrapper: Wrapper });
     const steps = screen.getAllByTestId("stage-step");
-    expect(steps.length).toBe(10);
+    expect(steps.length).toBe(6);
   });
 
   it("renders meetings list", () => {
@@ -152,7 +153,7 @@ describe("PipelineDetailPage", () => {
       isLoading: false,
     });
     render(<PipelineDetailPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Starta generering")).toBeInTheDocument();
+    expect(screen.getByText("Markera möte genomfört")).toBeInTheDocument();
   });
 
   it("shows website URL when present", () => {

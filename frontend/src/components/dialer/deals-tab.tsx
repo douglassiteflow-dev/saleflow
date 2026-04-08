@@ -4,15 +4,11 @@ import { STAGE_LABELS } from "@/lib/constants";
 import type { Deal } from "@/api/types";
 
 const STAGE_COLORS: Record<string, string> = {
-  meeting_booked: "bg-blue-50 text-blue-700 border-blue-200",
-  needs_website: "bg-amber-50 text-amber-700 border-amber-200",
-  generating_website: "bg-purple-50 text-purple-700 border-purple-200",
-  reviewing: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  deployed: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  demo_followup: "bg-cyan-50 text-cyan-700 border-cyan-200",
+  booking_wizard: "bg-blue-50 text-blue-700 border-blue-200",
+  demo_scheduled: "bg-purple-50 text-purple-700 border-purple-200",
+  meeting_completed: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  questionnaire_sent: "bg-cyan-50 text-cyan-700 border-cyan-200",
   contract_sent: "bg-orange-50 text-orange-700 border-orange-200",
-  signed: "bg-green-50 text-green-700 border-green-200",
-  dns_launch: "bg-teal-50 text-teal-700 border-teal-200",
 };
 
 interface DealsTabProps {

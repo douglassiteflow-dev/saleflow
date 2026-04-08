@@ -7,12 +7,13 @@ const mockDeals = [
     id: "d1",
     lead_id: "l1",
     user_id: "u1",
-    stage: "meeting_booked" as const,
+    stage: "booking_wizard" as const,
     website_url: null,
-    contract_url: null,
     domain: null,
     domain_sponsored: false,
     notes: null,
+    meeting_outcome: null,
+    needs_followup: false,
     lead_name: "Testföretag AB",
     user_name: "Agent 1",
     inserted_at: "2026-01-01T00:00:00Z",
@@ -22,12 +23,13 @@ const mockDeals = [
     id: "d2",
     lead_id: "l2",
     user_id: "u1",
-    stage: "deployed" as const,
+    stage: "meeting_completed" as const,
     website_url: "https://example.com",
-    contract_url: null,
     domain: "example.com",
     domain_sponsored: false,
     notes: null,
+    meeting_outcome: null,
+    needs_followup: false,
     lead_name: "Annat Företag",
     user_name: "Agent 1",
     inserted_at: "2026-01-02T00:00:00Z",
@@ -39,10 +41,11 @@ const mockDeals = [
     user_id: "u1",
     stage: "won" as const,
     website_url: "https://won.com",
-    contract_url: null,
     domain: "won.com",
     domain_sponsored: false,
     notes: null,
+    meeting_outcome: null,
+    needs_followup: false,
     lead_name: "Vunnen Kund",
     user_name: "Agent 1",
     inserted_at: "2026-01-03T00:00:00Z",
@@ -72,8 +75,8 @@ describe("DealsTab", () => {
 
     expect(screen.getByText("Testföretag AB")).toBeInTheDocument();
     expect(screen.getByText("Annat Företag")).toBeInTheDocument();
-    expect(screen.getByText("Möte bokat")).toBeInTheDocument();
-    expect(screen.getByText("Deployad")).toBeInTheDocument();
+    expect(screen.getByText("Bokning pågår")).toBeInTheDocument();
+    expect(screen.getByText("Möte genomfört")).toBeInTheDocument();
   });
 
   it("shows empty state", () => {

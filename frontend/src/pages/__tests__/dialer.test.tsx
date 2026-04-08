@@ -221,7 +221,7 @@ describe("DialerPage", () => {
 
     // Skip fires outcome mutation
     expect(outcomeSubmitMock).toHaveBeenCalledWith(
-      expect.objectContaining({ outcome: "no_answer" }),
+      expect.objectContaining({ outcome: "skipped" }),
       expect.any(Object),
     );
   });

@@ -29,10 +29,11 @@ const baseDeal = {
   lead_id: "l1",
   user_id: "u1",
   website_url: null,
-  contract_url: null,
   domain: null,
   domain_sponsored: false,
   notes: null,
+  meeting_outcome: null,
+  needs_followup: false,
   inserted_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-01T00:00:00Z",
 };
@@ -58,7 +59,7 @@ describe("CustomersPage", () => {
     useDealsMock.mockReturnValue({
       data: [
         { ...baseDeal, id: "d1", stage: "won", lead_name: "Winner AB", user_name: "Agent A", domain: "winner.se" },
-        { ...baseDeal, id: "d2", stage: "meeting_booked", lead_name: "Active AB", user_name: "Agent B", domain: null },
+        { ...baseDeal, id: "d2", stage: "booking_wizard", lead_name: "Active AB", user_name: "Agent B", domain: null },
         { ...baseDeal, id: "d3", stage: "won", lead_name: "Also Won AB", user_name: "Agent C", domain: "alsowon.se" },
       ],
       isLoading: false,

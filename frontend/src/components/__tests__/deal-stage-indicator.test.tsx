@@ -3,21 +3,17 @@ import { render, screen } from "@testing-library/react";
 import { DealStageIndicator } from "../deal-stage-indicator";
 
 const STAGE_LABELS = [
-  "Möte bokat",
-  "Behöver hemsida",
-  "Genereras",
-  "Granskning",
-  "Deployad",
-  "Demo & uppföljning",
+  "Bokning pågår",
+  "Demo schemalagd",
+  "Möte genomfört",
+  "Formulär skickat",
   "Avtal skickat",
-  "Signerat",
-  "DNS & Lansering",
-  "Klar",
+  "Kund",
 ];
 
 describe("DealStageIndicator", () => {
   it("renders all stage labels", () => {
-    render(<DealStageIndicator currentStage="meeting_booked" />);
+    render(<DealStageIndicator currentStage="booking_wizard" />);
 
     for (const label of STAGE_LABELS) {
       expect(screen.getByText(label)).toBeInTheDocument();
@@ -25,13 +21,13 @@ describe("DealStageIndicator", () => {
   });
 
   it("marks completed stages", () => {
-    render(<DealStageIndicator currentStage="reviewing" />);
+    render(<DealStageIndicator currentStage="meeting_completed" />);
 
     const steps = screen.getAllByTestId("stage-step");
     expect(steps[0]).toHaveAttribute("data-state", "completed");
     expect(steps[1]).toHaveAttribute("data-state", "completed");
-    expect(steps[2]).toHaveAttribute("data-state", "completed");
-    expect(steps[3]).toHaveAttribute("data-state", "current");
+    expect(steps[2]).toHaveAttribute("data-state", "current");
+    expect(steps[3]).toHaveAttribute("data-state", "upcoming");
     expect(steps[4]).toHaveAttribute("data-state", "upcoming");
   });
 

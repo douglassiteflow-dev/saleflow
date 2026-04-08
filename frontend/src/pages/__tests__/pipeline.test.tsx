@@ -29,10 +29,11 @@ const baseDeal = {
   lead_id: "l1",
   user_id: "u1",
   website_url: null,
-  contract_url: null,
   domain: null,
   domain_sponsored: false,
   notes: null,
+  meeting_outcome: null,
+  needs_followup: false,
   inserted_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-01T00:00:00Z",
 };
@@ -68,15 +69,15 @@ describe("PipelinePage", () => {
   it("groups deals by stage", () => {
     useDealsMock.mockReturnValue({
       data: [
-        { ...baseDeal, id: "d1", stage: "meeting_booked", lead_name: "Alpha AB", user_name: "Agent A" },
-        { ...baseDeal, id: "d2", stage: "meeting_booked", lead_name: "Beta AB", user_name: "Agent B" },
-        { ...baseDeal, id: "d3", stage: "reviewing", lead_name: "Gamma AB", user_name: "Agent C" },
+        { ...baseDeal, id: "d1", stage: "booking_wizard", lead_name: "Alpha AB", user_name: "Agent A" },
+        { ...baseDeal, id: "d2", stage: "booking_wizard", lead_name: "Beta AB", user_name: "Agent B" },
+        { ...baseDeal, id: "d3", stage: "meeting_completed", lead_name: "Gamma AB", user_name: "Agent C" },
       ],
       isLoading: false,
     });
     render(<PipelinePage />, { wrapper: Wrapper });
-    expect(screen.getByText("Möte bokat (2)")).toBeInTheDocument();
-    expect(screen.getByText("Granskning (1)")).toBeInTheDocument();
+    expect(screen.getByText("Bokning pågår (2)")).toBeInTheDocument();
+    expect(screen.getByText("Möte genomfört (1)")).toBeInTheDocument();
     expect(screen.getByText("Alpha AB")).toBeInTheDocument();
     expect(screen.getByText("Beta AB")).toBeInTheDocument();
     expect(screen.getByText("Gamma AB")).toBeInTheDocument();
@@ -85,14 +86,14 @@ describe("PipelinePage", () => {
   it("hides stages with no deals", () => {
     useDealsMock.mockReturnValue({
       data: [
-        { ...baseDeal, id: "d1", stage: "reviewing", lead_name: "Only AB", user_name: "Agent" },
+        { ...baseDeal, id: "d1", stage: "meeting_completed", lead_name: "Only AB", user_name: "Agent" },
       ],
       isLoading: false,
     });
     render(<PipelinePage />, { wrapper: Wrapper });
-    expect(screen.getByText("Granskning (1)")).toBeInTheDocument();
-    expect(screen.queryByText(/Möte bokat/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Behöver hemsida/)).not.toBeInTheDocument();
+    expect(screen.getByText("Möte genomfört (1)")).toBeInTheDocument();
+    expect(screen.queryByText(/Bokning pågår/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Demo schemalagd/)).not.toBeInTheDocument();
   });
 
   it("renders page title", () => {
@@ -104,7 +105,7 @@ describe("PipelinePage", () => {
   it("navigates to deal detail on row click", () => {
     useDealsMock.mockReturnValue({
       data: [
-        { ...baseDeal, id: "d1", stage: "meeting_booked", lead_name: "Click AB", user_name: "Agent" },
+        { ...baseDeal, id: "d1", stage: "booking_wizard", lead_name: "Click AB", user_name: "Agent" },
       ],
       isLoading: false,
     });
@@ -117,7 +118,7 @@ describe("PipelinePage", () => {
   it("shows agent name in table", () => {
     useDealsMock.mockReturnValue({
       data: [
-        { ...baseDeal, id: "d1", stage: "needs_website", lead_name: "Test AB", user_name: "Jane Doe" },
+        { ...baseDeal, id: "d1", stage: "demo_scheduled", lead_name: "Test AB", user_name: "Jane Doe" },
       ],
       isLoading: false,
     });

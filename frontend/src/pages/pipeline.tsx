@@ -7,15 +7,11 @@ import type { DealStage } from "@/api/types";
 import Loader from "@/components/kokonutui/loader";
 
 const STAGE_ORDER: Exclude<DealStage, "won" | "cancelled">[] = [
-  "meeting_booked",
-  "needs_website",
-  "generating_website",
-  "reviewing",
-  "deployed",
-  "demo_followup",
+  "booking_wizard",
+  "demo_scheduled",
+  "meeting_completed",
+  "questionnaire_sent",
   "contract_sent",
-  "signed",
-  "dns_launch",
 ];
 
 function timeInStage(updatedAt: string): string {
@@ -105,7 +101,7 @@ export function PipelinePage() {
                           {timeInStage(deal.updated_at)}
                         </td>
                         <td className="px-4 py-3">
-                          <Badge status={deal.stage === "demo_followup" ? "in_progress" : "scheduled"} />
+                          <Badge status={deal.stage === "meeting_completed" ? "in_progress" : "scheduled"} />
                         </td>
                       </tr>
                     ))}

@@ -4,15 +4,11 @@ import { STAGE_LABELS } from "@/lib/constants";
 import type { DealStage } from "@/api/types";
 
 const STAGE_KEYS: DealStage[] = [
-  "meeting_booked",
-  "needs_website",
-  "generating_website",
-  "reviewing",
-  "deployed",
-  "demo_followup",
+  "booking_wizard",
+  "demo_scheduled",
+  "meeting_completed",
+  "questionnaire_sent",
   "contract_sent",
-  "signed",
-  "dns_launch",
   "won",
 ];
 

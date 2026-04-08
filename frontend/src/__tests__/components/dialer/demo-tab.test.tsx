@@ -22,6 +22,7 @@ const SAMPLE_CONFIGS = [
     preview_url: null,
     notes: null,
     error: null,
+    health_score: null,
     inserted_at: "2026-04-01T10:00:00Z",
     updated_at: "2026-04-01T10:00:00Z",
   },
@@ -35,6 +36,7 @@ const SAMPLE_CONFIGS = [
     preview_url: "https://preview.example.com/dc-2",
     notes: null,
     error: null,
+    health_score: null,
     inserted_at: "2026-04-02T10:00:00Z",
     updated_at: "2026-04-02T10:00:00Z",
   },
@@ -48,6 +50,7 @@ const SAMPLE_CONFIGS = [
     preview_url: null,
     notes: null,
     error: null,
+    health_score: null,
     inserted_at: "2026-04-03T10:00:00Z",
     updated_at: "2026-04-03T10:00:00Z",
   },
@@ -167,5 +170,63 @@ describe("DemoTab", () => {
 
     expect(screen.getByText("Företag")).toBeInTheDocument();
     expect(screen.getByText("Status")).toBeInTheDocument();
+  });
+
+  it("shows green dot for health_score > 70", () => {
+    const configs = [{ ...SAMPLE_CONFIGS[0], id: "h1", health_score: 85 }];
+    mockUseDemoConfigs.mockReturnValue({ data: configs, isLoading: false } as ReturnType<typeof useDemoConfigs>);
+
+    render(<DemoTab onSelectDemoConfig={vi.fn()} />);
+
+    const dot = screen.getByTitle("Hälsa: 85%");
+    expect(dot).toHaveClass("bg-emerald-500");
+  });
+
+  it("shows yellow dot for health_score between 40 and 70 inclusive", () => {
+    const configs = [{ ...SAMPLE_CONFIGS[0], id: "h2", health_score: 55 }];
+    mockUseDemoConfigs.mockReturnValue({ data: configs, isLoading: false } as ReturnType<typeof useDemoConfigs>);
+
+    render(<DemoTab onSelectDemoConfig={vi.fn()} />);
+
+    const dot = screen.getByTitle("Hälsa: 55%");
+    expect(dot).toHaveClass("bg-amber-500");
+  });
+
+  it("shows red dot for health_score < 40", () => {
+    const configs = [{ ...SAMPLE_CONFIGS[0], id: "h3", health_score: 20 }];
+    mockUseDemoConfigs.mockReturnValue({ data: configs, isLoading: false } as ReturnType<typeof useDemoConfigs>);
+
+    render(<DemoTab onSelectDemoConfig={vi.fn()} />);
+
+    const dot = screen.getByTitle("Hälsa: 20%");
+    expect(dot).toHaveClass("bg-red-500");
+  });
+
+  it("shows gray dot for null health_score", () => {
+    const configs = [{ ...SAMPLE_CONFIGS[0], id: "h4", health_score: null }];
+    mockUseDemoConfigs.mockReturnValue({ data: configs, isLoading: false } as ReturnType<typeof useDemoConfigs>);
+
+    render(<DemoTab onSelectDemoConfig={vi.fn()} />);
+
+    const dot = screen.getByTitle("Ej beräknad");
+    expect(dot).toHaveClass("bg-gray-300");
+  });
+
+  it("shows tooltip with score for a non-null health_score", () => {
+    const configs = [{ ...SAMPLE_CONFIGS[0], id: "h5", health_score: 70 }];
+    mockUseDemoConfigs.mockReturnValue({ data: configs, isLoading: false } as ReturnType<typeof useDemoConfigs>);
+
+    render(<DemoTab onSelectDemoConfig={vi.fn()} />);
+
+    expect(screen.getByTitle("Hälsa: 70%")).toBeInTheDocument();
+  });
+
+  it("shows tooltip 'Ej beräknad' for null health_score", () => {
+    const configs = [{ ...SAMPLE_CONFIGS[0], id: "h6", health_score: null }];
+    mockUseDemoConfigs.mockReturnValue({ data: configs, isLoading: false } as ReturnType<typeof useDemoConfigs>);
+
+    render(<DemoTab onSelectDemoConfig={vi.fn()} />);
+
+    expect(screen.getByTitle("Ej beräknad")).toBeInTheDocument();
   });
 });
