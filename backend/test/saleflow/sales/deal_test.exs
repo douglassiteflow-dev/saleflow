@@ -38,9 +38,11 @@ defmodule Saleflow.Sales.DealTest do
 
       assert deal.lead_id == lead.id
       assert deal.user_id == user.id
-      assert deal.stage == :meeting_booked
+      assert deal.stage == :booking_wizard
       assert deal.website_url == nil
       assert deal.domain_sponsored == false
+      assert deal.meeting_outcome == nil
+      assert deal.needs_followup == false
     end
 
     test "rejects deal without lead_id" do
@@ -60,11 +62,11 @@ defmodule Saleflow.Sales.DealTest do
       user = create_user!()
       {:ok, deal} = Sales.create_deal(%{lead_id: lead.id, user_id: user.id})
 
-      assert deal.stage == :meeting_booked
+      assert deal.stage == :booking_wizard
       {:ok, deal} = Sales.advance_deal(deal)
-      assert deal.stage == :needs_website
+      assert deal.stage == :demo_scheduled
       {:ok, deal} = Sales.advance_deal(deal)
-      assert deal.stage == :generating_website
+      assert deal.stage == :meeting_completed
     end
 
     test "advances through all stages in order" do
@@ -73,14 +75,10 @@ defmodule Saleflow.Sales.DealTest do
       {:ok, deal} = Sales.create_deal(%{lead_id: lead.id, user_id: user.id})
 
       expected_stages = [
-        :needs_website,
-        :generating_website,
-        :reviewing,
-        :deployed,
-        :demo_followup,
+        :demo_scheduled,
+        :meeting_completed,
+        :questionnaire_sent,
         :contract_sent,
-        :signed,
-        :dns_launch,
         :won
       ]
 
@@ -100,7 +98,7 @@ defmodule Saleflow.Sales.DealTest do
       {:ok, deal} = Sales.create_deal(%{lead_id: lead.id, user_id: user.id})
 
       deal =
-        Enum.reduce(1..9, deal, fn _, d ->
+        Enum.reduce(1..5, deal, fn _, d ->
           {:ok, advanced} = Sales.advance_deal(d)
           advanced
         end)
@@ -137,6 +135,24 @@ defmodule Saleflow.Sales.DealTest do
       {:ok, updated} = Sales.update_deal(deal, %{domain: "example.se", domain_sponsored: true})
       assert updated.domain == "example.se"
       assert updated.domain_sponsored == true
+    end
+
+    test "updates meeting_outcome" do
+      lead = create_lead!()
+      user = create_user!()
+      {:ok, deal} = Sales.create_deal(%{lead_id: lead.id, user_id: user.id})
+
+      {:ok, updated} = Sales.update_deal(deal, %{meeting_outcome: "Great meeting, very interested"})
+      assert updated.meeting_outcome == "Great meeting, very interested"
+    end
+
+    test "updates needs_followup" do
+      lead = create_lead!()
+      user = create_user!()
+      {:ok, deal} = Sales.create_deal(%{lead_id: lead.id, user_id: user.id})
+
+      {:ok, updated} = Sales.update_deal(deal, %{needs_followup: true})
+      assert updated.needs_followup == true
     end
   end
 
