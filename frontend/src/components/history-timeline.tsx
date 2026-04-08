@@ -13,7 +13,7 @@ interface HistoryTimelineProps {
   onPlayRecording?: (url: string) => void;
 }
 
-export function HistoryTimeline({ callLogs = [], bare = false, onPlayRecording }: HistoryTimelineProps) {
+export function HistoryTimeline({ callLogs = [], bare = false, onPlayRecording: _onPlayRecording }: HistoryTimelineProps) {
   const [analysisCall, setAnalysisCall] = useState<CallLog | null>(null);
   const sorted = [...callLogs].sort(
     (a, b) => new Date(b.called_at).getTime() - new Date(a.called_at).getTime()
@@ -70,7 +70,7 @@ export function HistoryTimeline({ callLogs = [], bare = false, onPlayRecording }
               </td>
               <td className="px-4 py-3">
                 {call.has_recording && (call.phone_call_id || call.id) ? (
-                  <RecordingPlayer phoneCallId={call.phone_call_id ?? call.id} onPlay={onPlayRecording} />
+                  <RecordingPlayer phoneCallId={call.phone_call_id ?? call.id} />
                 ) : (
                   <span className="text-[var(--color-text-secondary)]">—</span>
                 )}

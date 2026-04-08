@@ -216,6 +216,7 @@ export function DialerPage() {
           currentLeadId={currentLeadId}
           nextLeadData={nextLeadMutation.data}
           nextLeadError={nextLeadMutation.isError}
+          callDuration={callDuration}
         />
       )}
 
@@ -328,6 +329,7 @@ interface DialerTabContentProps {
   currentLeadId: string | null;
   nextLeadData: Lead | null | undefined;
   nextLeadError: boolean;
+  callDuration: number;
 }
 
 function DialerTabContent({
@@ -348,6 +350,7 @@ function DialerTabContent({
   currentLeadId,
   nextLeadData,
   nextLeadError,
+  callDuration,
 }: DialerTabContentProps) {
   /* Leaderboard */
   const showLeaderboard = leaderboard.length > 0;
@@ -696,7 +699,7 @@ function CallbacksTabContent({
 
 /* ==================== History tab ==================== */
 
-function HistoryTabContent({ dateRange, onDateRangeChange, activePreset, onPresetChange, onLeadClick, onPlayRecording }: { dateRange: DateRange; onDateRangeChange: (r: DateRange) => void; activePreset?: string | null; onPresetChange?: (label: string) => void; onLeadClick: (leadId: string) => void; onPlayRecording?: (url: string) => void }) {
+function HistoryTabContent({ dateRange, onDateRangeChange, activePreset, onPresetChange, onLeadClick, onPlayRecording: _onPlayRecording }: { dateRange: DateRange; onDateRangeChange: (r: DateRange) => void; activePreset?: string | null; onPresetChange?: (label: string) => void; onLeadClick: (leadId: string) => void; onPlayRecording?: (url: string) => void }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [outcomeFilter, setOutcomeFilter] = useState("");
@@ -788,7 +791,7 @@ function HistoryTabContent({ dateRange, onDateRangeChange, activePreset, onPrese
                   </td>
                   <td className="px-5 py-2.5" onClick={(e) => e.stopPropagation()}>
                     {call.has_recording && (call.phone_call_id || call.id) ? (
-                      <RecordingPlayer phoneCallId={call.phone_call_id ?? call.id} onPlay={onPlayRecording} />
+                      <RecordingPlayer phoneCallId={call.phone_call_id ?? call.id} />
                     ) : (
                       <span className="text-[var(--color-text-secondary)]">—</span>
                     )}

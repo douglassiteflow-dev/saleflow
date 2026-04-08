@@ -97,7 +97,7 @@ export function MeetingDetailTab({ meetingId, onBack }: MeetingDetailTabProps) {
           {meeting.status === "scheduled" && !meeting.teams_join_url && (
             <button
               type="button"
-              onClick={() => createTeamsMeeting.mutate(meetingId)}
+              onClick={() => createTeamsMeeting.mutate({ meetingId })}
               disabled={createTeamsMeeting.isPending}
               className="rounded-md bg-purple-600 px-3 py-1 text-[11px] font-medium text-white hover:brightness-110 transition-all disabled:opacity-50"
             >

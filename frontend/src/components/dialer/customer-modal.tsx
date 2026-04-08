@@ -91,7 +91,7 @@ export function CustomerModal({
     onOutcomeSubmitted();
   }
 
-  function handleDial(number: string) {
+  function handleDial(_number: string) {
     dialMutation.mutate(leadId);
   }
 
