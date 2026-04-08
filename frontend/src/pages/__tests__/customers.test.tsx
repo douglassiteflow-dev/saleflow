@@ -52,7 +52,7 @@ describe("CustomersPage", () => {
   it("renders empty state when no won deals", () => {
     useDealsMock.mockReturnValue({ data: [], isLoading: false });
     render(<CustomersPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Inga kunder ännu")).toBeInTheDocument();
+    expect(screen.getByText("Inga kunder än")).toBeInTheDocument();
   });
 
   it("shows only won deals", () => {
@@ -70,7 +70,7 @@ describe("CustomersPage", () => {
     expect(screen.queryByText("Active AB")).not.toBeInTheDocument();
   });
 
-  it("shows page title with count", () => {
+  it("shows page title and customer count subtitle", () => {
     useDealsMock.mockReturnValue({
       data: [
         { ...baseDeal, id: "d1", stage: "won", lead_name: "Winner AB", user_name: "Agent", domain: "w.se" },
@@ -78,7 +78,8 @@ describe("CustomersPage", () => {
       isLoading: false,
     });
     render(<CustomersPage />, { wrapper: Wrapper });
-    expect(screen.getByText("Kunder (1)")).toBeInTheDocument();
+    expect(screen.getByText("Kunder")).toBeInTheDocument();
+    expect(screen.getByText("1 kunder totalt")).toBeInTheDocument();
   });
 
   it("shows domain in table", () => {
@@ -92,7 +93,18 @@ describe("CustomersPage", () => {
     expect(screen.getByText("test.se")).toBeInTheDocument();
   });
 
-  it("navigates to customer detail on row click", () => {
+  it("shows avslutsdatum column header", () => {
+    useDealsMock.mockReturnValue({
+      data: [
+        { ...baseDeal, id: "d1", stage: "won", lead_name: "Test AB", user_name: "Agent", domain: null },
+      ],
+      isLoading: false,
+    });
+    render(<CustomersPage />, { wrapper: Wrapper });
+    expect(screen.getByText("Avslutsdatum")).toBeInTheDocument();
+  });
+
+  it("navigates to pipeline detail on row click", () => {
     useDealsMock.mockReturnValue({
       data: [
         { ...baseDeal, id: "d1", stage: "won", lead_name: "Click AB", user_name: "Agent", domain: null },
@@ -102,6 +114,6 @@ describe("CustomersPage", () => {
     render(<CustomersPage />, { wrapper: Wrapper });
     const row = screen.getByText("Click AB").closest("tr");
     if (row) fireEvent.click(row);
-    expect(navigateMock).toHaveBeenCalledWith("/customers/d1");
+    expect(navigateMock).toHaveBeenCalledWith("/pipeline/d1");
   });
 });

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useDeals } from "@/api/deals";
-import { Card } from "@/components/ui/card";
+import { formatDate } from "@/lib/format";
 import Loader from "@/components/kokonutui/loader";
 
 export function CustomersPage() {
@@ -11,11 +11,16 @@ export function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header — matches dashboard text-[22px] font-light */}
+      <div>
         <h1 className="text-[22px] font-light tracking-[-0.5px] text-[var(--color-text-primary)]">
-          Kunder ({customers.length})
+          Kunder
         </h1>
+        {!isLoading && customers.length > 0 && (
+          <p className="mt-0.5 text-[13px] text-[var(--color-text-secondary)]">
+            {customers.length} kunder totalt
+          </p>
+        )}
       </div>
 
       {isLoading ? (
@@ -24,51 +29,61 @@ export function CustomersPage() {
         </div>
       ) : customers.length === 0 ? (
         <p className="text-sm text-[var(--color-text-secondary)]">
-          Inga kunder ännu
+          Inga kunder än
         </p>
       ) : (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-[var(--color-bg-panel)] text-left">
-                  <th className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
-                    Företag
-                  </th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
-                    Domän
-                  </th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
-                    Agent
-                  </th>
+        <div className="rounded-[14px] border border-[var(--color-border)] bg-[var(--color-bg-primary)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-panel)]">
+                <th className="px-5 py-2.5 text-left text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">
+                  Företag
+                </th>
+                <th className="px-5 py-2.5 text-left text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">
+                  Agent
+                </th>
+                <th className="px-5 py-2.5 text-left text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">
+                  Avslutsdatum
+                </th>
+                <th className="px-5 py-2.5 text-left text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)]">
+                  Domän
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {customers.map((deal, i) => (
+                <tr
+                  key={deal.id}
+                  role="button"
+                  tabIndex={0}
+                  className={`cursor-pointer transition-colors hover:bg-[var(--color-bg-panel)] ${
+                    i !== customers.length - 1
+                      ? "border-b border-[var(--color-border)]"
+                      : ""
+                  }`}
+                  onClick={() => void navigate(`/pipeline/${deal.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ")
+                      void navigate(`/pipeline/${deal.id}`);
+                  }}
+                >
+                  <td className="px-5 py-3.5 font-medium text-[var(--color-text-primary)]">
+                    {deal.lead_name ?? "—"}
+                  </td>
+                  <td className="px-5 py-3.5 text-[var(--color-text-secondary)]">
+                    {deal.user_name ?? "—"}
+                  </td>
+                  <td className="px-5 py-3.5 text-[var(--color-text-secondary)]">
+                    {formatDate(deal.updated_at)}
+                  </td>
+                  <td className="px-5 py-3.5 text-[var(--color-text-secondary)]">
+                    {deal.domain ?? "—"}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {customers.map((deal, i) => (
-                  <tr
-                    key={deal.id}
-                    className={`cursor-pointer hover:bg-[var(--color-bg-panel)] transition-colors${
-                      i !== customers.length - 1
-                        ? " border-b border-slate-200"
-                        : ""
-                    }`}
-                    onClick={() => void navigate(`/customers/${deal.id}`)}
-                  >
-                    <td className="px-4 py-3 font-medium text-[var(--color-text-primary)]">
-                      {deal.lead_name ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 text-[var(--color-text-secondary)]">
-                      {deal.domain ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 text-[var(--color-text-secondary)]">
-                      {deal.user_name ?? "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
