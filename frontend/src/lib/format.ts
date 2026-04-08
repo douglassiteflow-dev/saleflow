@@ -34,6 +34,18 @@ export function formatDate(isoDate: string): string {
 }
 
 /**
+ * Format today's date with weekday in Swedish locale.
+ * E.g. "tisdag 8 april 2026"
+ */
+export function formatTodayWithWeekday(): string {
+  return new Date().toLocaleDateString("sv-SE", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
+/**
  * Format a time string "14:30:00" → "14:30".
  */
 export function formatTime(time: string): string {

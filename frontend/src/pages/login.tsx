@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate, Link } from "react-router-dom";
 
-const HOME = (window as any).saleflowDesktop ? "/app" : "/dashboard";
+const HOME = window.saleflowDesktop ? "/app" : "/dashboard";
 import {
   useMe,
   useLogin,

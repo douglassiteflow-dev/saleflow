@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import type { LeadList, LeadListStats, User, Lead } from "@/api/types";
 import Loader from "@/components/kokonutui/loader";
+import { formatDate } from "@/lib/format";
 
 const statusBadgeStyles: Record<string, string> = {
   active: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -209,11 +210,6 @@ export function AdminListsPage() {
   function toggleStatus(list: LeadList) {
     const nextStatus = list.status === "active" ? "paused" : "active";
     updateList.mutate({ id: list.id, status: nextStatus });
-  }
-
-  function formatDate(dateStr: string | null) {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleDateString("sv-SE");
   }
 
   return (

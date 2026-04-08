@@ -165,6 +165,7 @@ export interface Meeting {
   inserted_at: string;
   user_name?: string | null;
   lead?: MeetingLead | null;
+  demo_config_id?: string | null;
 }
 
 export interface MicrosoftStatus {

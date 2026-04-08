@@ -102,7 +102,7 @@ export function App() {
               <Route path="/call-library" element={<Suspense fallback={<LazyFallback />}><CallLibraryPage /></Suspense>} />
             </Route>
           </Route>
-          <Route path="*" element={<Navigate to={(window as any).saleflowDesktop ? "/app" : "/login"} replace />} />
+          <Route path="*" element={<Navigate to={window.saleflowDesktop ? "/app" : "/login"} replace />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

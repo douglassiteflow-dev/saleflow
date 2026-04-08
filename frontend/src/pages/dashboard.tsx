@@ -5,14 +5,7 @@ import { Leaderboard } from "@/components/leaderboard";
 import { StatCard } from "@/components/stat-card";
 import { LiveCalls } from "@/components/live-calls";
 import { ACTIVE_STAGES, getStageConfig } from "@/lib/pipeline-config";
-
-function formatDate(): string {
-  return new Date().toLocaleDateString("sv-SE", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-}
+import { formatTodayWithWeekday } from "@/lib/format";
 
 export function DashboardPage() {
   const { data: user } = useMe();
@@ -41,7 +34,7 @@ export function DashboardPage() {
           Hej {user?.name?.split(" ")[0] ?? ""}
         </h1>
         <p className="mt-0.5 text-[13px] text-[var(--color-text-secondary)]">
-          {formatDate()}
+          {formatTodayWithWeekday()}
         </p>
       </div>
 

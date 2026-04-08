@@ -10,6 +10,7 @@ import {
 } from "@/api/contract-public";
 import { SignatureCanvas } from "@/components/signature-canvas";
 import { inputClass } from "@/lib/form-styles";
+import { formatDate } from "@/lib/format";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -29,15 +30,6 @@ function formatAmount(amount: number, currency: string): string {
   });
   if (currency === "SEK" || currency === "sek") return `${formatted} kr`;
   return `${formatted} ${currency}`;
-}
-
-/** Format ISO date to Swedish: 2026-04-08T... -> "8 april 2026" */
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("sv-SE", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
 }
 
 /** Check if contract has expired */

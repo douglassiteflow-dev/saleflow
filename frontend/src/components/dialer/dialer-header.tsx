@@ -30,7 +30,7 @@ export function DialerHeader({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const unreadCount = useUnreadCount();
-  const isDesktop = window.location.pathname === "/app" || !!(window as any).saleflowDesktop;
+  const isDesktop = window.location.pathname === "/app" || !!window.saleflowDesktop;
   const isWindows = navigator.platform?.includes("Win") || navigator.userAgent?.includes("Windows");
 
   return (

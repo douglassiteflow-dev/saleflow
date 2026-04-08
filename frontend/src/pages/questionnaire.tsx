@@ -166,7 +166,7 @@ export function QuestionnairePage() {
         if (q.status === "completed") setSubmitted(true);
       })
       .catch((err) => {
-        if (err instanceof Error && "status" in err && (err as any).status === 404) {
+        if (err instanceof Error && "status" in err && (err as Error & { status: unknown }).status === 404) {
           setError("Länken är ogiltig eller har utgått.");
         } else {
           setError("Något gick fel. Försök igen senare.");
