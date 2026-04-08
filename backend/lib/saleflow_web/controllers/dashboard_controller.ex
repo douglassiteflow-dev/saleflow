@@ -5,7 +5,7 @@ defmodule SaleflowWeb.DashboardController do
   alias Saleflow.Stats
   alias Saleflow.Repo
 
-  import SaleflowWeb.ControllerHelpers, only: [build_global_user_name_map: 0, build_lead_map: 1]
+  import SaleflowWeb.ControllerHelpers, only: [enrich_meetings: 1]
   import SaleflowWeb.Serializers
 
   @doc """
@@ -160,14 +160,4 @@ defmodule SaleflowWeb.DashboardController do
     Enum.map(leads, &serialize_lead/1)
   end
 
-  defp enrich_meetings(meetings) do
-    lead_ids = meetings |> Enum.map(& &1.lead_id) |> Enum.uniq()
-    lead_map = build_lead_map(lead_ids)
-    user_names = build_global_user_name_map()
-
-    Enum.map(meetings, fn m ->
-      lead = Map.get(lead_map, m.lead_id)
-      serialize_meeting_with_lead(m, lead, user_names)
-    end)
-  end
 end

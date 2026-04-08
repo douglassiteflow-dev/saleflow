@@ -397,52 +397,6 @@ defmodule SaleflowWeb.LeadController do
   end
 
   # ---------------------------------------------------------------------------
-  # Serializers (local, controller-specific)
-  # ---------------------------------------------------------------------------
-
-  defp serialize_call(call, user_names, _current_user) do
-    {duration, has_recording, phone_call_id, transcription, transcription_analysis} = get_call_phone_data(call.id)
-
-    %{
-      id: call.id,
-      lead_id: call.lead_id,
-      user_id: call.user_id,
-      user_name: Map.get(user_names, call.user_id),
-      outcome: call.outcome,
-      notes: call.notes,
-      called_at: call.called_at,
-      duration: duration,
-      has_recording: has_recording,
-      phone_call_id: phone_call_id,
-      transcription: transcription,
-      transcription_analysis: transcription_analysis
-    }
-  end
-
-  # ---------------------------------------------------------------------------
-  # Date/time parsing with defaults (specific to outcome/meeting booking)
-  # ---------------------------------------------------------------------------
-
-  defp parse_date_with_default(nil), do: Date.utc_today() |> Date.add(1)
-  defp parse_date_with_default(date_string) when is_binary(date_string) do
-    case Date.from_iso8601(date_string) do
-      {:ok, date} -> date
-      _ -> Date.utc_today() |> Date.add(1)
-    end
-  end
-
-  defp parse_time_with_default(nil), do: ~T[10:00:00]
-  defp parse_time_with_default(time_string) when is_binary(time_string) do
-    # HTML time input sends "HH:MM", Time.from_iso8601 requires "HH:MM:SS"
-    padded = if String.length(time_string) == 5, do: time_string <> ":00", else: time_string
-
-    case Time.from_iso8601(padded) do
-      {:ok, time} -> time
-      _ -> ~T[10:00:00]
-    end
-  end
-
-  # ---------------------------------------------------------------------------
   # Teams meeting auto-creation (best-effort, never blocks outcome)
   # ---------------------------------------------------------------------------
 

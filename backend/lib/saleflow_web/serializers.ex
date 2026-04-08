@@ -120,4 +120,65 @@ defmodule SaleflowWeb.Serializers do
       inserted_at: log.inserted_at
     }
   end
+
+  @doc """
+  Call log serialization with phone data.
+  Accepts either 2 or 3 arguments (the third is ignored for backwards compat).
+  Used across lead_controller and meeting_controller.
+  """
+  def serialize_call(call, user_names, _current_user \\ nil) do
+    {duration, has_recording, phone_call_id, transcription, transcription_analysis} =
+      SaleflowWeb.ControllerHelpers.get_call_phone_data(call.id)
+
+    %{
+      id: call.id,
+      lead_id: call.lead_id,
+      user_id: call.user_id,
+      user_name: Map.get(user_names, call.user_id),
+      outcome: call.outcome,
+      notes: call.notes,
+      called_at: call.called_at,
+      duration: duration,
+      has_recording: has_recording,
+      phone_call_id: phone_call_id,
+      transcription: transcription,
+      transcription_analysis: transcription_analysis
+    }
+  end
+
+  @doc """
+  Simple deal serialization (no lead/user name enrichment).
+  Used for advance/update responses and as the base for full deal serialization.
+  """
+  def serialize_deal_simple(deal) do
+    %{
+      id: deal.id,
+      lead_id: deal.lead_id,
+      user_id: deal.user_id,
+      stage: deal.stage,
+      notes: deal.notes,
+      website_url: deal.website_url,
+      meeting_outcome: deal.meeting_outcome,
+      needs_followup: deal.needs_followup,
+      domain: deal.domain,
+      domain_sponsored: deal.domain_sponsored,
+      inserted_at: deal.inserted_at,
+      updated_at: deal.updated_at
+    }
+  end
+
+  @doc """
+  Full deal serialization enriched with lead_name and user_name.
+  """
+  def serialize_deal(deal, nil, user_names) do
+    serialize_deal_simple(deal)
+    |> Map.put(:lead_name, nil)
+    |> Map.put(:user_name, Map.get(user_names, deal.user_id))
+  end
+
+  def serialize_deal(deal, lead, user_names) do
+    serialize_deal_simple(deal)
+    |> Map.put(:lead_name, lead.företag)
+    |> Map.put(:user_name, Map.get(user_names, deal.user_id))
+  end
 end

@@ -330,35 +330,6 @@ defmodule SaleflowWeb.DealController do
     end)
   end
 
-  defp serialize_deal_simple(deal) do
-    %{
-      id: deal.id,
-      lead_id: deal.lead_id,
-      user_id: deal.user_id,
-      stage: deal.stage,
-      notes: deal.notes,
-      website_url: deal.website_url,
-      meeting_outcome: deal.meeting_outcome,
-      needs_followup: deal.needs_followup,
-      domain: deal.domain,
-      domain_sponsored: deal.domain_sponsored,
-      inserted_at: deal.inserted_at,
-      updated_at: deal.updated_at
-    }
-  end
-
-  defp serialize_deal(deal, nil, user_names) do
-    serialize_deal_simple(deal)
-    |> Map.put(:lead_name, nil)
-    |> Map.put(:user_name, Map.get(user_names, deal.user_id))
-  end
-
-  defp serialize_deal(deal, lead, user_names) do
-    serialize_deal_simple(deal)
-    |> Map.put(:lead_name, lead.företag)
-    |> Map.put(:user_name, Map.get(user_names, deal.user_id))
-  end
-
   defp authorize_admin(%{role: :admin}), do: :ok
   defp authorize_admin(_), do: {:error, :forbidden}
 

@@ -225,6 +225,7 @@ defmodule SaleflowWeb.DemoConfigController do
       preview_url: dc.preview_url,
       notes: dc.notes,
       error: dc.error,
+      health_score: dc.health_score,
       lead_name: lead_name,
       inserted_at: dc.inserted_at,
       updated_at: dc.updated_at

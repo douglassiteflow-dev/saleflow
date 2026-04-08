@@ -68,6 +68,11 @@ defmodule Saleflow.Sales.DemoConfig do
       public? true
     end
 
+    attribute :health_score, :integer do
+      allow_nil? true
+      public? true
+    end
+
     create_timestamp :inserted_at
     update_timestamp :updated_at
   end

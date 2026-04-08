@@ -147,6 +147,43 @@ defmodule SaleflowWeb.ControllerHelpers do
     end
   end
 
+  @doc "Parse an ISO 8601 date string, defaulting to tomorrow on nil or parse failure."
+  def parse_date_with_default(nil), do: Date.utc_today() |> Date.add(1)
+
+  def parse_date_with_default(date_string) when is_binary(date_string) do
+    case Date.from_iso8601(date_string) do
+      {:ok, date} -> date
+      _ -> Date.utc_today() |> Date.add(1)
+    end
+  end
+
+  @doc "Parse an ISO 8601 time string (HH:MM or HH:MM:SS), defaulting to 10:00:00 on nil or parse failure."
+  def parse_time_with_default(nil), do: ~T[10:00:00]
+
+  def parse_time_with_default(time_string) when is_binary(time_string) do
+    padded = if String.length(time_string) == 5, do: time_string <> ":00", else: time_string
+
+    case Time.from_iso8601(padded) do
+      {:ok, time} -> time
+      _ -> ~T[10:00:00]
+    end
+  end
+
+  @doc """
+  Enrich a list of meetings with embedded lead summaries and user names.
+  Used in meeting_controller and dashboard_controller.
+  """
+  def enrich_meetings(meetings) do
+    lead_ids = meetings |> Enum.map(& &1.lead_id) |> Enum.uniq()
+    lead_map = build_lead_map(lead_ids)
+    user_names = build_global_user_name_map()
+
+    Enum.map(meetings, fn m ->
+      lead = Map.get(lead_map, m.lead_id)
+      SaleflowWeb.Serializers.serialize_meeting_with_lead(m, lead, user_names)
+    end)
+  end
+
   # ---------------------------------------------------------------------------
   # Call phone data (shared between lead_controller and meeting_controller)
   # ---------------------------------------------------------------------------

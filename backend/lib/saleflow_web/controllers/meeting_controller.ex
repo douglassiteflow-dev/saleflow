@@ -239,60 +239,6 @@ defmodule SaleflowWeb.MeetingController do
     end
   end
 
-  defp enrich_meetings(meetings) do
-    lead_ids = meetings |> Enum.map(& &1.lead_id) |> Enum.uniq()
-    lead_map = build_lead_map(lead_ids)
-    user_names = build_global_user_name_map()
-
-    Enum.map(meetings, fn m ->
-      lead = Map.get(lead_map, m.lead_id)
-      serialize_meeting_with_lead(m, lead, user_names)
-    end)
-  end
-
-  defp serialize_call(call, user_names) do
-    {duration, has_recording, phone_call_id, transcription, transcription_analysis} = get_call_phone_data(call.id)
-
-    %{
-      id: call.id,
-      lead_id: call.lead_id,
-      user_id: call.user_id,
-      user_name: Map.get(user_names, call.user_id),
-      outcome: call.outcome,
-      notes: call.notes,
-      called_at: call.called_at,
-      duration: duration,
-      has_recording: has_recording,
-      phone_call_id: phone_call_id,
-      transcription: transcription,
-      transcription_analysis: transcription_analysis
-    }
-  end
-
-  # ---------------------------------------------------------------------------
-  # Date/time parsing with defaults (specific to meeting creation)
-  # ---------------------------------------------------------------------------
-
-  defp parse_date_with_default(nil), do: Date.utc_today() |> Date.add(1)
-
-  defp parse_date_with_default(date_string) when is_binary(date_string) do
-    case Date.from_iso8601(date_string) do
-      {:ok, date} -> date
-      _ -> Date.utc_today() |> Date.add(1)
-    end
-  end
-
-  defp parse_time_with_default(nil), do: ~T[10:00:00]
-
-  defp parse_time_with_default(time_string) when is_binary(time_string) do
-    padded = if String.length(time_string) == 5, do: time_string <> ":00", else: time_string
-
-    case Time.from_iso8601(padded) do
-      {:ok, time} -> time
-      _ -> ~T[10:00:00]
-    end
-  end
-
   defp parse_status(nil), do: nil
   defp parse_status("scheduled"), do: :scheduled
   defp parse_status("completed"), do: :completed
