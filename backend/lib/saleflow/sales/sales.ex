@@ -72,6 +72,8 @@ defmodule Saleflow.Sales do
     resource Saleflow.Sales.Deal
     resource Saleflow.Sales.DemoConfig
     resource Saleflow.Sales.Contact
+    resource Saleflow.Sales.Questionnaire
+    resource Saleflow.Sales.QuestionnaireTemplate
     resource Saleflow.Notifications.Notification
   end
 
@@ -911,6 +913,61 @@ defmodule Saleflow.Sales do
   @spec delete_contact(Saleflow.Sales.Contact.t()) :: :ok | {:error, Ash.Error.t()}
   def delete_contact(contact) do
     Ash.destroy(contact)
+  end
+
+  # ---------------------------------------------------------------------------
+  # Questionnaire functions
+  # ---------------------------------------------------------------------------
+
+  def create_questionnaire(params) do
+    Saleflow.Sales.Questionnaire
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create()
+  end
+
+  def get_questionnaire(id) do
+    Saleflow.Sales.Questionnaire
+    |> Ash.get(id)
+  end
+
+  def get_questionnaire_by_token(token) do
+    require Ash.Query
+
+    Saleflow.Sales.Questionnaire
+    |> Ash.Query.filter(token == ^token)
+    |> Ash.Query.limit(1)
+    |> Ash.read()
+    |> case do
+      {:ok, [q | _]} -> {:ok, q}
+      {:ok, []} -> {:error, :not_found}
+      error -> error
+    end
+  end
+
+  def save_questionnaire_answers(questionnaire, params) do
+    questionnaire
+    |> Ash.Changeset.for_update(:save_answers, params)
+    |> Ash.update()
+  end
+
+  def complete_questionnaire(questionnaire) do
+    questionnaire
+    |> Ash.Changeset.for_update(:complete, %{})
+    |> Ash.update()
+  end
+
+  def get_questionnaire_for_deal(deal_id) do
+    require Ash.Query
+
+    Saleflow.Sales.Questionnaire
+    |> Ash.Query.filter(deal_id == ^deal_id)
+    |> Ash.Query.limit(1)
+    |> Ash.read()
+    |> case do
+      {:ok, [q | _]} -> {:ok, q}
+      {:ok, []} -> {:ok, nil}
+      error -> error
+    end
   end
 
   def decode_uuid(value) when is_binary(value) and byte_size(value) == 16 do
