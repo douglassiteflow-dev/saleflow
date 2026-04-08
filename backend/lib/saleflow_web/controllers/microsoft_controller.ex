@@ -149,7 +149,7 @@ defmodule SaleflowWeb.MicrosoftController do
   @doc """
   POST /api/meetings/:id/create-teams-meeting — manually create a Teams meeting.
   """
-  def create_teams_meeting(conn, %{"id" => meeting_id}) do
+  def create_teams_meeting(conn, %{"id" => meeting_id} = params) do
     user = conn.assigns.current_user
 
     with {:ok, meeting} <- Ash.get(Saleflow.Sales.Meeting, meeting_id),
@@ -157,6 +157,21 @@ defmodule SaleflowWeb.MicrosoftController do
          :ok <- check_ownership(meeting, user),
          {:ok, ms_conn} <- get_connection_for_user(user.id),
          {:ok, ms_conn} <- Graph.ensure_fresh_token(ms_conn) do
+      # Update attendee fields if provided
+      attendee_email = params["email"] || meeting.attendee_email
+      attendee_name = params["name"] || meeting.attendee_name
+
+      attendee_updates =
+        %{}
+        |> maybe_put(:attendee_email, params["email"])
+        |> maybe_put(:attendee_name, params["name"])
+
+      if map_size(attendee_updates) > 0 do
+        meeting
+        |> Ash.Changeset.for_update(:update_teams, attendee_updates)
+        |> Ash.update!()
+      end
+
       # Build datetimes
       start_dt = build_datetime(meeting.meeting_date, meeting.meeting_time)
       end_dt = NaiveDateTime.add(start_dt, 3600)
@@ -164,7 +179,9 @@ defmodule SaleflowWeb.MicrosoftController do
       case Graph.create_meeting_with_invite(ms_conn.access_token, %{
              subject: meeting.title,
              start_datetime: NaiveDateTime.to_iso8601(start_dt),
-             end_datetime: NaiveDateTime.to_iso8601(end_dt)
+             end_datetime: NaiveDateTime.to_iso8601(end_dt),
+             attendee_email: attendee_email,
+             attendee_name: attendee_name
            }) do
         {:ok, result} ->
           join_url = result.join_url
@@ -280,6 +297,9 @@ defmodule SaleflowWeb.MicrosoftController do
   defp build_datetime(date, time) do
     NaiveDateTime.new!(date, time)
   end
+
+  defp maybe_put(map, _key, nil), do: map
+  defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
   defp frontend_url do
     # In prod, derive from PHX_HOST; in dev, use localhost

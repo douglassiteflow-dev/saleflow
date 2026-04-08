@@ -31,20 +31,32 @@ export function useMicrosoftDisconnect() {
   });
 }
 
+export interface CreateTeamsMeetingParams {
+  meetingId: string;
+  email?: string;
+  name?: string;
+}
+
 export function useCreateTeamsMeeting() {
   const queryClient = useQueryClient();
 
   return useMutation<
     { ok: boolean; teams_join_url: string; teams_event_id: string },
     ApiError,
-    string
+    CreateTeamsMeetingParams
   >({
-    mutationFn: (meetingId) =>
+    mutationFn: ({ meetingId, email, name }) =>
       api<{ ok: boolean; teams_join_url: string; teams_event_id: string }>(
         `/api/meetings/${meetingId}/create-teams-meeting`,
-        { method: "POST" },
+        {
+          method: "POST",
+          body: JSON.stringify({
+            ...(email ? { email } : {}),
+            ...(name ? { name } : {}),
+          }),
+        },
       ),
-    onSuccess: (_data, meetingId) => {
+    onSuccess: (_data, { meetingId }) => {
       void queryClient.invalidateQueries({ queryKey: ["meetings"] });
       void queryClient.invalidateQueries({
         queryKey: ["meetings", "detail", meetingId],

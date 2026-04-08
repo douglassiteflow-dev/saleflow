@@ -172,7 +172,7 @@ defmodule Saleflow.Sales.Meeting do
     update :update_teams do
       description "Set Teams meeting fields"
       require_atomic? false
-      accept [:teams_join_url, :teams_event_id]
+      accept [:teams_join_url, :teams_event_id, :attendee_email, :attendee_name]
     end
   end
 end

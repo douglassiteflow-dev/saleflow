@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMeetingDetail, useUpdateMeeting, useCancelMeeting } from "@/api/meetings";
 import { useDial } from "@/api/telavox";
-import { useCreateTeamsMeeting } from "@/api/microsoft";
 import { CallModal } from "@/components/dialer/call-modal";
+import { SendInviteButton } from "@/components/send-invite-button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,6 @@ export function MeetingDetailPage() {
   const updateMeeting = useUpdateMeeting();
   const cancelMeeting = useCancelMeeting();
   const dial = useDial();
-  const createTeamsMeeting = useCreateTeamsMeeting();
 
   const [callModalOpen, setCallModalOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -130,15 +129,18 @@ export function MeetingDetailPage() {
               {dial.isPending ? "Ringer..." : "Ring"}
             </button>
           )}
-          {meeting.status === "scheduled" && !meeting.teams_join_url && id && (
-            <button
-              type="button"
-              onClick={() => createTeamsMeeting.mutate(id)}
-              disabled={createTeamsMeeting.isPending}
-              className="inline-flex items-center justify-center h-10 rounded-md bg-purple-600 text-white font-medium text-sm px-4 hover:bg-purple-700 transition-colors disabled:opacity-50"
-            >
-              {createTeamsMeeting.isPending ? "Skapar..." : "Skicka Teams-inbjudan"}
-            </button>
+          {meeting.status === "scheduled" && id && (
+            <SendInviteButton
+              meetingId={id}
+              teamsJoinUrl={meeting.teams_join_url}
+              attendeeEmail={meeting.attendee_email}
+              attendeeName={meeting.attendee_name}
+              leadEmail={lead.epost}
+              leadName={lead.vd_namn}
+              meetingDate={meeting.meeting_date}
+              meetingTime={meeting.meeting_time}
+              size="md"
+            />
           )}
           {meeting.teams_join_url && (
             <a
