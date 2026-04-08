@@ -44,6 +44,9 @@ config :saleflow, :ash_domains, [
 # Token signing secret
 config :saleflow, :token_signing_secret, "super-secret-token-signing-key-change-in-prod"
 
+# GenFlow: use remote job queue instead of local Claude CLI (default: local)
+config :saleflow, :use_genflow_jobs, false
+
 # Oban
 config :saleflow, Oban,
   repo: Saleflow.Repo,

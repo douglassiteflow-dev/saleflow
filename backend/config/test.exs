@@ -62,3 +62,10 @@ config :saleflow, :assemblyai_poll_interval_ms, 0
 
 # Skip ChromicPDF in tests (Chrome may not be available in CI/test)
 config :saleflow, :skip_chromic_pdf, true
+
+# GenFlow API key for controller tests
+config :saleflow, :genflow_api_key, "dev-genflow-key"
+
+# GenFlow poll settings for tests — instant polling, low limit
+config :saleflow, :genflow_poll_interval_ms, 0
+config :saleflow, :genflow_max_polls, 3

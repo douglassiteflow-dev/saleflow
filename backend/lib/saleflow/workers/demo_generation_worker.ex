@@ -17,6 +17,7 @@ defmodule Saleflow.Workers.DemoGenerationWorker do
   require Logger
 
   alias Saleflow.Sales
+  alias Saleflow.Generation
 
   @brief_template_path "priv/demo_generation/brief.md"
 
@@ -24,49 +25,154 @@ defmodule Saleflow.Workers.DemoGenerationWorker do
   def perform(%Oban.Job{args: %{"demo_config_id" => id}}) do
     with {:ok, demo_config} <- Sales.get_demo_config(id),
          {:ok, demo_config} <- Sales.start_generation(demo_config) do
-      out_dir = output_dir(demo_config)
-      File.mkdir_p!(out_dir)
-
-      brief_content = build_brief(demo_config, out_dir)
-      brief_path = Path.join(out_dir, "brief.md")
-      File.write!(brief_path, brief_content)
-
-      case runner().run(brief_path, id) do
-        {:ok, _output} ->
-          site_index = Path.join([out_dir, "site", "index.html"])
-
-          if File.exists?(site_index) do
-            website_path = Path.join([out_dir, "site"])
-
-            {:ok, demo_config} =
-              Sales.generation_complete(demo_config, %{
-                website_path: website_path,
-                preview_url: "/demos/#{id}/site/index.html"
-              })
-
-            maybe_advance_deal(demo_config)
-            broadcast(id, %{status: "complete", website_path: website_path})
-            Logger.info("DemoGenerationWorker: completed for #{id}")
-            :ok
-          else
-            error_msg = "Generation finished but site/index.html not found"
-            {:ok, _} = Sales.generation_failed(demo_config, %{error: error_msg})
-            broadcast(id, %{status: "error", error: error_msg})
-            Logger.warning("DemoGenerationWorker: #{error_msg} for #{id}")
-            {:error, error_msg}
-          end
-
-        {:error, reason} ->
-          error_msg = "Claude CLI failed: #{reason}"
-          {:ok, _} = Sales.generation_failed(demo_config, %{error: error_msg})
-          broadcast(id, %{status: "error", error: error_msg})
-          Logger.warning("DemoGenerationWorker: #{error_msg} for #{id}")
-          {:error, error_msg}
+      if use_genflow_jobs?() do
+        run_via_genflow(demo_config, id)
+      else
+        run_locally(demo_config, id)
       end
     else
       {:error, reason} ->
         Logger.warning("DemoGenerationWorker: failed for #{id}: #{inspect(reason)}")
         {:error, reason}
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # GenFlow job queue mode
+  # ---------------------------------------------------------------------------
+
+  defp run_via_genflow(demo_config, id) do
+    slug = slug_from_url(demo_config.source_url)
+
+    case Generation.create_job(%{
+           demo_config_id: id,
+           source_url: demo_config.source_url || "",
+           slug: slug
+         }) do
+      {:ok, gen_job} ->
+        Logger.info("DemoGenerationWorker: created genflow job #{gen_job.id} for #{id}")
+        broadcast(id, %{status: "queued", genflow_job_id: gen_job.id})
+        poll_genflow_job(gen_job.id, demo_config, id, 0)
+
+      {:error, reason} ->
+        error_msg = "Failed to create genflow job: #{inspect(reason)}"
+        {:ok, _} = Sales.generation_failed(demo_config, %{error: error_msg})
+        broadcast(id, %{status: "error", error: error_msg})
+        Logger.warning("DemoGenerationWorker: #{error_msg}")
+        {:error, error_msg}
+    end
+  end
+
+  defp poll_genflow_job(job_id, demo_config, id, poll_count) do
+    max_polls = Application.get_env(:saleflow, :genflow_max_polls, 180)
+
+    if poll_count >= max_polls do
+      error_msg = "Genflow job timed out after #{max_polls} polls"
+      {:ok, _} = Sales.generation_failed(demo_config, %{error: error_msg})
+      broadcast(id, %{status: "error", error: error_msg})
+      Logger.warning("DemoGenerationWorker: #{error_msg} for #{id}")
+      {:error, error_msg}
+    else
+      poll_interval = Application.get_env(:saleflow, :genflow_poll_interval_ms, 5_000)
+      Process.sleep(poll_interval)
+
+      case Generation.get_job(job_id) do
+        {:ok, %{status: :completed, result_url: result_url}} ->
+          {:ok, demo_config} =
+            Sales.generation_complete(demo_config, %{
+              website_path: result_url,
+              preview_url: result_url
+            })
+
+          maybe_advance_deal(demo_config)
+          broadcast(id, %{status: "complete", website_path: result_url})
+          Logger.info("DemoGenerationWorker: genflow job completed for #{id}")
+          :ok
+
+        {:ok, %{status: :failed, error: error}} ->
+          error_msg = "Genflow job failed: #{error}"
+          {:ok, _} = Sales.generation_failed(demo_config, %{error: error_msg})
+          broadcast(id, %{status: "error", error: error_msg})
+          Logger.warning("DemoGenerationWorker: #{error_msg} for #{id}")
+          {:error, error_msg}
+
+        {:ok, _job} ->
+          # Still pending or processing — keep polling
+          poll_genflow_job(job_id, demo_config, id, poll_count + 1)
+
+        {:error, reason} ->
+          error_msg = "Failed to poll genflow job: #{inspect(reason)}"
+          {:ok, _} = Sales.generation_failed(demo_config, %{error: error_msg})
+          broadcast(id, %{status: "error", error: error_msg})
+          Logger.warning("DemoGenerationWorker: #{error_msg} for #{id}")
+          {:error, error_msg}
+      end
+    end
+  end
+
+  @doc """
+  Generates a slug from a URL by extracting the hostname, removing www. prefix,
+  and replacing non-alphanumeric characters with hyphens.
+  """
+  def slug_from_url(nil), do: "unknown"
+  def slug_from_url(""), do: "unknown"
+
+  def slug_from_url(url) do
+    case URI.parse(url) do
+      %URI{host: host} when is_binary(host) and host != "" ->
+        host
+        |> String.replace(~r/^www\./, "")
+        |> String.replace(~r/[^a-zA-Z0-9\-]/, "-")
+        |> String.trim("-")
+
+      _ ->
+        "unknown"
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Local generation mode (existing behaviour)
+  # ---------------------------------------------------------------------------
+
+  defp run_locally(demo_config, id) do
+    out_dir = output_dir(demo_config)
+    File.mkdir_p!(out_dir)
+
+    brief_content = build_brief(demo_config, out_dir)
+    brief_path = Path.join(out_dir, "brief.md")
+    File.write!(brief_path, brief_content)
+
+    case runner().run(brief_path, id) do
+      {:ok, _output} ->
+        site_index = Path.join([out_dir, "site", "index.html"])
+
+        if File.exists?(site_index) do
+          website_path = Path.join([out_dir, "site"])
+
+          {:ok, demo_config} =
+            Sales.generation_complete(demo_config, %{
+              website_path: website_path,
+              preview_url: "/demos/#{id}/site/index.html"
+            })
+
+          maybe_advance_deal(demo_config)
+          broadcast(id, %{status: "complete", website_path: website_path})
+          Logger.info("DemoGenerationWorker: completed for #{id}")
+          :ok
+        else
+          error_msg = "Generation finished but site/index.html not found"
+          {:ok, _} = Sales.generation_failed(demo_config, %{error: error_msg})
+          broadcast(id, %{status: "error", error: error_msg})
+          Logger.warning("DemoGenerationWorker: #{error_msg} for #{id}")
+          {:error, error_msg}
+        end
+
+      {:error, reason} ->
+        error_msg = "Claude CLI failed: #{reason}"
+        {:ok, _} = Sales.generation_failed(demo_config, %{error: error_msg})
+        broadcast(id, %{status: "error", error: error_msg})
+        Logger.warning("DemoGenerationWorker: #{error_msg} for #{id}")
+        {:error, error_msg}
     end
   end
 
@@ -130,5 +236,9 @@ defmodule Saleflow.Workers.DemoGenerationWorker do
       :demo_generation_runner,
       Saleflow.Workers.DemoGeneration.DefaultRunner
     )
+  end
+
+  defp use_genflow_jobs? do
+    Application.get_env(:saleflow, :use_genflow_jobs, false)
   end
 end
