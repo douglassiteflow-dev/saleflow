@@ -24,8 +24,8 @@ vi.mock("@/components/dialer/customer-modal-history", () => ({
   CustomerModalHistory: () => <div data-testid="history-tab" />,
 }));
 
-vi.mock("@/components/meeting-booking-modal", () => ({
-  MeetingBookingModal: () => <div data-testid="meeting-booking-modal" />,
+vi.mock("@/components/dialer/booking-wizard", () => ({
+  BookingWizard: () => <div data-testid="meeting-booking-modal" />,
 }));
 
 import { useLeadDetail, useSubmitOutcome } from "@/api/leads";
