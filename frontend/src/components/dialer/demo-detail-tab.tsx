@@ -352,7 +352,12 @@ function FollowupContent({ data }: { data: DemoConfigDetail }) {
           <div className="space-y-0">
             <InfoRow label="Företag" value={data.lead.företag} bold />
             {data.lead.telefon && <InfoRow label="Telefon" value={formatPhone(data.lead.telefon)} mono />}
-            {data.lead.epost && <InfoRow label="E-post" value={data.lead.epost} />}
+            {(q?.customer_email || data.lead.epost) && (
+              <InfoRow label="E-post" value={q?.customer_email ?? data.lead.epost ?? ""} />
+            )}
+            {q?.customer_email && data.lead.epost && q.customer_email !== data.lead.epost && (
+              <InfoRow label="Registrerad" value={data.lead.epost} />
+            )}
           </div>
         </div>
       </div>

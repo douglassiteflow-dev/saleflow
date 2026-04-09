@@ -340,6 +340,41 @@ describe("DemoDetailTab", () => {
     expect(screen.getByText("https://demo.siteflow.se/dc-1")).toBeInTheDocument();
   });
 
+  it("shows questionnaire.customer_email in kundinfo (not lead.epost) when they differ", () => {
+    mockUseDemoConfigDetail.mockReturnValue({
+      data: makeDetail({
+        stage: "followup",
+        meetings: [],
+        questionnaire: makeQuestionnaire({ customer_email: "custom@override.se" }),
+      }),
+      isLoading: false,
+    } as ReturnType<typeof useDemoConfigDetail>);
+
+    render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
+
+    // Custom email shown as "E-post"
+    expect(screen.getByText("custom@override.se")).toBeInTheDocument();
+    // Original lead email shown as "Registrerad"
+    expect(screen.getByText("info@acme.se")).toBeInTheDocument();
+    expect(screen.getByText("Registrerad")).toBeInTheDocument();
+  });
+
+  it("shows only lead.epost when questionnaire email matches", () => {
+    mockUseDemoConfigDetail.mockReturnValue({
+      data: makeDetail({
+        stage: "followup",
+        meetings: [],
+        questionnaire: makeQuestionnaire({ customer_email: "info@acme.se" }),
+      }),
+      isLoading: false,
+    } as ReturnType<typeof useDemoConfigDetail>);
+
+    render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
+
+    expect(screen.getByText("info@acme.se")).toBeInTheDocument();
+    expect(screen.queryByText("Registrerad")).not.toBeInTheDocument();
+  });
+
   it("shows followup content with tracking, links, meeting and lead info", () => {
     mockUseDemoConfigDetail.mockReturnValue({
       data: makeDetail({
