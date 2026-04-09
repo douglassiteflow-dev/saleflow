@@ -33,6 +33,13 @@ defmodule SaleflowWeb.Router do
     post "/:token/upload", QuestionnairePublicController, :upload
   end
 
+  # Public demo URL lookup (used by demo.siteflow.se router)
+  scope "/api/d", SaleflowWeb do
+    pipe_through :api
+
+    get "/:slug", DemoLookupController, :show
+  end
+
   # Public contract endpoints (no auth required)
   scope "/api/contracts", SaleflowWeb do
     pipe_through :api
