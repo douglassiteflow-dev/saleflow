@@ -115,9 +115,11 @@ defmodule SaleflowWeb.Router do
     get "/demo-configs", DemoConfigController, :index
     get "/demo-configs/:id/logs", DemoConfigController, :logs
     get "/demo-configs/:id/preview", DemoConfigController, :preview
+    get "/demo-configs/:id/followup-preview", DemoConfigController, :followup_preview
     get "/demo-configs/:id", DemoConfigController, :show
     post "/demo-configs/:id/advance", DemoConfigController, :advance
     post "/demo-configs/:id/retry", DemoConfigController, :retry
+    post "/demo-configs/:id/book-followup", DemoConfigController, :book_followup
 
     get "/audit", AuditController, :index
 

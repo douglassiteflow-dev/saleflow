@@ -13,9 +13,22 @@ defmodule SaleflowWeb.FailingChunkAdapter do
 end
 
 defmodule SaleflowWeb.DemoConfigControllerTest do
-  use SaleflowWeb.ConnCase
+  use SaleflowWeb.ConnCase, async: false
 
   alias Saleflow.Sales
+
+  setup do
+    Application.put_env(:saleflow, :graph_module, Saleflow.Microsoft.GraphStub)
+    Application.delete_env(:saleflow, :graph_stub_response)
+    Application.put_env(:saleflow, :mailer_sandbox, true)
+
+    on_exit(fn ->
+      Application.delete_env(:saleflow, :graph_module)
+      Application.delete_env(:saleflow, :graph_stub_response)
+    end)
+
+    :ok
+  end
 
   # ---------------------------------------------------------------------------
   # Helpers
@@ -23,8 +36,33 @@ defmodule SaleflowWeb.DemoConfigControllerTest do
 
   defp create_lead! do
     unique = System.unique_integer([:positive])
-    {:ok, lead} = Sales.create_lead(%{företag: "Test AB #{unique}", telefon: "+46701234567"})
+    {:ok, lead} = Sales.create_lead(%{företag: "Test AB #{unique}", telefon: "+46701234567", epost: "c#{unique}@e.se"})
     lead
+  end
+
+  defp setup_demo_held!(lead, user) do
+    {:ok, dc} = Sales.create_demo_config(%{lead_id: lead.id, user_id: user.id})
+    {:ok, dc} = Sales.start_generation(dc)
+    {:ok, dc} = Sales.generation_complete(dc, %{
+      website_path: "https://raw.vercel.app",
+      preview_url: "https://demo.siteflow.se/test-slug"
+    })
+    {:ok, dc} = Sales.advance_to_demo_held(dc)
+    dc
+  end
+
+  defp create_ms_connection!(user) do
+    {:ok, _conn} =
+      Saleflow.Accounts.MicrosoftConnection
+      |> Ash.Changeset.for_create(:create, %{
+        user_id: user.id,
+        microsoft_user_id: "ms-user-1",
+        email: "ms@e.se",
+        access_token: "access-tok",
+        refresh_token: "refresh-tok",
+        token_expires_at: DateTime.utc_now() |> DateTime.add(3600, :second)
+      })
+      |> Ash.create(authorize?: false)
   end
 
   defp create_agent!(conn, attrs \\ %{}) do
@@ -670,6 +708,274 @@ defmodule SaleflowWeb.DemoConfigControllerTest do
       Saleflow.Repo.query!(
         "ALTER TABLE demo_configs ADD CONSTRAINT demo_configs_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id)"
       )
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # POST /api/demo-configs/:id/book-followup
+  # ---------------------------------------------------------------------------
+
+  describe "POST /api/demo-configs/:id/book-followup" do
+    test "books followup in Swedish and advances demo config", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      create_ms_connection!(agent)
+      dc = setup_demo_held!(lead, agent)
+
+      resp = post(agent_conn, "/api/demo-configs/#{dc.id}/book-followup", %{
+        meeting_date: "2026-04-16",
+        meeting_time: "14:00",
+        personal_message: "Tack för idag!",
+        language: "sv"
+      })
+
+      assert %{"demo_config" => d, "meeting" => m, "questionnaire" => q} = json_response(resp, 200)
+      assert d["stage"] == "followup"
+      assert m["title"] =~ "Uppföljning"
+      assert m["teams_join_url"] == "https://teams.stub/join"
+      assert q["token"]
+      assert q["lead_id"] == lead.id
+      assert q["customer_email"] == lead.epost
+    end
+
+    test "books followup in English", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      create_ms_connection!(agent)
+      dc = setup_demo_held!(lead, agent)
+
+      resp = post(agent_conn, "/api/demo-configs/#{dc.id}/book-followup", %{
+        meeting_date: "2026-04-16",
+        meeting_time: "14:00",
+        personal_message: "Thanks!",
+        language: "en"
+      })
+
+      assert %{"meeting" => m} = json_response(resp, 200)
+      assert m["title"] =~ "Follow-up"
+      refute m["title"] =~ "Uppföljning"
+    end
+
+    test "defaults to Swedish when language param is missing", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      create_ms_connection!(agent)
+      dc = setup_demo_held!(lead, agent)
+
+      resp = post(agent_conn, "/api/demo-configs/#{dc.id}/book-followup", %{
+        meeting_date: "2026-04-16",
+        meeting_time: "14:00",
+        personal_message: ""
+      })
+
+      assert %{"meeting" => m} = json_response(resp, 200)
+      assert m["title"] =~ "Uppföljning"
+    end
+
+    test "returns 422 when demo_config not in demo_held", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      dc = create_demo_config!(lead, agent)
+
+      resp = post(agent_conn, "/api/demo-configs/#{dc.id}/book-followup", %{
+        meeting_date: "2026-04-16",
+        meeting_time: "14:00",
+        personal_message: "",
+        language: "sv"
+      })
+
+      assert %{"error" => err} = json_response(resp, 422)
+      assert err =~ "demo_held"
+    end
+
+    test "returns 422 when no MS connection", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      dc = setup_demo_held!(lead, agent)
+      # No MS connection
+
+      resp = post(agent_conn, "/api/demo-configs/#{dc.id}/book-followup", %{
+        meeting_date: "2026-04-16",
+        meeting_time: "14:00",
+        personal_message: "",
+        language: "sv"
+      })
+
+      assert %{"error" => err} = json_response(resp, 422)
+      assert err =~ "Microsoft"
+    end
+
+    test "returns 422 when lead has no email", %{conn: conn} do
+      unique = System.unique_integer([:positive])
+      {:ok, lead} = Sales.create_lead(%{företag: "No Email #{unique}", telefon: "+46701111111", epost: nil})
+      {agent_conn, agent} = create_agent!(conn)
+      create_ms_connection!(agent)
+      dc = setup_demo_held!(lead, agent)
+
+      resp = post(agent_conn, "/api/demo-configs/#{dc.id}/book-followup", %{
+        meeting_date: "2026-04-16",
+        meeting_time: "14:00",
+        personal_message: "",
+        language: "sv"
+      })
+
+      assert %{"error" => err} = json_response(resp, 422)
+      assert err =~ "email"
+    end
+
+    test "returns 422 for invalid date", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      create_ms_connection!(agent)
+      dc = setup_demo_held!(lead, agent)
+
+      resp = post(agent_conn, "/api/demo-configs/#{dc.id}/book-followup", %{
+        meeting_date: "not-a-date",
+        meeting_time: "14:00",
+        personal_message: "",
+        language: "sv"
+      })
+
+      assert json_response(resp, 422)
+    end
+
+    test "returns 502 when Teams API fails", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      create_ms_connection!(agent)
+      dc = setup_demo_held!(lead, agent)
+
+      Application.put_env(:saleflow, :graph_stub_response, {:error, :network_error})
+
+      resp = post(agent_conn, "/api/demo-configs/#{dc.id}/book-followup", %{
+        meeting_date: "2026-04-16",
+        meeting_time: "14:00",
+        personal_message: "",
+        language: "sv"
+      })
+
+      assert %{"error" => err} = json_response(resp, 502)
+      assert err =~ "Teams"
+    end
+
+    test "returns 403 for another agent's demo config", %{conn: conn} do
+      lead = create_lead!()
+      {_other_conn, other_agent} = create_agent!(conn, %{name: "Other"})
+      dc = setup_demo_held!(lead, other_agent)
+
+      {agent_conn, _} = create_agent!(build_conn(), %{name: "Me"})
+
+      resp = post(agent_conn, "/api/demo-configs/#{dc.id}/book-followup", %{
+        meeting_date: "2026-04-16",
+        meeting_time: "14:00",
+        personal_message: "",
+        language: "sv"
+      })
+
+      assert json_response(resp, 403)
+    end
+
+    test "returns 404 for non-existent demo config", %{conn: conn} do
+      {agent_conn, _agent} = create_agent!(conn)
+
+      resp = post(agent_conn, "/api/demo-configs/#{Ecto.UUID.generate()}/book-followup", %{
+        meeting_date: "2026-04-16",
+        meeting_time: "14:00",
+        personal_message: "",
+        language: "sv"
+      })
+
+      assert json_response(resp, 404)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # GET /api/demo-configs/:id/followup-preview
+  # ---------------------------------------------------------------------------
+
+  describe "GET /api/demo-configs/:id/followup-preview" do
+    test "returns rendered Swedish email preview", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      dc = setup_demo_held!(lead, agent)
+
+      resp = get(agent_conn, "/api/demo-configs/#{dc.id}/followup-preview", %{
+        meeting_date: "2026-04-16",
+        meeting_time: "14:00",
+        personal_message: "Tack för idag",
+        language: "sv"
+      })
+
+      assert %{"subject" => subject, "html" => html} = json_response(resp, 200)
+      assert subject =~ "Uppföljning"
+      assert html =~ "Tack för idag"
+      assert html =~ "2026-04-16"
+      assert html =~ "Visa din hemsida"
+    end
+
+    test "returns English preview when language=en", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      dc = setup_demo_held!(lead, agent)
+
+      resp = get(agent_conn, "/api/demo-configs/#{dc.id}/followup-preview", %{
+        meeting_date: "2026-04-16",
+        meeting_time: "14:00",
+        personal_message: "Thanks",
+        language: "en"
+      })
+
+      assert %{"subject" => subject, "html" => html} = json_response(resp, 200)
+      assert subject =~ "Follow-up"
+      assert html =~ "View your website"
+    end
+
+    test "returns 404 for non-existent demo config", %{conn: conn} do
+      {agent_conn, _agent} = create_agent!(conn)
+
+      resp = get(agent_conn, "/api/demo-configs/#{Ecto.UUID.generate()}/followup-preview", %{
+        meeting_date: "2026-04-16",
+        meeting_time: "14:00",
+        personal_message: "",
+        language: "sv"
+      })
+
+      assert json_response(resp, 404)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # GET /api/demo-configs/:id — questionnaire in show response
+  # ---------------------------------------------------------------------------
+
+  describe "GET /api/demo-configs/:id — questionnaire" do
+    test "includes questionnaire in response when one exists", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      dc = create_demo_config!(lead, agent)
+
+      {:ok, _q} = Sales.create_questionnaire_for_lead(%{
+        lead_id: lead.id,
+        customer_email: "k@t.se",
+        token: "tok-" <> Integer.to_string(System.unique_integer([:positive]))
+      })
+
+      resp = get(agent_conn, "/api/demo-configs/#{dc.id}")
+      body = json_response(resp, 200)
+
+      assert body["questionnaire"]["lead_id"] == lead.id
+      assert body["questionnaire"]["status"] == "pending"
+    end
+
+    test "questionnaire is null when none exists for lead", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      dc = create_demo_config!(lead, agent)
+
+      resp = get(agent_conn, "/api/demo-configs/#{dc.id}")
+      body = json_response(resp, 200)
+
+      assert body["questionnaire"] == nil
     end
   end
 end
