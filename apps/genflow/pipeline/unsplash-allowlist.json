@@ -1,0 +1,34 @@
+{
+  "frisör": [
+    "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&q=80",
+    "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=1200&q=80",
+    "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=1200&q=80"
+  ],
+  "spa": [
+    "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200&q=80",
+    "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1200&q=80"
+  ],
+  "nagel": [
+    "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=1200&q=80",
+    "https://images.unsplash.com/photo-1610992015732-2449b76344bc?w=1200&q=80"
+  ],
+  "massage": [
+    "https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=1200&q=80",
+    "https://images.unsplash.com/photo-1559599101-f09722fb4948?w=1200&q=80"
+  ],
+  "skönhet": [
+    "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=1200&q=80",
+    "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&q=80"
+  ],
+  "klinik": [
+    "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=1200&q=80",
+    "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1200&q=80"
+  ],
+  "annat": [
+    "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80",
+    "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&q=80"
+  ],
+  "default": [
+    "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80"
+  ]
+}
