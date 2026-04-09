@@ -16,7 +16,7 @@ $PAGE_CONTEXT
 
 ## Process
 
-1. Läs `$LAYOUT_PATH` (Read med limit 1000) för att förstå CSS-klasser, tema, komponenter
+1. Läs `$LAYOUT_PATH` med Read-verktyget (utan limit — läs HELA filen) för att förstå CSS-klasser, tema, komponenter
 2. Generera HTML för sektionerna: $PAGE_SECTIONS
 3. Skriv ENDAST content-fragmentet till: `$CONTENT_PATH`
    - Bara sektioner som ska visas inuti `<main>`

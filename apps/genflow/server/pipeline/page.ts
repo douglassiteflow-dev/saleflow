@@ -108,22 +108,61 @@ function buildPageContext(pageSpec: PageSpec, strategy: Strategy, outputDir: str
 
 function getPageTypeRules(slug: string): string {
   const rules: Record<string, string> = {
-    index: `OBLIGATORISKA SEKTIONER (i denna ordning, MINST dessa):
-1. Hero — fullbred, stor Unsplash-bakgrundsbild, företagsnamn i stor typografi, tagline, primär CTA-knapp, optional betygsbadge
-2. Intro — kort text (2-3 meningar) PLUS en dekorativ bild bredvid (2-kolumns layout med text + bild)
-3. Featured tjänster — grid med 3-6 tjänster, tjänste-korten kan ha accent-bilder om det passar, men får också vara rena med typografi
-4. Bildgalleri-teaser — valfritt, några bilder i asymmetriskt mosaic om det passar sidan
-5. Recensioner — om mode är infinity-scroll: horisontell auto-scroll med duplicerade kort, pause on hover, 5-8 recensioner. Om mode är statiska-kort: 3 kort i grid.
-6. Kontakt-CTA — fullbred sektion med bakgrundsbild eller gradient, text och primär CTA-knapp
+    index: `SEKTIONSORDNING — MAX 7 SEKTIONER (byggd enligt konverteringsforskning för lokala tjänsteföretag):
 
-BILDER: Flera bilder är bra för en service-sajt. Variera — hero, intro-bild, eventuell galleri-teaser, cta-bakgrund. Men inte på varje litet element — låt vissa sektioner andas med bara typografi och färg.
+1. Hero
+   - Rubrik: MAX 10 ord, 48-72px desktop / 32-42px mobile, line-height 1.1-1.2
+   - Underrubrik: MAX 25 ord, 18-22px desktop
+   - EXAKT EN primär CTA above the fold: "Boka tid" (säker) eller "Se lediga tider" (mjukare)
+   - CTA min 48x48px, padding 32x16
+   - Betygsbadge (stjärnor + antal + källa) inom 200px från CTA — MYCKET VIKTIGT
+   - Hero-bakgrund: EN stor Unsplash-bild med gradient overlay
+   - INGA dekorativa blobbar/patterns/shapes INUTI hero (håll heron ren)
+   - Allt above the fold (<=90vh): logo, nav, rubrik, underrubrik, CTA, betyg, bild
 
-DESIGN-KRAV (pimp and polish — viktig):
-- Hero måste ha gradient overlay för textläsbarhet
-- Varje sektion ska kännas distinkt — alternerande bakgrundsfärger
-- Dekorativa element: accent-linjer, dot-patterns, badge-ikoner, små detaljer
-- Subtila hover-effekter på kort och knappar
-- Använd CSS-variabler från layout för färgkonsistens`,
+2. Social proof bar (slim 60-100px)
+   - Stjärnor + antal recensioner + källa ("4.9 av 5 · 1103 omdömen på Bokadirekt")
+   - Suppress count om <20, visa tydligt om >100
+   - Hoppa över denna sektion om total recensioner <5
+
+3. Featured tjänster
+   - EXAKT 3 eller 6 kort — ALDRIG 4 eller 5 (tiler inte rent i responsiv grid)
+   - Välj från strategy.services.featuredForIndex
+   - Varje kort: namn, kort beskrivning, pris, subtil hover-effekt
+   - Tjänste-kort behöver ej individuella bilder — rena kort med stark typografi funkar
+   - Left-aligned headline ovanför grid (F-pattern)
+
+4. Om oss / Differentiator
+   - MAX 2-3 meningar — inga "walls of text" (paragraf <80 ord)
+   - 1 bild av lokaltyp/miljö bredvid texten (2-kolumns layout)
+
+5. Recensioner
+   - Om >3 recensioner: infinity-scroll med pause on hover
+   - Om <=3: 3 statiska kort i F-pattern
+   - Varje kort: namn + område ("Anna, Vasastan"), aldrig anonym
+   - Subtil källa-citering (Bokadirekt/Google)
+
+6. Kontakt/plats
+   - Clickable karta (iframe) + klickbara öppettider + phone som tel: link + adress
+   - Small, funktional sektion
+
+7. Final CTA
+   - STOR fullbred sektion, bakgrundsbild eller gradient
+   - SAMMA primär CTA som i heron (repetition: exakt 2-3 gånger totalt på sidan)
+
+FÖRBJUDET:
+- Separat intro/welcome-sektion mellan hero och services
+- Team-grid med personalporträtt (aldrig)
+- Process/how-it-works (utom om tjänsten genuint har 3+ steg kunden bryr sig om)
+- MER än 7 sektioner
+- Hero-formulär above the fold (booking-form kommer efter klick)
+- "Kontakta oss" eller "Läs mer" som primär CTA
+- Carousels som auto-roterar <7s
+- Flera konkurrerande primära CTA:er
+
+BILDER: Totalt 5-9 bilder på sidan. Fördelning: 1 hero, 0-6 på servicekort (valfritt), 1-2 about/interior, 0-1 dekorativ accent.
+
+DESIGN: Använd CSS-variabler från layout. Subtila hover-effekter. F-pattern för services/testimonials (left-aligned headlines). Z-pattern för hero.`,
 
     tjanster: `- Rubriksektion "Våra tjänster" med stor Unsplash-hero eller gradient
 - Grupperade per kategori i strategy.services.categoryOrder

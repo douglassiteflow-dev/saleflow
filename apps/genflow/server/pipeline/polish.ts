@@ -28,99 +28,93 @@ export async function runPolish(
     // ignore
   }
 
-  const prompt = `Du är senior webbutvecklare och kreativ designer som hatar platt/tråkig design. Sidan \`${pageSpec.filename}\` är just genererad men ser PLATT och LIFELESS ut. Din uppgift är att göra den VACKER och RIKT PIMPAD.
+  const prompt = `Du är senior webbutvecklare och kreativ designer som följer konverteringsforskning för lokala tjänsteföretag. Sidan \`${pageSpec.filename}\` är just genererad. Din uppgift: polera den enligt high-converting landing page-regler. Lägg till snygga detaljer utan att överdriva.
 
 Företag: ${businessName}
 Affärstyp: ${strategy.businessType}
 Sida: ${pageSpec.slug}
 
-## STEG 1: Läs hela filen (Read med limit 1000)
+## KONVERTERINGSREGLER (MÅSTE FÖLJAS)
+
+### Visual balance — STRIKTA TAK
+- MAX 2 dekorativa dividers per sida (helst bara mellan hero→services och före final CTA)
+- MAX 2 dekorativa accenter per sida (t.ex. en gradient bakom heron + en cirkel bakom testimonial). Aldrig mer.
+- MAX 3 bakgrundsfärgsväxlingar totalt (ett bas, ett alternativ, inte striped)
+- MAX 1 scroll-animation-effekt på hela sidan (inte parallax överallt)
+- Alla dekorativa element MÅSTE vara bakom content med opacity 0.1-0.25
+
+### Hero-sektion — RENHET
+- INGA blobbar, patterns, floating shapes, eller noise overlays INUTI hero
+- Hero har EN visuell fokuspunkt: bakgrundsbild med gradient overlay
+- Rubrik MAX 10 ord, stor och tung
+- En primär CTA — "Boka tid" eller "Se lediga tider", aldrig "Kontakta oss" eller "Läs mer"
+- Betyg/stjärnor MÅSTE vara inom 200px från CTA om det finns recensioner
+
+### Mobile sticky CTA bar (OBLIGATORISKT på index.html)
+- Lägg till en position:fixed bottom sticky CTA bar som visas BARA på mobile (<768px)
+- Bar-höjd 56px minimum, full-width eller nära-full-width knapp
+- Bar visas efter user scrollat förbi heron (CSS \`display:none\` på desktop)
+- Body får padding-bottom motsvarande bar-höjden på mobile
+- Samma CTA-text som hero
+
+### F-pattern / Z-pattern
+- Services och testimonials: headlines left-aligned, Content to the right
+- Hero: Z-pattern med CTA bottom-right
+
+## STEG 1: Läs hela filen med Read-verktyget (utan limit — läs ALLT i en ta)
 
 ## STEG 2: Identifiera problem
 
-Leta efter:
-- Sektioner som bara har text utan visuella accenter → för platta
-- Bara en bild på hela sidan → behöver fler
-- Inga dekorativa element → behöver former, patterns, accent-linjer
-- Monoton layout utan variation → alternera bakgrundsfärger och sektionstyper
-- Brutna Unsplash-URL:er
-- Två infinity-scroll-sektioner direkt efter varandra
-- Tomma sektioner eller placeholder-text
+- Fler än 2 dividers? → ta bort de sämsta
+- Fler än 2 dekorativa accenter (blobbar, patterns)? → ta bort de sämsta
+- Fler än 3 bakgrundsfärgsväxlingar? → sänk till max 3
+- Dekorativa element INNE I hero? → ta bort (hero ska vara rent)
+- Wall of text (paragraf >80 ord)? → dela upp
+- Primary CTA "Kontakta oss" eller "Läs mer"? → byt till "Boka tid"
+- Rubrik >10 ord? → förkorta
+- Mobile sticky CTA saknas på index? → lägg till
+- Betyg inte nära CTA? → flytta (max 200px från CTA)
 
-## STEG 3: LÄGG TILL RIKLIGT MED VISUELL PIMP (obligatoriskt — INTE försiktigt!)
+## STEG 3: Lägg till subtila designdetaljer (inom taken ovan)
 
-Du MÅSTE lägga till ALLT av följande som är relevant:
+### Z-INDEX REGLER (kritisk — hero måste fungera)
+- Hero-sektion: \`position: relative; overflow: hidden\`
+- Dekorativa element i hero (om några): \`position: absolute; z-index: 0-1; pointer-events: none\`
+- Hero-innehåll (rubrik, CTA): \`position: relative; z-index: 2\`
+- Header/nav: \`z-index: 10\`
 
-### Bilder
-- Om sidan bara har 1 bild (bara hero) → lägg till 1-3 till i nyckelsektioner
-- Om sidan redan har flera bilder → fokusera på polish och detaljer, inte fler bilder
-- Låt vissa sektioner andas med gradient eller färgat block istället för en bild
-- Format: \`https://images.unsplash.com/photo-XXX?w=1200&q=80\`
-
-### Hero-sektion
-- OBLIGATORISK: \`background-attachment: fixed\` för parallax-effekt
-- Gradient overlay: \`linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.6))\`
-- Stor typografi (60px+) med letter-spacing och text-shadow
-
-### SVG wave-dividers MELLAN sektioner (SPARSAMT)
-- **MAX 2 dividers per sida** — inte mellan varje sektion, bara vid viktiga övergångar
-- RIKTNING ÄR KRITISKT: vågen måste LUTA ÅT RÄTT HÅLL
-- För en divider från en ljus sektion (ovan) till mörk sektion (under):
-  \`<svg viewBox="0 0 1440 100" preserveAspectRatio="none" style="display:block;width:100%;height:80px"><path fill="[MÖRKA SEKTIONENS FÄRG]" d="M0,50 C360,100 720,0 1440,50 L1440,100 L0,100 Z"/></svg>\`
-- För mörk → ljus, inverterad path:
-  \`<svg viewBox="0 0 1440 100" preserveAspectRatio="none" style="display:block;width:100%;height:80px"><path fill="[LJUSA SEKTIONENS FÄRG]" d="M0,50 C360,0 720,100 1440,50 L1440,100 L0,100 Z"/></svg>\`
-- Ofta räcker det att ALTERNERA bakgrundsfärger mellan sektioner (ingen divider behövs)
-
-### Dekorativa former — Z-INDEX REGLER ÄR KRITISKA
-- Absolut-positionerade dekorativa blobbar i bakgrunden (radial-gradients, stora cirklar med opacity)
-- Dot-patterns som accent (repeating-radial-gradient)
-- Accent-linjer (1-2px gradient bars som separators)
-- Blob-shapes med border-radius variation (ex \`border-radius: 60% 40% 50% 50%\`)
-
-**Z-INDEX REGLER (MÅSTE FÖLJAS, annars fungerar hero inte):**
-- Hero-sektionen MÅSTE ha \`position: relative\` på wrapper
-- Alla dekorativa element i hero (blobbar, overlays, patterns) MÅSTE ha:
-  - \`position: absolute\`
-  - \`z-index: 0\` eller \`z-index: 1\` (bakom innehåll)
-  - \`pointer-events: none\` (så de inte blockerar CTA-klick)
-- Hero-innehåll (rubrik, text, CTA) MÅSTE ha:
-  - \`position: relative\`
-  - \`z-index: 2\` eller högre (framför dekorationer)
-- Header/nav måste ha \`z-index: 10\` och \`position: sticky\` (eller fixed) så den aldrig hamnar under dekorativa element
-- SVG wave-dividers MÅSTE ha \`position: relative; z-index: 1\` eller vara en del av normal flow (inte absolute)
-
-Exempel-struktur:
+Exempel:
 \`\`\`html
 <section class="hero" style="position:relative;overflow:hidden">
-  <div class="hero-bg" style="position:absolute;inset:0;z-index:0;pointer-events:none">
-    <!-- gradient overlay, blobbar, patterns -->
-  </div>
-  <div class="hero-content" style="position:relative;z-index:2">
-    <h1>Rubrik</h1>
-    <a href="#" class="cta">Boka nu</a>
-  </div>
+  <div class="hero-bg" style="position:absolute;inset:0;z-index:0;pointer-events:none"></div>
+  <div class="hero-content" style="position:relative;z-index:2"><h1>...</h1></div>
 </section>
 \`\`\`
 
-### Kort och knappar
-- Glassmorphism där det passar: \`backdrop-filter: blur(10px); background: rgba(255,255,255,0.8)\`
-- Box-shadows med färgade accenter (t.ex. \`box-shadow: 0 20px 60px rgba(primary-color, 0.15)\`)
-- Hover: translateY(-4px) + shadow intensification
-- Border-radius variation (blanda 8px, 16px, 24px — inte samma överallt)
+### Mobile sticky CTA (OBLIGATORISKT på index.html — inte andra sidor)
+Lägg till längst ner i <main>:
+\`\`\`html
+<div class="mobile-sticky-cta" style="position:fixed;bottom:0;left:0;right:0;background:var(--color-bg-primary);padding:8px 16px;box-shadow:0 -4px 12px rgba(0,0,0,0.08);z-index:100;display:none">
+  <a href="#boka" class="primary-cta" style="display:block;width:100%;text-align:center;padding:14px;min-height:56px">Boka tid</a>
+</div>
+<style>
+  @media (max-width:768px) {
+    .mobile-sticky-cta { display:block !important }
+    main { padding-bottom:72px }
+  }
+</style>
+\`\`\`
 
-### Animationer (CSS only)
-- Fade-in on scroll: \`@keyframes fadeInUp\` + staggered animation-delay per element
-- Hover-effekter på allt interaktivt
-- Smooth transitions (ease-out 0.3s)
+### Designdetaljer (valfritt, inom tak ovan)
+- Gradient text på huvudrubriken (en gång): \`background:linear-gradient(135deg,primary,accent);-webkit-background-clip:text;color:transparent\`
+- Subtila hover-effekter: \`transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.08)\`
+- Fade-in-on-scroll på testimonials eller services (EN animation)
+- Letter-spacing på rubriker (-0.02em h1)
+- Thin hairline divider istället för shape-divider: \`<hr style="border:none;border-top:1px solid rgba(0,0,0,0.08);margin:60px auto;max-width:200px">\`
 
-### Typografi
-- Letter-spacing på rubriker (-0.02em på h1, +0.05em uppercase labels)
-- Accent-font för citat eller highlights
-- Gradient text-effekt på huvudrubriken: \`background: linear-gradient(135deg, primary, accent); -webkit-background-clip: text; -webkit-text-fill-color: transparent\`
-
-### Sektionsvariation
-- Alternera bakgrundsfärger mellan sektioner (vit → ljusgrå → vit → accent → vit)
-- Varje sektion ska kännas visuellt distinkt från den föregående
+### F-pattern / Z-pattern
+- Services och testimonials: left-aligned rubriker
+- Hero: Z-pattern (rubrik top-left → CTA center/bottom-right)
 
 ## REGLER — STRIKT
 
@@ -131,7 +125,7 @@ Exempel-struktur:
 - Ändra INTE nav-länkar eller data-page-attribut
 - Ändra INTE active-state-klassen
 - ALL text på svenska
-- VAR DJÄRV med designen — tveka inte, lägg till MER pimp, inte mindre
+- BALANS — inte "mer är bättre", utan "rätt tak, inom dessa"
 
 ## Beskriv kort på svenska vad du fixade`
 
