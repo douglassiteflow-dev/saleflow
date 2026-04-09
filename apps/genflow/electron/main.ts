@@ -1,6 +1,7 @@
 import { app, BrowserWindow, utilityProcess, UtilityProcess } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createTray, destroyTray, TrayStatus } from './tray'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -16,6 +17,9 @@ const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 let mainWindow: BrowserWindow | null = null
 
 let serverProc: UtilityProcess | null = null
+
+let currentStatus: TrayStatus = 'disconnected'
+let recentJobs: { slug: string; status: 'ok' | 'failed' | 'running' }[] = []
 
 function startServerProcess() {
   const serverPath = path.join(__dirname, 'server-worker.js')
@@ -64,12 +68,32 @@ function createMainWindow() {
 app.whenReady().then(() => {
   startServerProcess()
   createMainWindow()
+
+  createTray(
+    {
+      getMainWindow: () => mainWindow,
+      createMainWindow,
+      onTogglePolling: () => {
+        serverProc?.postMessage({ type: 'toggle-polling' })
+      },
+      getStatus: () => currentStatus,
+      getRecentJobs: () => recentJobs,
+    },
+    process.env.APP_ROOT!,
+  )
 })
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
+  // Förhindra att appen stängs när alla fönster är stängda
+  // Tray-ikonen håller appen igång
+  // Appen fortsätter att köra i bakgrunden med tray-ikon
+  if (process.platform === 'darwin') {
+    app.dock?.hide()
   }
+})
+
+app.on('before-quit', () => {
+  destroyTray()
 })
 
 app.on('activate', () => {
