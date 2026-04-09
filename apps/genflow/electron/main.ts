@@ -31,6 +31,9 @@ let serverProc: UtilityProcess | null = null
 let currentStatus: TrayStatus = 'disconnected'
 let recentJobs: { slug: string; status: 'ok' | 'failed' | 'running' }[] = []
 
+let lastHeartbeat = Date.now()
+const HEARTBEAT_TIMEOUT_MS = 90_000  // 3 heartbeats (30s vardera) måste missas
+
 function startServerProcess() {
   const serverPath = path.join(__dirname, 'server-worker.js')
   serverProc = utilityProcess.fork(serverPath, [], {
@@ -46,6 +49,11 @@ function startServerProcess() {
   })
 
   serverProc.on('message', (msg: unknown) => {
+    const typedMsg = msg as { type?: string; timestamp?: number }
+    if (typedMsg.type === 'heartbeat') {
+      lastHeartbeat = typedMsg.timestamp ?? Date.now()
+      return
+    }
     console.log('[main] from server:', msg)
   })
 
@@ -53,6 +61,20 @@ function startServerProcess() {
     console.log('[main] server exited with code', code)
     serverProc = null
   })
+}
+
+function startHeartbeatWatchdog() {
+  setInterval(() => {
+    if (!serverProc) return
+    const since = Date.now() - lastHeartbeat
+    if (since > HEARTBEAT_TIMEOUT_MS) {
+      console.warn(`[main] server heartbeat missing for ${since}ms — restarting`)
+      serverProc.kill()
+      serverProc = null
+      lastHeartbeat = Date.now()
+      startServerProcess()
+    }
+  }, 10_000)
 }
 
 function createMainWindow() {
@@ -101,6 +123,7 @@ app.whenReady().then(() => {
   }
 
   startServerProcess()
+  startHeartbeatWatchdog()
 
   if (!startedHidden) {
     createMainWindow()
@@ -141,9 +164,30 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => {
+app.on('before-quit', async (event) => {
+  if (app.isQuitting) return  // redan i shutdown
   app.isQuitting = true
   destroyTray()
+
+  if (serverProc) {
+    event.preventDefault()
+    console.log('[main] sending shutdown to server process')
+    serverProc.postMessage({ type: 'shutdown' })
+
+    // Vänta max 5 sek på clean exit
+    const killTimer = setTimeout(() => {
+      console.warn('[main] server did not exit in 5s, killing')
+      serverProc?.kill()
+      serverProc = null
+      app.quit()
+    }, 5000)
+
+    serverProc.once('exit', () => {
+      clearTimeout(killTimer)
+      serverProc = null
+      app.quit()
+    })
+  }
 })
 
 app.on('activate', () => {
