@@ -75,7 +75,8 @@ defmodule SaleflowWeb.DemoConfigController do
                meeting_time: meeting_time,
                personal_message: params["personal_message"] || "",
                language: language,
-               email: params["email"]
+               email: params["email"],
+               send_copy: params["send_copy"] == true
              },
              user
            ) do
@@ -110,6 +111,11 @@ defmodule SaleflowWeb.DemoConfigController do
 
       {:error, {:teams_failed, _reason}} ->
         conn |> put_status(:bad_gateway) |> json(%{error: "Teams meeting creation failed"})
+
+      {:error, {:mail_failed, reason}} ->
+        conn
+        |> put_status(:bad_gateway)
+        |> json(%{error: "Mailet kunde inte skickas: #{inspect(reason)}"})
 
       {:error, _reason} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: "Could not book followup"})

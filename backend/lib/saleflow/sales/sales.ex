@@ -855,14 +855,20 @@ defmodule Saleflow.Sales do
     6. Advances the demo_config to :followup
 
   `params` must include `:meeting_date`, `:meeting_time`, `:personal_message`
-  and may include `:language` (defaults to `"sv"`) and `:email` (falls back to
-  `lead.epost` if missing).
+  and may include `:language` (defaults to `"sv"`), `:email` (falls back to
+  `lead.epost` if missing) and `:send_copy` (when true, also sends a copy to
+  the agent's own email address).
+
+  The outgoing email is sent **synchronously** so that delivery failures surface
+  immediately. If the mail cannot be sent, the demo_config is NOT advanced and
+  the Meeting/Teams/Questionnaire records are left in place for retry.
 
   Returns `{:ok, %{demo_config, meeting, questionnaire}}` on success, or
   `{:error, reason}` on any failure.
   """
   def book_followup(demo_config, params, user) do
     language = Map.get(params, :language, "sv")
+    send_copy = Map.get(params, :send_copy, false)
 
     with :ok <- validate_demo_held(demo_config),
          {:ok, lead} <- get_lead(demo_config.lead_id),
@@ -872,7 +878,17 @@ defmodule Saleflow.Sales do
          {:ok, meeting} <- create_teams_for_followup_meeting(meeting, ms_conn),
          {:ok, questionnaire} <- create_followup_questionnaire(lead, recipient_email),
          :ok <-
-           send_followup_email(lead, meeting, questionnaire, demo_config, user, params, language, recipient_email),
+           send_followup_email(
+             lead,
+             meeting,
+             questionnaire,
+             demo_config,
+             user,
+             params,
+             language,
+             recipient_email,
+             send_copy
+           ),
          {:ok, advanced} <- advance_to_followup(demo_config) do
       {:ok, %{demo_config: advanced, meeting: meeting, questionnaire: questionnaire}}
     end
@@ -961,7 +977,17 @@ defmodule Saleflow.Sales do
     })
   end
 
-  defp send_followup_email(lead, meeting, questionnaire, demo_config, user, params, language, recipient_email) do
+  defp send_followup_email(
+         lead,
+         meeting,
+         questionnaire,
+         demo_config,
+         user,
+         params,
+         language,
+         recipient_email,
+         send_copy
+       ) do
     preview_url = demo_config.preview_url || "https://demo.siteflow.se"
 
     q_base_url = Application.get_env(:saleflow, :questionnaire_base_url, "https://siteflow.se")
@@ -986,9 +1012,29 @@ defmodule Saleflow.Sales do
         language
       )
 
-    Saleflow.Notifications.Mailer.send_email_async(recipient_email, subject, html)
-    :ok
+    case Saleflow.Notifications.Mailer.send_email(recipient_email, subject, html) do
+      {:ok, _id} ->
+        # Optionally send a copy to the agent. Send synchronously so tests are
+        # deterministic, but ignore the result — copy delivery is non-critical.
+        agent_email = user_email_string(user)
+
+        if send_copy and agent_email do
+          copy_subject = "[Kopia] #{subject}"
+          _ = Saleflow.Notifications.Mailer.send_email(agent_email, copy_subject, html)
+        end
+
+        :ok
+
+      {:error, reason} ->
+        {:error, {:mail_failed, reason}}
+    end
   end
+
+  defp user_email_string(%{email: nil}), do: nil
+  defp user_email_string(%{email: ""}), do: nil
+  defp user_email_string(%{email: %Ash.CiString{} = email}), do: to_string(email)
+  defp user_email_string(%{email: email}) when is_binary(email), do: email
+  defp user_email_string(_), do: nil
 
   @doc """
   Cancels a demo config (from any stage).

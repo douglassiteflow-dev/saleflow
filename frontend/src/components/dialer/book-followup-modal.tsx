@@ -30,6 +30,7 @@ export function BookFollowupModal({
   const [language, setLanguage] = useState<FollowupLanguage>("sv");
   const [personalMessage, setPersonalMessage] = useState(DEFAULT_MESSAGES.sv);
   const [email, setEmail] = useState(leadEmail ?? "");
+  const [sendCopy, setSendCopy] = useState(false);
 
   const book = useBookFollowup();
   const preview = usePreviewFollowupMail(step === 2 ? demoConfigId : null, {
@@ -48,6 +49,7 @@ export function BookFollowupModal({
       setLanguage("sv");
       setPersonalMessage(DEFAULT_MESSAGES.sv);
       setEmail(leadEmail ?? "");
+      setSendCopy(false);
     }
   }, [book.isSuccess, onClose, leadEmail]);
 
@@ -75,6 +77,7 @@ export function BookFollowupModal({
       personal_message: personalMessage,
       language,
       email: email.trim(),
+      send_copy: sendCopy,
     });
   };
 
@@ -168,6 +171,18 @@ export function BookFollowupModal({
                 {personalMessage.length}/500
               </p>
             </div>
+
+            <label className="flex items-center gap-2 text-[13px] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={sendCopy}
+                onChange={(e) => setSendCopy(e.target.checked)}
+                className="rounded border-[var(--color-border-input)] text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+              />
+              <span className="text-[var(--color-text-primary)]">
+                Skicka en kopia till mig
+              </span>
+            </label>
           </div>
         )}
 
@@ -193,10 +208,14 @@ export function BookFollowupModal({
               </div>
             )}
             {book.isError && (
-              <p className="text-sm text-red-600">
-                Det gick inte att skicka. Kontrollera att du har en Microsoft-anslutning och
-                försök igen.
-              </p>
+              <div className="rounded-md border border-red-300 bg-red-50 p-3">
+                <p className="text-sm font-medium text-red-700">
+                  Det gick inte att skicka mailet
+                </p>
+                <p className="text-[13px] text-red-600 mt-1">
+                  {book.error?.message || "Okänt fel. Kontrollera Microsoft-anslutning och försök igen."}
+                </p>
+              </div>
             )}
           </div>
         )}

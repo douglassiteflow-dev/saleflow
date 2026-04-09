@@ -1,9 +1,21 @@
 defmodule Saleflow.Notifications.MailerTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   import ExUnit.CaptureLog
 
   alias Saleflow.Notifications.Mailer
+
+  setup do
+    Application.delete_env(:saleflow, :mailer_sandbox_response)
+    Mailer.reset_sandbox_calls()
+
+    on_exit(fn ->
+      Application.delete_env(:saleflow, :mailer_sandbox_response)
+      Mailer.reset_sandbox_calls()
+    end)
+
+    :ok
+  end
 
   # ---------------------------------------------------------------------------
   # send_email/3 — sandbox mode
@@ -38,6 +50,38 @@ defmodule Saleflow.Notifications.MailerTest do
     test "returns :ok tuple (not :error) in sandbox" do
       {result, _} = Mailer.send_email("ok@example.com", "OK Test", "<p>ok</p>")
       assert result == :ok
+    end
+
+    test "records calls in sandbox for inspection" do
+      Mailer.send_email("one@test.se", "First", "<p>1</p>")
+      Mailer.send_email("two@test.se", "Second", "<p>2</p>")
+
+      calls = Mailer.sandbox_calls()
+      assert length(calls) == 2
+      assert {"one@test.se", "First", "<p>1</p>"} in calls
+      assert {"two@test.se", "Second", "<p>2</p>"} in calls
+    end
+
+    test "reset_sandbox_calls clears the log" do
+      Mailer.send_email("x@test.se", "X", "<p>x</p>")
+      assert length(Mailer.sandbox_calls()) == 1
+
+      Mailer.reset_sandbox_calls()
+      assert Mailer.sandbox_calls() == []
+    end
+
+    test "returns overridden error response when mailer_sandbox_response is set" do
+      Application.put_env(:saleflow, :mailer_sandbox_response, {:error, :forced_failure})
+
+      assert {:error, :forced_failure} =
+               Mailer.send_email("fail@test.se", "Fail", "<p>fail</p>")
+    end
+
+    test "still records call even when response is overridden to error" do
+      Application.put_env(:saleflow, :mailer_sandbox_response, {:error, :boom})
+      Mailer.send_email("recorded@test.se", "Rec", "<p>r</p>")
+
+      assert [{"recorded@test.se", "Rec", "<p>r</p>"}] = Mailer.sandbox_calls()
     end
   end
 

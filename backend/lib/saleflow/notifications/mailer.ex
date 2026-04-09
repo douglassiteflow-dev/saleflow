@@ -33,17 +33,52 @@ defmodule Saleflow.Notifications.Mailer do
   Sends an email synchronously.
 
   Returns `{:ok, resend_id}` on success, `{:error, reason}` on failure.
-  In sandbox mode returns `{:ok, "sandbox"}` without making any HTTP call.
+  In sandbox mode returns `{:ok, "sandbox"}` by default without making any HTTP
+  call. Tests may override the sandbox response via
+  `Application.put_env(:saleflow, :mailer_sandbox_response, {:error, reason})`.
+
+  Sandbox calls are recorded in `:mailer_sandbox_calls` app env for inspection
+  by tests (use `sandbox_calls/0` and `reset_sandbox_calls/0`).
   """
   @spec send_email(String.t(), String.t(), String.t()) ::
           {:ok, String.t()} | {:error, term()}
   def send_email(to, subject, html_body) do
     if sandbox?() do
-      Logger.warning("[Mailer sandbox] to=#{to} subject=#{subject}\n#{html_body}")
-      {:ok, "sandbox"}
+      record_sandbox_call({to, subject, html_body})
+
+      case Application.get_env(:saleflow, :mailer_sandbox_response) do
+        {:error, _} = err ->
+          Logger.warning("[Mailer sandbox ERROR] to=#{to} subject=#{subject}")
+          err
+
+        _ ->
+          Logger.warning("[Mailer sandbox] to=#{to} subject=#{subject}\n#{html_body}")
+          {:ok, "sandbox"}
+      end
     else
       do_send(to, subject, html_body)
     end
+  end
+
+  @doc """
+  Returns the list of calls made to `send_email/3` in sandbox mode since the
+  last `reset_sandbox_calls/0`. Each call is a `{to, subject, html}` tuple.
+  """
+  @spec sandbox_calls() :: [{String.t(), String.t(), String.t()}]
+  def sandbox_calls do
+    Application.get_env(:saleflow, :mailer_sandbox_calls, [])
+  end
+
+  @doc "Clears the sandbox call log."
+  @spec reset_sandbox_calls() :: :ok
+  def reset_sandbox_calls do
+    Application.put_env(:saleflow, :mailer_sandbox_calls, [])
+    :ok
+  end
+
+  defp record_sandbox_call(call) do
+    calls = Application.get_env(:saleflow, :mailer_sandbox_calls, [])
+    Application.put_env(:saleflow, :mailer_sandbox_calls, calls ++ [call])
   end
 
   @doc """

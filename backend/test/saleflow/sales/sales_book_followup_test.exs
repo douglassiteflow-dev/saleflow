@@ -7,10 +7,13 @@ defmodule Saleflow.Sales.BookFollowupTest do
     Application.put_env(:saleflow, :graph_module, Saleflow.Microsoft.GraphStub)
     Application.delete_env(:saleflow, :graph_stub_response)
     Application.put_env(:saleflow, :mailer_sandbox, true)
+    Application.delete_env(:saleflow, :mailer_sandbox_response)
+    Saleflow.Notifications.Mailer.reset_sandbox_calls()
 
     on_exit(fn ->
       Application.delete_env(:saleflow, :graph_module)
       Application.delete_env(:saleflow, :graph_stub_response)
+      Application.delete_env(:saleflow, :mailer_sandbox_response)
     end)
 
     :ok
@@ -261,6 +264,86 @@ defmodule Saleflow.Sales.BookFollowupTest do
                  },
                  user
                )
+    end
+
+    test "fails with {:mail_failed, reason} if Resend returns error" do
+      user = create_user!()
+      lead = create_lead!()
+      dc = setup_demo_held!(lead, user)
+      create_ms_connection!(user)
+
+      Application.put_env(:saleflow, :mailer_sandbox_response, {:error, :smtp_down})
+
+      assert {:error, {:mail_failed, :smtp_down}} =
+               Sales.book_followup(
+                 dc,
+                 %{
+                   meeting_date: ~D[2026-04-16],
+                   meeting_time: ~T[14:00:00],
+                   personal_message: "",
+                   language: "sv"
+                 },
+                 user
+               )
+
+      # Demo config should NOT advance when mail fails
+      {:ok, after_fail} = Sales.get_demo_config(dc.id)
+      assert after_fail.stage == :demo_held
+    end
+
+    test "does not send copy to agent when send_copy is false (default)" do
+      user = create_user!()
+      lead = create_lead!()
+      dc = setup_demo_held!(lead, user)
+      create_ms_connection!(user)
+
+      assert {:ok, _result} =
+               Sales.book_followup(
+                 dc,
+                 %{
+                   meeting_date: ~D[2026-04-16],
+                   meeting_time: ~T[14:00:00],
+                   personal_message: "",
+                   language: "sv"
+                 },
+                 user
+               )
+
+      calls = Saleflow.Notifications.Mailer.sandbox_calls()
+      assert length(calls) == 1
+      [{to, _subject, _html}] = calls
+      assert to == lead.epost
+    end
+
+    test "sends copy to agent email when send_copy is true" do
+      user = create_user!()
+      lead = create_lead!()
+      dc = setup_demo_held!(lead, user)
+      create_ms_connection!(user)
+
+      assert {:ok, _result} =
+               Sales.book_followup(
+                 dc,
+                 %{
+                   meeting_date: ~D[2026-04-16],
+                   meeting_time: ~T[14:00:00],
+                   personal_message: "",
+                   language: "sv",
+                   send_copy: true
+                 },
+                 user
+               )
+
+      calls = Saleflow.Notifications.Mailer.sandbox_calls()
+      assert length(calls) == 2
+
+      user_email_str = to_string(user.email)
+      recipients = Enum.map(calls, fn {to, _, _} -> to end)
+      assert lead.epost in recipients
+      assert user_email_str in recipients
+
+      copy_call = Enum.find(calls, fn {to, _, _} -> to == user_email_str end)
+      assert elem(copy_call, 1) =~ "[Kopia]"
     end
 
     test "fails with {:teams_failed, reason} when Graph API fails" do

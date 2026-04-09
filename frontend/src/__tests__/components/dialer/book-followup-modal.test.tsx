@@ -126,7 +126,7 @@ describe("BookFollowupModal", () => {
     expect(screen.getByText(/steg 2 av 2/i)).toBeInTheDocument();
   });
 
-  it("sends with Swedish + auto-filled email on submit", async () => {
+  it("sends with Swedish + auto-filled email + default no copy on submit", async () => {
     const user = userEvent.setup();
     setPreviewReturn({ subject: "S", html: "<h1>P</h1>" });
 
@@ -141,7 +141,22 @@ describe("BookFollowupModal", () => {
         meeting_time: "14:00:00",
         language: "sv",
         email: "info@acme.se",
+        send_copy: false,
       }),
+    );
+  });
+
+  it("sends with send_copy=true when checkbox is checked", async () => {
+    const user = userEvent.setup();
+    setPreviewReturn({ subject: "S", html: "<h1>P</h1>" });
+
+    renderModal();
+    await user.click(screen.getByLabelText(/skicka en kopia till mig/i));
+    await fillStep1AndAdvance(user);
+    await user.click(screen.getByRole("button", { name: /skicka/i }));
+
+    expect(mutate).toHaveBeenCalledWith(
+      expect.objectContaining({ send_copy: true }),
     );
   });
 
@@ -212,15 +227,33 @@ describe("BookFollowupModal", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("shows error when booking fails", async () => {
+  it("shows backend error message when booking fails", async () => {
     const user = userEvent.setup();
-    setBookReturn({ isError: true } as never);
+    setBookReturn({
+      isError: true,
+      error: new Error("Mailet kunde inte skickas: 401 invalid key"),
+    } as never);
     setPreviewReturn({ subject: "S", html: "<h1>P</h1>" });
 
     renderModal();
     await fillStep1AndAdvance(user);
 
-    expect(screen.getByText(/kontrollera att du har en microsoft-anslutning/i)).toBeInTheDocument();
+    expect(screen.getByText(/det gick inte att skicka mailet/i)).toBeInTheDocument();
+    expect(screen.getByText(/401 invalid key/i)).toBeInTheDocument();
+  });
+
+  it("shows fallback error text when error has no message", async () => {
+    const user = userEvent.setup();
+    setBookReturn({
+      isError: true,
+      error: { message: "" } as never,
+    } as never);
+    setPreviewReturn({ subject: "S", html: "<h1>P</h1>" });
+
+    renderModal();
+    await fillStep1AndAdvance(user);
+
+    expect(screen.getByText(/kontrollera microsoft-anslutning/i)).toBeInTheDocument();
   });
 
   it("closes modal when clicking overlay", async () => {

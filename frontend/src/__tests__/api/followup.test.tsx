@@ -123,6 +123,7 @@ describe("useBookFollowup", () => {
       personal_message: "Hej",
       language: "sv",
       email: "kund@test.se",
+      send_copy: false,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -134,6 +135,36 @@ describe("useBookFollowup", () => {
     expect(body.meeting_date).toBe("2026-04-16");
     expect(body.meeting_time).toBe("14:00");
     expect(body.email).toBe("kund@test.se");
+    expect(body.send_copy).toBe(false);
+  });
+
+  it("posts with send_copy=true when set", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          demo_config: { id: "dc-1" },
+          meeting: { id: "m-1" },
+          questionnaire: { id: "q-1" },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const { result } = renderHook(() => useBookFollowup(), { wrapper: createWrapper() });
+    result.current.mutate({
+      id: "dc-1",
+      meeting_date: "2026-04-16",
+      meeting_time: "14:00",
+      personal_message: "",
+      language: "sv",
+      email: "k@t.se",
+      send_copy: true,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const body = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.send_copy).toBe(true);
   });
 
   it("handles error response", async () => {
@@ -152,8 +183,10 @@ describe("useBookFollowup", () => {
       personal_message: "",
       language: "sv",
       email: "kund@test.se",
+      send_copy: false,
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.message).toBe("No Microsoft connection");
   });
 });
