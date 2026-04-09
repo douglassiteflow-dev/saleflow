@@ -111,20 +111,17 @@ function getPageTypeRules(slug: string): string {
     index: `OBLIGATORISKA SEKTIONER (i denna ordning, MINST dessa):
 1. Hero — fullbred, stor Unsplash-bakgrundsbild, företagsnamn i stor typografi, tagline, primär CTA-knapp, optional betygsbadge
 2. Intro — kort text (2-3 meningar) PLUS en dekorativ bild bredvid (2-kolumns layout med text + bild)
-3. Featured tjänster — grid med 3-6 tjänster. Tjänstekort behöver INTE ha bilder — det räcker med stark typografi, pris och ikon/accent.
-4. Recensioner — om mode är infinity-scroll: horisontell auto-scroll med duplicerade kort, pause on hover, 5-8 recensioner. Om mode är statiska-kort: 3 kort i grid.
-5. Kontakt-CTA — fullbred sektion med bakgrundsbild eller gradient, text och primär CTA-knapp
+3. Featured tjänster — grid med 3-6 tjänster, tjänste-korten kan ha accent-bilder om det passar, men får också vara rena med typografi
+4. Bildgalleri-teaser — valfritt, några bilder i asymmetriskt mosaic om det passar sidan
+5. Recensioner — om mode är infinity-scroll: horisontell auto-scroll med duplicerade kort, pause on hover, 5-8 recensioner. Om mode är statiska-kort: 3 kort i grid.
+6. Kontakt-CTA — fullbred sektion med bakgrundsbild eller gradient, text och primär CTA-knapp
 
-BILD-BALANS (viktigt):
-- Totalt 3-4 stora bilder på sidan (hero, intro-bild, cta-bakgrund, eventuellt en liten accent)
-- INTE bild på varje tjänste-kort
-- INTE galleri-teaser med bilder (lägg galleri på galleri-sidan istället)
-- Kvalitet över kvantitet — få men starka bilder
+BILDER: Flera bilder är bra för en service-sajt. Variera — hero, intro-bild, eventuell galleri-teaser, cta-bakgrund. Men inte på varje litet element — låt vissa sektioner andas med bara typografi och färg.
 
-DESIGN-KRAV (pimp and polish — behåll):
+DESIGN-KRAV (pimp and polish — viktig):
 - Hero måste ha gradient overlay för textläsbarhet
-- Varje sektion ska kännas distinkt — använd alternerande bakgrundsfärger (vit → sage → vit → accent)
-- Dekorativa element: små accent-linjer, dot-patterns, badge-ikoner — SPARSAMT med dividers
+- Varje sektion ska kännas distinkt — alternerande bakgrundsfärger
+- Dekorativa element: accent-linjer, dot-patterns, badge-ikoner, små detaljer
 - Subtila hover-effekter på kort och knappar
 - Använd CSS-variabler från layout för färgkonsistens`,
 

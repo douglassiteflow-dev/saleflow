@@ -51,11 +51,10 @@ Leta efter:
 
 Du MÅSTE lägga till ALLT av följande som är relevant:
 
-### Bilder (MÅTTLIGT — kvalitet över kvantitet)
-- Mål: 3-4 stora bilder på hela sidan, inte fler
-- Om sidan bara har 1 bild (hero) → lägg till 1-2 till i nyckelsektioner (intro, cta)
-- Om sidan redan har 4+ bilder → LÄGG INTE TILL FLER
-- Varje stor sektion BEHÖVER INTE en bild — gradient eller färgat block räcker ofta
+### Bilder
+- Om sidan bara har 1 bild (bara hero) → lägg till 1-3 till i nyckelsektioner
+- Om sidan redan har flera bilder → fokusera på polish och detaljer, inte fler bilder
+- Låt vissa sektioner andas med gradient eller färgat block istället för en bild
 - Format: \`https://images.unsplash.com/photo-XXX?w=1200&q=80\`
 
 ### Hero-sektion
