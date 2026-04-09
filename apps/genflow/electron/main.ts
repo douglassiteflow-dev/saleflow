@@ -3,6 +3,14 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createTray, destroyTray, TrayStatus } from './tray'
 
+declare global {
+  namespace Electron {
+    interface App {
+      isQuitting?: boolean
+    }
+  }
+}
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
@@ -13,6 +21,8 @@ process.env.VITE_PUBLIC = app.isPackaged
 
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
+
+const startedHidden = process.argv.includes('--hidden')
 
 let mainWindow: BrowserWindow | null = null
 
@@ -50,6 +60,7 @@ function createMainWindow() {
     width: 1000,
     height: 700,
     title: 'Genflow',
+    show: !startedHidden,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -59,20 +70,58 @@ function createMainWindow() {
 
   if (VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(VITE_DEV_SERVER_URL)
-    mainWindow.webContents.openDevTools()
+    if (!startedHidden) mainWindow.webContents.openDevTools()
   } else {
     mainWindow.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
+
+  // När window stängs, hide istället för destroy
+  mainWindow.on('close', (event) => {
+    if (!app.isQuitting) {
+      event.preventDefault()
+      mainWindow?.hide()
+      if (process.platform === 'darwin') {
+        app.dock?.hide()
+      }
+    }
+  })
 }
 
 app.whenReady().then(() => {
+  // Register as login item so the app starts automatically at Mac login
+  if (!app.isPackaged) {
+    // Skip i dev-mode — SMAppService funkar inte pålitligt utan signering
+    console.log('[main] dev mode: skipping login item registration')
+  } else {
+    app.setLoginItemSettings({
+      openAtLogin: true,
+      openAsHidden: true,
+      args: ['--hidden'],
+    })
+  }
+
   startServerProcess()
-  createMainWindow()
+
+  if (!startedHidden) {
+    createMainWindow()
+  } else {
+    // Startade med --hidden (från login item): göm dock direkt
+    app.dock?.hide()
+  }
 
   createTray(
     {
       getMainWindow: () => mainWindow,
-      createMainWindow,
+      createMainWindow: () => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+          createMainWindow()
+          mainWindow?.show()
+          if (process.platform === 'darwin') app.dock?.show()
+        } else {
+          mainWindow.show()
+          if (process.platform === 'darwin') app.dock?.show()
+        }
+      },
       onTogglePolling: () => {
         serverProc?.postMessage({ type: 'toggle-polling' })
       },
@@ -93,6 +142,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
+  app.isQuitting = true
   destroyTray()
 })
 
