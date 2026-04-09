@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DemoDetailTab } from "@/components/dialer/demo-detail-tab";
-import type { DemoConfigDetail } from "@/api/types";
+import type { DemoConfigDetail, Lead, Meeting } from "@/api/types";
 
 // ── Mocks ──
 
@@ -39,6 +39,58 @@ const mockUseRetryDemoConfig = vi.mocked(useRetryDemoConfig);
 
 // ── Fixtures ──
 
+function makeLead(overrides: Partial<Lead> = {}): Lead {
+  return {
+    id: "lead-1",
+    företag: "Acme AB",
+    telefon: "0701234567",
+    telefon_2: null,
+    epost: "info@acme.se",
+    hemsida: null,
+    adress: null,
+    postnummer: null,
+    stad: null,
+    bransch: null,
+    orgnr: null,
+    omsättning_tkr: null,
+    vinst_tkr: null,
+    anställda: null,
+    vd_namn: null,
+    bolagsform: null,
+    källa: null,
+    status: "ej_kontaktad",
+    quarantine_until: null,
+    callback_at: null,
+    callback_reminded_at: null,
+    imported_at: null,
+    inserted_at: "2026-04-01T10:00:00Z",
+    updated_at: "2026-04-01T10:00:00Z",
+    ...overrides,
+  };
+}
+
+function makeMeeting(overrides: Partial<Meeting> = {}): Meeting {
+  return {
+    id: "m-1",
+    lead_id: "lead-1",
+    user_id: "user-1",
+    title: "Demo med Acme",
+    meeting_date: "2026-04-10",
+    meeting_time: "14:00",
+    notes: null,
+    duration_minutes: 30,
+    status: "scheduled",
+    reminded_at: null,
+    teams_join_url: null,
+    teams_event_id: null,
+    attendee_name: null,
+    attendee_email: null,
+    inserted_at: "2026-04-01T10:00:00Z",
+    updated_at: "2026-04-01T10:00:00Z",
+    ...overrides,
+  };
+}
+
 function makeDetail(overrides: Partial<DemoConfigDetail> = {}): DemoConfigDetail {
   return {
     id: "dc-1",
@@ -50,14 +102,10 @@ function makeDetail(overrides: Partial<DemoConfigDetail> = {}): DemoConfigDetail
     preview_url: null,
     notes: null,
     error: null,
+    health_score: null,
     inserted_at: "2026-04-01T10:00:00Z",
     updated_at: "2026-04-01T10:00:00Z",
-    lead: {
-      id: "lead-1",
-      company_name: "Acme AB",
-      phone: "0701234567",
-      email: "info@acme.se",
-    },
+    lead: makeLead(),
     meetings: [],
     ...overrides,
   };
@@ -246,9 +294,7 @@ describe("DemoDetailTab", () => {
       data: makeDetail({
         stage: "followup",
         preview_url: "https://preview.example.com/dc-1",
-        meetings: [
-          { id: "m-1", title: "Demo med Acme", meeting_date: "2026-04-10", meeting_time: "14:00", status: "scheduled", teams_join_url: null, attendee_email: null, attendee_name: null },
-        ],
+        meetings: [makeMeeting()],
       }),
       isLoading: false,
     } as ReturnType<typeof useDemoConfigDetail>);
@@ -273,9 +319,12 @@ describe("DemoDetailTab", () => {
     expect(screen.getByText("Inga möten.")).toBeInTheDocument();
   });
 
-  it("uses lead.company_name as fallback when lead_name is null", () => {
+  it("uses lead.företag as fallback when lead_name is null", () => {
     mockUseDemoConfigDetail.mockReturnValue({
-      data: makeDetail({ lead_name: null, lead: { id: "l-1", company_name: "Fallback Corp", phone: null, email: null } }),
+      data: makeDetail({
+        lead_name: null,
+        lead: makeLead({ id: "l-1", företag: "Fallback Corp", telefon: "0700000000", epost: null }),
+      }),
       isLoading: false,
     } as ReturnType<typeof useDemoConfigDetail>);
 
@@ -419,12 +468,12 @@ describe("DemoDetailTab", () => {
     expect(screen.getByText("Inga möten.")).toBeInTheDocument();
   });
 
-  it("does not show phone and email when lead lacks them in followup", () => {
+  it("does not show telefon and epost when lead lacks them in followup", () => {
     mockUseDemoConfigDetail.mockReturnValue({
       data: makeDetail({
         stage: "followup",
         preview_url: null,
-        lead: { id: "l-1", company_name: "NoContact Inc", phone: null, email: null },
+        lead: makeLead({ id: "l-1", företag: "NoContact Inc", telefon: "", epost: null }),
         meetings: [],
       }),
       isLoading: false,

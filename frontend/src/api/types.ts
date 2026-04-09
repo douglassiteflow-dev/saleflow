@@ -408,22 +408,8 @@ export interface DemoConfig {
 }
 
 export interface DemoConfigDetail extends DemoConfig {
-  lead: {
-    id: string;
-    company_name: string;
-    phone: string | null;
-    email: string | null;
-  };
-  meetings: {
-    id: string;
-    title: string;
-    meeting_date: string;
-    meeting_time: string;
-    status: string;
-    teams_join_url: string | null;
-    attendee_email: string | null;
-    attendee_name: string | null;
-  }[];
+  lead: Lead;
+  meetings: Meeting[];
 }
 
 export interface ScorecardQuestion {

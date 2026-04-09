@@ -44,8 +44,8 @@ describe("useDemoConfigs", () => {
 });
 
 describe("useDemoConfigDetail", () => {
-  it("fetches detail for a specific config", async () => {
-    const detail = {
+  it("merges demo_config + lead + meetings from flat response shape", async () => {
+    const demoConfig = {
       id: "dc-1",
       lead_id: "lead-1",
       user_id: "user-1",
@@ -55,14 +55,24 @@ describe("useDemoConfigDetail", () => {
       preview_url: "https://preview.example.com/dc-1",
       notes: null,
       error: null,
+      health_score: null,
       inserted_at: "2026-04-01T10:00:00Z",
       updated_at: "2026-04-01T10:00:00Z",
-      lead: { id: "lead-1", company_name: "Acme AB", phone: "0701234567", email: "info@acme.se" },
-      meetings: [],
     };
 
+    const lead = {
+      id: "lead-1",
+      företag: "Acme AB",
+      telefon: "0701234567",
+      epost: "info@acme.se",
+    };
+
+    const meetings = [
+      { id: "m-1", title: "Demo", meeting_date: "2026-04-10", meeting_time: "14:00", status: "scheduled" },
+    ];
+
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify({ demo_config: detail }), {
+      new Response(JSON.stringify({ demo_config: demoConfig, lead, meetings }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
@@ -72,7 +82,9 @@ describe("useDemoConfigDetail", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data!.id).toBe("dc-1");
     expect(result.current.data!.stage).toBe("followup");
-    expect(result.current.data!.lead.company_name).toBe("Acme AB");
+    expect(result.current.data!.lead.företag).toBe("Acme AB");
+    expect(result.current.data!.lead.telefon).toBe("0701234567");
+    expect(result.current.data!.meetings).toHaveLength(1);
   });
 
   it("does not fetch when id is null", async () => {

@@ -45,7 +45,7 @@ export function DemoDetailTab({ demoConfigId, onBack }: DemoDetailTabProps) {
     );
   }
 
-  const companyName = data.lead_name ?? data.lead.company_name;
+  const companyName = data.lead_name ?? data.lead.företag;
 
   return (
     <div className="flex-1 overflow-auto">
@@ -231,8 +231,8 @@ function FollowupContent({ data }: { data: NonNullable<ReturnType<typeof useDemo
                     teamsJoinUrl={m.teams_join_url}
                     attendeeEmail={m.attendee_email}
                     attendeeName={m.attendee_name}
-                    leadEmail={data.lead?.email}
-                    leadName={data.lead?.company_name}
+                    leadEmail={data.lead?.epost}
+                    leadName={data.lead?.företag}
                     meetingDate={m.meeting_date}
                     meetingTime={m.meeting_time}
                     size="sm"
@@ -250,9 +250,9 @@ function FollowupContent({ data }: { data: NonNullable<ReturnType<typeof useDemo
           Kundinfo
         </p>
         <div className="space-y-0">
-          <InfoRow label="Företag" value={data.lead.company_name} bold />
-          {data.lead.phone && <InfoRow label="Telefon" value={formatPhone(data.lead.phone)} mono />}
-          {data.lead.email && <InfoRow label="E-post" value={data.lead.email} />}
+          <InfoRow label="Företag" value={data.lead.företag} bold />
+          {data.lead.telefon && <InfoRow label="Telefon" value={formatPhone(data.lead.telefon)} mono />}
+          {data.lead.epost && <InfoRow label="E-post" value={data.lead.epost} />}
         </div>
       </div>
     </div>
