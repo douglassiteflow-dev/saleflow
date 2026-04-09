@@ -51,14 +51,17 @@ export async function deployToVercel(
     })
   })
 
-  // Extrahera URL från output
+  // Extrahera raw Vercel URL från output (behövs för verifiering/debugging)
   const fullOutput = output.join('')
   const urlMatch = fullOutput.match(/https:\/\/[\w-]+\.vercel\.app/g)
   if (!urlMatch || urlMatch.length === 0) {
     throw new Error('Kunde inte hitta deployed URL i vercel output')
   }
+  const rawVercelUrl = urlMatch[urlMatch.length - 1]
 
-  const deployedUrl = urlMatch[urlMatch.length - 1]  // sista URL:en är prod-alias
-  log(`Deploy klar: ${deployedUrl}`)
-  return deployedUrl
+  // Friendly URL via saleflow-proxy. demo.siteflow.se rewriter till den
+  // aktuella Vercel-deployen via slug-lookup i backend-databasen.
+  const friendlyUrl = `https://demo.siteflow.se/${slug}`
+  log(`Deploy klar: ${friendlyUrl} (raw: ${rawVercelUrl})`)
+  return friendlyUrl
 }

@@ -105,10 +105,71 @@ Lägg till längst ner i <main>:
 </style>
 \`\`\`
 
+### OBLIGATORISKA animationer och effekter (prestanda-optimerade)
+
+**Parallax hero (OBLIGATORISKT på index.html)** — använd GPU-accelererad transform, INTE \`background-attachment: fixed\` (laggy):
+\`\`\`html
+<section class="hero" style="position:relative;overflow:hidden">
+  <div class="hero-parallax" style="position:absolute;inset:0;background:url(UNSPLASH_URL) center/cover;will-change:transform;z-index:0;pointer-events:none"></div>
+  <div class="hero-content" style="position:relative;z-index:2">...</div>
+</section>
+<script>
+(function(){
+  var el = document.querySelector('.hero-parallax');
+  if (!el) return;
+  window.addEventListener('scroll', function(){
+    var y = window.scrollY;
+    if (y < 800) el.style.transform = 'translate3d(0,' + (y * 0.4) + 'px,0)';
+  }, {passive:true});
+})();
+</script>
+\`\`\`
+
+**Scroll reveal animations (OBLIGATORISKT)** — använd IntersectionObserver för fade-in + subtle translateY. LÄTT och GPU-accelererad:
+\`\`\`html
+<style>
+  .reveal { opacity:0; transform:translate3d(0,20px,0); transition:opacity .6s ease-out,transform .6s ease-out }
+  .reveal.in { opacity:1; transform:translate3d(0,0,0) }
+</style>
+<script>
+(function(){
+  var els = document.querySelectorAll('.reveal');
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target) } });
+  }, {threshold:0.1, rootMargin:'0px 0px -80px 0px'});
+  els.forEach(function(el){ io.observe(el) });
+})();
+</script>
+\`\`\`
+Lägg \`class="reveal"\` på sektionstitlar, tjänste-kort, recensions-kort, om-oss-text — så de fadar in när användaren scrollar.
+
+**Hover-effekter (OBLIGATORISKT på alla kort och knappar)** — GPU-accelererade transforms:
+\`\`\`css
+.card, .service-card, .testimonial-card {
+  transition: transform .3s ease-out, box-shadow .3s ease-out;
+  will-change: transform;
+}
+.card:hover, .service-card:hover, .testimonial-card:hover {
+  transform: translate3d(0,-4px,0);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+}
+a.cta, button.cta, .primary-cta {
+  transition: transform .2s ease-out, box-shadow .2s ease-out;
+}
+a.cta:hover, button.cta:hover, .primary-cta:hover {
+  transform: translate3d(0,-2px,0);
+  box-shadow: 0 8px 24px rgba(var(--accent-rgb, 79,70,229),0.3);
+}
+\`\`\`
+
+**Tips för prestanda:**
+- Använd \`transform\` och \`opacity\` — INTE \`margin\`, \`top\`, \`left\`, \`width\` (orsakar layout reflow)
+- Lägg \`will-change: transform\` på element som animeras
+- Använd \`translate3d(x,y,0)\` istället för \`translateY(y)\` (tvingar GPU)
+- UNDVIK \`background-attachment: fixed\` (laggy på mobile)
+
 ### Designdetaljer (valfritt, inom tak ovan)
 - Gradient text på huvudrubriken (en gång): \`background:linear-gradient(135deg,primary,accent);-webkit-background-clip:text;color:transparent\`
-- Subtila hover-effekter: \`transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.08)\`
-- Fade-in-on-scroll på testimonials eller services (EN animation)
 - Letter-spacing på rubriker (-0.02em h1)
 - Thin hairline divider istället för shape-divider: \`<hr style="border:none;border-top:1px solid rgba(0,0,0,0.08);margin:60px auto;max-width:200px">\`
 

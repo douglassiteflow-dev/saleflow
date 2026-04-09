@@ -3,7 +3,7 @@ import pLimit from 'p-limit'
 import { CLAUDE_BIN } from './lib/platform'
 import type { LogFn } from './lib/types'
 
-const CLAUDE_CONCURRENCY = 3
+const CLAUDE_CONCURRENCY = 6
 const CLAUDE_MAX_RUNTIME_MS = 45 * 60 * 1000  // 45 min hard timeout
 const STDOUT_IDLE_MS = 10 * 60 * 1000          // 10 min utan stdout = hang
                                                // Polish-pass med aggressiv prompt

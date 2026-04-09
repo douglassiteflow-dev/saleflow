@@ -119,10 +119,21 @@ def extract_services(soup: BeautifulSoup) -> list[dict]:
             if time_match and time_match.group(2):
                 tid_min = f"{time_match.group(1)}-{time_match.group(2)}"
 
-            # Leta efter pris (hoppa över "Pris" texten)
+            # Leta efter pris — skanna framåt tills vi hittar "XX kr" eller nästa tjänst.
+            # Bokadirekt kan ha lång beskrivning mellan tid och pris.
             pris = ""
-            for j in range(i + 2, min(i + 5, end_idx)):
-                price_match = re.match(r'^(?:från\s+)?([\d\s\xa0]+(?:-[\d\s\xa0]+)?)\s*kr$', lines[j])
+            for j in range(i + 2, min(i + 40, end_idx)):
+                ln = lines[j]
+                if not ln:
+                    continue
+                # Stoppa om vi träffar nästa tjänstenamn (dess tid-rad kommer strax efter)
+                if j + 1 < end_idx and re.match(r'^\d+\s*(-\s*\d+)?\s*min$', lines[j + 1]):
+                    break
+                # Stoppa om vi träffar nästa kategori (följd av antal tjänster)
+                if j + 1 < end_idx and re.match(r'^\d+$', lines[j + 1]) and not re.match(r'^\d', ln):
+                    break
+                # Matcha pris-mönster (tillåt "från", en-dash, thousand sep med space/nbsp)
+                price_match = re.match(r'^(?:från\s+)?([\d\s\xa0]+(?:[-–][\d\s\xa0]+)?)\s*kr$', ln)
                 if price_match:
                     pris = price_match.group(1).replace('\xa0', ' ').strip()
                     break

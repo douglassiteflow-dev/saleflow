@@ -40,7 +40,7 @@ export async function runJob(
   const results: JobResult[] = await Promise.all(
     strategy.pages.map(async (page): Promise<JobResult> => {
       try {
-        await runPagePipeline(page, strategy, outputDir, log)
+        await runPagePipeline(page, strategy, outputDir, job.source_url, log)
         renderPageFromLayout(page, strategy, outputDir)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)

@@ -8,6 +8,7 @@ export async function runPagePipeline(
   pageSpec: PageSpec,
   strategy: Strategy,
   outputDir: string,
+  sourceUrl: string,
   log: LogFn,
 ): Promise<void> {
   log(`Sid-pipeline startad: ${pageSpec.slug}`)
@@ -24,7 +25,7 @@ export async function runPagePipeline(
   const templatePath = join(PIPELINE_DIR, 'page-prompt.md')
   const template = readFileSync(templatePath, 'utf-8')
 
-  const pageContext = buildPageContext(pageSpec, strategy, outputDir)
+  const pageContext = buildPageContext(pageSpec, strategy, outputDir, sourceUrl)
   const pageTypeRules = getPageTypeRules(pageSpec.slug)
 
   const prompt = template
@@ -70,13 +71,14 @@ export async function runPagePipeline(
   log(`Sid-pipeline klar: ${pageSpec.slug}`)
 }
 
-function buildPageContext(pageSpec: PageSpec, strategy: Strategy, outputDir: string): string {
+function buildPageContext(pageSpec: PageSpec, strategy: Strategy, outputDir: string, sourceUrl: string): string {
   const dataPath = join(outputDir, 'företagsdata.json')
   const data = JSON.parse(readFileSync(dataPath, 'utf-8'))
 
   switch (pageSpec.slug) {
     case 'index':
       return [
+        `BOKA-URL (ALLA primära CTA ska länka till denna exakta URL): ${sourceUrl}`,
         `Featured tjänster: ${JSON.stringify(strategy.services.featuredForIndex)}`,
         `Recensions-mode: ${strategy.reviews.displayMode}`,
         `Antal recensioner: ${strategy.reviews.total}`,
@@ -84,8 +86,10 @@ function buildPageContext(pageSpec: PageSpec, strategy: Strategy, outputDir: str
       ].join('\n')
     case 'tjanster':
       return [
+        `BOKA-URL (ALLA "Boka"-knappar ska länka till denna URL): ${sourceUrl}`,
         `Alla tjänster: ${JSON.stringify(data.tjänster ?? [])}`,
         `Kategoriordning: ${JSON.stringify(strategy.services.categoryOrder)}`,
+        `OBS: Om en tjänst har tomt pris_kr — skippa pris-visning för den tjänsten, visa bara namn och tid`,
       ].join('\n')
     case 'om-oss':
       return [
