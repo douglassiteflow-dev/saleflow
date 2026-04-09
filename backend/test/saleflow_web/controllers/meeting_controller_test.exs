@@ -413,6 +413,55 @@ defmodule SaleflowWeb.MeetingControllerTest do
   # POST /api/meetings — DemoConfig auto-linking
   # -------------------------------------------------------------------------
 
+  describe "PUT /api/meetings/:id — auto-advance demo_config" do
+    test "marking meeting as completed advances demo_config from demo_ready to demo_held", %{conn: conn, user: user, lead: lead} do
+      {:ok, dc} = Sales.create_demo_config(%{lead_id: lead.id, user_id: user.id})
+      {:ok, dc} = Sales.start_generation(dc)
+      {:ok, dc} = Sales.generation_complete(dc, %{
+        website_path: "https://raw.vercel.app",
+        preview_url: "https://demo.siteflow.se/x"
+      })
+      assert dc.stage == :demo_ready
+
+      tomorrow = Date.utc_today() |> Date.add(1)
+      {:ok, meeting} = Sales.create_meeting(%{
+        lead_id: lead.id,
+        user_id: user.id,
+        title: "Demo Meeting",
+        meeting_date: tomorrow,
+        meeting_time: ~T[10:00:00],
+        demo_config_id: dc.id
+      })
+
+      conn = put(conn, "/api/meetings/#{meeting.id}", %{status: "completed"})
+      assert %{"meeting" => m} = json_response(conn, 200)
+      assert m["status"] == "completed"
+
+      {:ok, updated_dc} = Sales.get_demo_config(dc.id)
+      assert updated_dc.stage == :demo_held
+    end
+
+    test "marking meeting completed with no demo_config creates one in demo_held", %{conn: conn, user: user, lead: lead} do
+      tomorrow = Date.utc_today() |> Date.add(1)
+      {:ok, meeting} = Sales.create_meeting(%{
+        lead_id: lead.id,
+        user_id: user.id,
+        title: "Ad-hoc Meeting",
+        meeting_date: tomorrow,
+        meeting_time: ~T[10:00:00]
+      })
+
+      conn = put(conn, "/api/meetings/#{meeting.id}", %{status: "completed"})
+      assert json_response(conn, 200)
+
+      # Fetch and verify a demo_config was created in demo_held
+      {:ok, dcs} = Sales.list_demo_configs_for_user(user.id)
+      matching = Enum.filter(dcs, &(&1.lead_id == lead.id))
+      assert length(matching) == 1
+      assert hd(matching).stage == :demo_held
+    end
+  end
+
   describe "POST /api/meetings — DemoConfig auto-linking" do
     test "creates meeting with source_url and auto-creates demo config", %{conn: conn, lead: lead} do
       conn =

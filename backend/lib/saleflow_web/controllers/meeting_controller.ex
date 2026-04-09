@@ -252,28 +252,20 @@ defmodule SaleflowWeb.MeetingController do
   defp maybe_advance_demo_config(meeting) do
     dc = case find_active_demo_config(meeting.lead_id) do
       nil ->
-        # Skapa DemoConfig i followup-stage (mötet genomfört = redo för uppföljning)
-        case Sales.create_demo_config(%{
-          lead_id: meeting.lead_id,
-          user_id: meeting.user_id
-        }) do
-          {:ok, new_dc} ->
-            # Avancera direkt till followup
-            case Sales.start_generation(new_dc) do
-              {:ok, gen_dc} ->
-                case Sales.generation_complete(gen_dc, %{website_path: nil, preview_url: nil}) do
-                  {:ok, ready_dc} -> Sales.advance_to_followup(ready_dc) |> elem(1)
-                  _ -> new_dc
-                end
-              _ -> new_dc
-            end
+        # Skapa DemoConfig och avancera fram till demo_held (äldre flöden utan genererad hemsida)
+        with {:ok, new_dc} <- Sales.create_demo_config(%{lead_id: meeting.lead_id, user_id: meeting.user_id}),
+             {:ok, gen_dc} <- Sales.start_generation(new_dc),
+             {:ok, ready_dc} <- Sales.generation_complete(gen_dc, %{website_path: nil, preview_url: nil}),
+             {:ok, held_dc} <- Sales.advance_to_demo_held(ready_dc) do
+          held_dc
+        else
           _ -> nil
         end
 
       dc ->
-        # Advance demo_ready → followup
+        # Advance demo_ready → demo_held (inte direkt till followup — agent bokar uppföljning manuellt)
         if dc.stage == :demo_ready do
-          case Sales.advance_to_followup(dc) do
+          case Sales.advance_to_demo_held(dc) do
             {:ok, updated} -> updated
             _ -> dc
           end
@@ -303,7 +295,9 @@ defmodule SaleflowWeb.MeetingController do
     message =
       case demo_config.stage do
         s when s in [:demo_ready, "demo_ready"] ->
-          "Demo klar för #{lead_name} — dags för uppföljning"
+          "Demo klar för #{lead_name} — dags för demo-mötet"
+        s when s in [:demo_held, "demo_held"] ->
+          "Demo-möte genomfört med #{lead_name} — dags att boka uppföljning"
         s when s in [:followup, "followup"] ->
           "Möte genomfört med #{lead_name} — fortsätt uppföljning"
         _ ->
