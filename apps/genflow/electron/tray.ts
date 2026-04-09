@@ -68,7 +68,7 @@ export function updateTray(ctx: TrayContext) {
     { label: 'Senaste jobb:', enabled: false },
     ...jobItems,
     { type: 'separator' },
-    { label: 'Quit', role: 'quit' },
+    { label: 'Avsluta', role: 'quit' },
   ])
 
   tray.setToolTip(`Genflow — ${statusDot.replace('● ', '')}`)
