@@ -953,6 +953,32 @@ defmodule Saleflow.Sales do
     |> Ash.create()
   end
 
+  def create_questionnaire_for_lead(params) do
+    Saleflow.Sales.Questionnaire
+    |> Ash.Changeset.for_create(:create_for_lead, params)
+    |> Ash.create()
+  end
+
+  def mark_questionnaire_opened(questionnaire) do
+    questionnaire
+    |> Ash.Changeset.for_update(:mark_opened, %{})
+    |> Ash.update()
+  end
+
+  def latest_questionnaire_for_lead(lead_id) do
+    require Ash.Query
+
+    Saleflow.Sales.Questionnaire
+    |> Ash.Query.filter(lead_id == ^lead_id)
+    |> Ash.Query.sort(inserted_at: :desc)
+    |> Ash.Query.limit(1)
+    |> Ash.read()
+    |> case do
+      {:ok, [q | _]} -> q
+      _ -> nil
+    end
+  end
+
   def get_questionnaire(id) do
     Saleflow.Sales.Questionnaire
     |> Ash.get(id)

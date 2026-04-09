@@ -16,6 +16,21 @@ defmodule Saleflow.Sales.Questionnaire do
       public? true
     end
 
+    attribute :lead_id, :uuid do
+      allow_nil? true
+      public? true
+    end
+
+    attribute :opened_at, :utc_datetime_usec do
+      allow_nil? true
+      public? true
+    end
+
+    attribute :started_at, :utc_datetime_usec do
+      allow_nil? true
+      public? true
+    end
+
     attribute :token, :string do
       allow_nil? false
       public? true
@@ -103,6 +118,27 @@ defmodule Saleflow.Sales.Questionnaire do
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "questionnaire.created"}
     end
 
+    create :create_for_lead do
+      description "Create a questionnaire tied to a lead (for followup flow)"
+      accept [:lead_id, :customer_email, :token]
+      change {Saleflow.Audit.Changes.CreateAuditLog, action: "questionnaire.created_for_lead"}
+    end
+
+    update :mark_opened do
+      description "Set opened_at if not already set (called on first GET /q/:token)"
+      require_atomic? false
+
+      change fn changeset, _context ->
+        current_opened = Ash.Changeset.get_attribute(changeset, :opened_at)
+
+        if is_nil(current_opened) do
+          Ash.Changeset.force_change_attribute(changeset, :opened_at, DateTime.utc_now())
+        else
+          changeset
+        end
+      end
+    end
+
     update :save_answers do
       description "Autosave questionnaire answers"
       require_atomic? false
@@ -113,7 +149,15 @@ defmodule Saleflow.Sales.Questionnaire do
       ]
 
       change fn changeset, _context ->
+        changeset =
+          if is_nil(Ash.Changeset.get_attribute(changeset, :started_at)) do
+            Ash.Changeset.force_change_attribute(changeset, :started_at, DateTime.utc_now())
+          else
+            changeset
+          end
+
         current = Ash.Changeset.get_attribute(changeset, :status)
+
         if current == :pending do
           Ash.Changeset.force_change_attribute(changeset, :status, :in_progress)
         else
