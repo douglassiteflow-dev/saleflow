@@ -105,24 +105,33 @@ export default function App() {
   }, [])
 
   return (
-    <div
-      style={{
-        padding: 24,
-        fontFamily: 'system-ui, sans-serif',
-        maxWidth: 1000,
-        margin: '0 auto',
-      }}
-    >
-      <header style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: 24 }}>Genflow</h1>
+    <div className="min-h-screen bg-[var(--color-bg-panel)]">
+      {/* Topbar */}
+      <header className="border-b bg-[var(--color-bg-primary)]">
+        <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between px-[var(--spacing-page)]">
+          <div className="flex items-center gap-3">
+            <div className="flex h-7 w-7 items-center justify-center rounded-[6px] bg-indigo-600 text-[12px] font-bold text-white">
+              G
+            </div>
+            <h1 className="text-[15px] font-semibold tracking-tight text-[var(--color-text-primary)]">
+              Genflow
+            </h1>
+          </div>
+          <StatusPanel status={status} />
+        </div>
       </header>
 
-      <StatusPanel status={status} />
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <LogViewer logs={logs} />
-        <JobQueue jobs={jobs} />
-      </div>
+      {/* Page content */}
+      <main className="mx-auto max-w-[1200px] px-[var(--spacing-page)] py-[var(--spacing-section)]">
+        <div className="grid grid-cols-1 gap-[var(--spacing-element)] lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <LogViewer logs={logs} />
+          </div>
+          <div>
+            <JobQueue jobs={jobs} />
+          </div>
+        </div>
+      </main>
     </div>
   )
 }

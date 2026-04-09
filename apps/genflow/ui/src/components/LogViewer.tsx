@@ -20,29 +20,25 @@ export default function LogViewer({ logs }: LogViewerProps) {
   }, [logs.length])
 
   return (
-    <div>
-      <h2 style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>Loggar</h2>
+    <div className="rounded-[14px] bg-[var(--color-bg-primary)] p-[var(--spacing-card)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] border">
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className="text-[11px] font-medium uppercase tracking-[1px] text-[var(--color-text-secondary)]">
+          Loggar
+        </h2>
+        <span className="text-[10px] text-[var(--color-text-secondary)]">{logs.length} rader</span>
+      </div>
       <div
         ref={containerRef}
-        style={{
-          background: '#111',
-          color: '#ddd',
-          fontFamily: 'ui-monospace, Menlo, monospace',
-          fontSize: 11,
-          padding: 12,
-          borderRadius: 6,
-          height: 400,
-          overflow: 'auto',
-        }}
+        className="h-[420px] overflow-auto rounded-[8px] bg-[#0F172A] p-3 font-mono text-[11px] leading-[1.55] text-slate-200"
       >
-        {logs.length === 0 && <div style={{ opacity: 0.5 }}>Inga loggar ännu</div>}
+        {logs.length === 0 && (
+          <div className="text-slate-500">Inga loggar ännu</div>
+        )}
         {logs.map((log, i) => (
-          <div key={i} style={{ lineHeight: 1.4 }}>
-            <span style={{ opacity: 0.5 }}>[{log.timestamp}]</span>
-            {log.jobSlug && (
-              <span style={{ color: '#60a5fa' }}> [{log.jobSlug}]</span>
-            )}{' '}
-            {log.message}
+          <div key={i} className="whitespace-pre-wrap break-words">
+            <span className="text-slate-500">[{log.timestamp}]</span>
+            {log.jobSlug && <span className="text-indigo-400"> [{log.jobSlug}]</span>}{' '}
+            <span>{log.message}</span>
           </div>
         ))}
       </div>
