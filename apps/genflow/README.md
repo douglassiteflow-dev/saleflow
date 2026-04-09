@@ -9,15 +9,16 @@ Runs on Douglas's Mac. When the app is open, it polls the Saleflow backend every
 ## Running in development
 
 ```
-pnpm install
-pnpm dev
+cd apps/genflow
+npm install
+npm run dev
 ```
 
 ## Building for production
 
 ```
-pnpm build
-pnpm package
+npm run build
+npm run package
 ```
 
 See `docs/superpowers/specs/2026-04-09-genflow-unified-redesign.md` for the full spec.
