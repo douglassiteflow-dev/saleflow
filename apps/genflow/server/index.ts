@@ -1,6 +1,7 @@
 // Utility process entry point.
 import { loadConfig } from './lib/config'
 import { startPolling, stopPolling, togglePause } from './poller'
+import { killAllActive } from './claude-runner'
 import type { GenJob, LogFn } from './lib/types'
 
 console.log('[server] utility process started, pid:', process.pid)
@@ -50,6 +51,7 @@ process.parentPort?.on('message', (event: Electron.MessageEvent) => {
 
   if (msg?.type === 'shutdown') {
     log('Shutdown mottaget, avslutar')
+    killAllActive()
     stopPolling()
     setTimeout(() => process.exit(0), 500)
   }
