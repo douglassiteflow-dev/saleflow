@@ -1,0 +1,23 @@
+appId: se.siteflow.genflow
+productName: Genflow
+directories:
+  output: release
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - package.json
+extraResources:
+  - from: bin/darwin-arm64/scrape
+    to: bin/scrape
+  - from: pipeline
+    to: pipeline
+  - from: skills
+    to: skills
+  - from: scraper/scrape.py
+    to: scraper/scrape.py
+mac:
+  target:
+    - target: dir
+      arch: [arm64]
+  category: public.app-category.productivity
+  icon: resources/app-icon.icns
