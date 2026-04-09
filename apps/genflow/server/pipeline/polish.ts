@@ -69,11 +69,36 @@ Du MÅSTE lägga till ALLT av följande som är relevant:
   \`<svg viewBox="0 0 1440 100" preserveAspectRatio="none" style="display:block;width:100%;height:80px"><path fill="[LJUSA SEKTIONENS FÄRG]" d="M0,50 C360,0 720,100 1440,50 L1440,100 L0,100 Z"/></svg>\`
 - VARIERA form: wave, diagonal cut, curve, zigzag — inte samma överallt
 
-### Dekorativa former
+### Dekorativa former — Z-INDEX REGLER ÄR KRITISKA
 - Absolut-positionerade dekorativa blobbar i bakgrunden (radial-gradients, stora cirklar med opacity)
 - Dot-patterns som accent (repeating-radial-gradient)
 - Accent-linjer (1-2px gradient bars som separators)
 - Blob-shapes med border-radius variation (ex \`border-radius: 60% 40% 50% 50%\`)
+
+**Z-INDEX REGLER (MÅSTE FÖLJAS, annars fungerar hero inte):**
+- Hero-sektionen MÅSTE ha \`position: relative\` på wrapper
+- Alla dekorativa element i hero (blobbar, overlays, patterns) MÅSTE ha:
+  - \`position: absolute\`
+  - \`z-index: 0\` eller \`z-index: 1\` (bakom innehåll)
+  - \`pointer-events: none\` (så de inte blockerar CTA-klick)
+- Hero-innehåll (rubrik, text, CTA) MÅSTE ha:
+  - \`position: relative\`
+  - \`z-index: 2\` eller högre (framför dekorationer)
+- Header/nav måste ha \`z-index: 10\` och \`position: sticky\` (eller fixed) så den aldrig hamnar under dekorativa element
+- SVG wave-dividers MÅSTE ha \`position: relative; z-index: 1\` eller vara en del av normal flow (inte absolute)
+
+Exempel-struktur:
+\`\`\`html
+<section class="hero" style="position:relative;overflow:hidden">
+  <div class="hero-bg" style="position:absolute;inset:0;z-index:0;pointer-events:none">
+    <!-- gradient overlay, blobbar, patterns -->
+  </div>
+  <div class="hero-content" style="position:relative;z-index:2">
+    <h1>Rubrik</h1>
+    <a href="#" class="cta">Boka nu</a>
+  </div>
+</section>
+\`\`\`
 
 ### Kort och knappar
 - Glassmorphism där det passar: \`backdrop-filter: blur(10px); background: rgba(255,255,255,0.8)\`
