@@ -41,20 +41,23 @@ defmodule SaleflowWeb.DemoLookupController do
   end
 
   defp find_by_demo_config(slug) do
-    # Match by source_url containing the slug
+    # Match by website_path (raw URL) or preview_url containing the slug.
+    # Returns website_path for proxy (raw Vercel URL) — preview_url is the friendly
+    # demo.siteflow.se URL which would cause an infinite loop if used for proxy.
     Saleflow.Sales.DemoConfig
-    |> Ash.Query.filter(stage == :demo_ready or stage == :followup)
+    |> Ash.Query.filter(stage == :demo_ready or stage == :demo_held or stage == :followup)
     |> Ash.Query.sort(updated_at: :desc)
     |> Ash.read()
     |> case do
       {:ok, configs} ->
         configs
         |> Enum.find(fn c ->
-          c.preview_url && String.contains?(c.preview_url, slug)
+          (c.website_path && String.contains?(c.website_path, slug)) ||
+            (c.preview_url && String.contains?(c.preview_url, slug))
         end)
         |> case do
           nil -> :not_found
-          config -> {:ok, config.preview_url}
+          config -> {:ok, config.website_path || config.preview_url}
         end
 
       _ ->

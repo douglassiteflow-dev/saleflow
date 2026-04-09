@@ -221,22 +221,23 @@ defmodule SaleflowWeb.DemoConfigControllerTest do
   # ---------------------------------------------------------------------------
 
   describe "POST /api/demo-configs/:id/advance" do
-    test "advances demo config from demo_ready to followup", %{conn: conn} do
+    test "advances demo config from demo_held to followup", %{conn: conn} do
       lead = create_lead!()
       {agent_conn, agent} = create_agent!(conn)
       dc = create_demo_config!(lead, agent)
 
-      # Transition through: meeting_booked -> generating -> demo_ready
+      # Transition through: meeting_booked -> generating -> demo_ready -> demo_held
       {:ok, dc} = Sales.start_generation(dc)
       {:ok, dc} = Sales.generation_complete(dc, %{website_path: "/tmp/test", preview_url: "/preview"})
-      assert dc.stage == :demo_ready
+      {:ok, dc} = Sales.advance_to_demo_held(dc)
+      assert dc.stage == :demo_held
 
       resp = post(agent_conn, "/api/demo-configs/#{dc.id}/advance")
       body = json_response(resp, 200)
       assert body["demo_config"]["stage"] == "followup"
     end
 
-    test "fails to advance if not in demo_ready stage", %{conn: conn} do
+    test "fails to advance if not in demo_held stage", %{conn: conn} do
       lead = create_lead!()
       {agent_conn, agent} = create_agent!(conn)
       dc = create_demo_config!(lead, agent)
@@ -251,7 +252,8 @@ defmodule SaleflowWeb.DemoConfigControllerTest do
       {_other_conn, other_agent} = create_agent!(conn, %{name: "Other"})
       dc = create_demo_config!(lead, other_agent)
       {:ok, dc} = Sales.start_generation(dc)
-      {:ok, _dc} = Sales.generation_complete(dc, %{website_path: "/tmp/test", preview_url: "/p"})
+      {:ok, dc} = Sales.generation_complete(dc, %{website_path: "/tmp/test", preview_url: "/p"})
+      {:ok, _dc} = Sales.advance_to_demo_held(dc)
 
       {agent_conn, _agent} = create_agent!(build_conn(), %{name: "Me"})
 
@@ -265,6 +267,7 @@ defmodule SaleflowWeb.DemoConfigControllerTest do
       dc = create_demo_config!(lead, agent)
       {:ok, dc} = Sales.start_generation(dc)
       {:ok, dc} = Sales.generation_complete(dc, %{website_path: "/tmp/test", preview_url: "/p"})
+      {:ok, _dc} = Sales.advance_to_demo_held(dc)
 
       {admin_conn, _admin} = create_admin!(build_conn())
 

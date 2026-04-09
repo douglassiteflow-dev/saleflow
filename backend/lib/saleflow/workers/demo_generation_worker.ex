@@ -77,16 +77,18 @@ defmodule Saleflow.Workers.DemoGenerationWorker do
       Process.sleep(poll_interval)
 
       case Generation.get_job(job_id) do
-        {:ok, %{status: :completed, result_url: result_url}} ->
+        {:ok, %{status: :completed, result_url: result_url, slug: slug}} ->
+          friendly_url = "https://demo.siteflow.se/#{slug}"
+
           {:ok, demo_config} =
             Sales.generation_complete(demo_config, %{
               website_path: result_url,
-              preview_url: result_url
+              preview_url: friendly_url
             })
 
           maybe_advance_deal(demo_config)
-          broadcast(id, %{status: "complete", website_path: result_url})
-          Logger.info("DemoGenerationWorker: genflow job completed for #{id}")
+          broadcast(id, %{status: "complete", website_path: result_url, preview_url: friendly_url})
+          Logger.info("DemoGenerationWorker: genflow job completed for #{id} (preview: #{friendly_url})")
           :ok
 
         {:ok, %{status: :failed, error: error}} ->
