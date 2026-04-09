@@ -138,13 +138,9 @@ function createMainWindow() {
     title: 'Genflow',
     show: !startedHidden,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
-      // sandbox: false allows the preload script to be ESM (the project
-      // uses "type": "module" in package.json so .js files are ESM by
-      // default). contextIsolation:true is the primary security boundary.
-      sandbox: false,
     },
   })
 

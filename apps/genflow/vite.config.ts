@@ -26,20 +26,11 @@ export default defineConfig({
           },
         },
       },
-      {
-        entry: r('electron/preload.ts'),
-        onstart(options) {
-          options.reload()
-        },
-        vite: {
-          build: {
-            outDir: r('dist-electron'),
-            rollupOptions: {
-              external: ['electron'],
-            },
-          },
-        },
-      },
+      // NOTE: preload.ts is built separately by `npm run build:preload`
+      // (esbuild → CommonJS .cjs) because Electron's preload loader uses
+      // require() and the package has type:module which makes .js files ESM.
+      // vite-plugin-electron ignores rollupOptions.output.format so we
+      // build preload outside vite-plugin-electron entirely.
       {
         entry: r('electron/server-worker.ts'),
         vite: {
