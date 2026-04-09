@@ -19,6 +19,9 @@ export function createTray(ctx: TrayContext, appRoot: string) {
   icon.setTemplateImage(true)
 
   tray = new Tray(icon)
+  // Sätt en synlig text bredvid ikonen så användaren hittar appen i menubar
+  // även om ikonen är en transparent placeholder
+  tray.setTitle('Genflow')
   updateTray(ctx)
 
   tray.on('click', () => {
