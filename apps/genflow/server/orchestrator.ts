@@ -11,7 +11,10 @@ import type { GenJob, LogFn } from './lib/types'
 
 interface JobResult {
   slug: string
-  ok: boolean
+  /** true om sidan renderades till site/<filename> (även om polish senare failade) */
+  rendered: boolean
+  /** true om polishen slutfördes utan fel (kosmetisk, inte fatal) */
+  polished: boolean
   error?: string
 }
 
@@ -31,30 +34,44 @@ export async function runJob(
   await runLayout(strategy, outputDir, log)
 
   // 4. Parallell per-sida pipeline + polish
-  // p-limit(3) i claude-runner.ts begränsar totalt antal samtidiga Claude-processer
+  // Viktigt: polish är KOSMETISK. Om pipeline+render lyckas räknas sidan
+  // som OK — även om polish-passet sedan kraschar/timeout:ar. Sidan finns
+  // på disk och nav-länken ska INTE tas bort.
   const results: JobResult[] = await Promise.all(
     strategy.pages.map(async (page): Promise<JobResult> => {
       try {
         await runPagePipeline(page, strategy, outputDir, log)
         renderPageFromLayout(page, strategy, outputDir)
-        await runPolish(page, strategy, outputDir, log)
-        return { slug: page.slug, ok: true }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
-        log(`Sida ${page.slug} misslyckades: ${msg}`)
-        return { slug: page.slug, ok: false, error: msg }
+        log(`Sida ${page.slug} misslyckades i pipeline/render: ${msg}`)
+        return { slug: page.slug, rendered: false, polished: false, error: msg }
+      }
+
+      // Pipeline + render klart → sidan finns på disk. Polish är best-effort.
+      try {
+        await runPolish(page, strategy, outputDir, log)
+        return { slug: page.slug, rendered: true, polished: true }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        log(`Polish misslyckades för ${page.slug} (sidan behålls opolerad): ${msg}`)
+        return { slug: page.slug, rendered: true, polished: false, error: msg }
       }
     }),
   )
 
-  // 5. Hantera failade sidor
-  const failed = results.filter((r) => !r.ok).map((r) => r.slug)
-  if (failed.includes('index')) {
+  // 5. Hantera failade sidor — BARA om pipeline/render failade, inte polish
+  const failedToRender = results.filter((r) => !r.rendered).map((r) => r.slug)
+  if (failedToRender.includes('index')) {
     throw new Error('Index-sidan misslyckades — hela jobbet failar')
   }
-  if (failed.length > 0) {
-    log(`Misslyckade sidor: ${failed.join(', ')}`)
-    await removeDeadNavLinks(outputDir, failed, log)
+  if (failedToRender.length > 0) {
+    log(`Sidor utan HTML (dead nav): ${failedToRender.join(', ')}`)
+    await removeDeadNavLinks(outputDir, failedToRender, log)
+  }
+  const polishFailed = results.filter((r) => r.rendered && !r.polished).map((r) => r.slug)
+  if (polishFailed.length > 0) {
+    log(`Opolerade sidor (behålls i nav): ${polishFailed.join(', ')}`)
   }
 
   // 6. Bildverifiering
