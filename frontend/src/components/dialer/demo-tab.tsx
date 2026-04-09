@@ -6,6 +6,7 @@ const STAGE_LABELS: Record<DemoStage, { label: string; bg: string; text: string 
   meeting_booked: { label: "Möte bokat", bg: "#ede9fe", text: "#5b21b6" },
   generating: { label: "Genererar...", bg: "#fef3c7", text: "#92400e" },
   demo_ready: { label: "Demo klar", bg: "#d1fae5", text: "#065f46" },
+  demo_held: { label: "Demo genomfört", bg: "#fef3c7", text: "#92400e" },
   followup: { label: "Uppföljning", bg: "#dbeafe", text: "#1e40af" },
   cancelled: { label: "Avbruten", bg: "#f3f4f6", text: "#6b7280" },
 };

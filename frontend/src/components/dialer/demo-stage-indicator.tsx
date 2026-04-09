@@ -5,6 +5,7 @@ const STAGES: { key: DemoStage; label: string }[] = [
   { key: "meeting_booked", label: "Möte bokat" },
   { key: "generating", label: "Genererar" },
   { key: "demo_ready", label: "Demo klar" },
+  { key: "demo_held", label: "Demo genomfört" },
   { key: "followup", label: "Uppföljning" },
 ];
 
@@ -12,7 +13,8 @@ const ORDER: Record<DemoStage, number> = {
   meeting_booked: 0,
   generating: 1,
   demo_ready: 2,
-  followup: 3,
+  demo_held: 3,
+  followup: 4,
   cancelled: -1,
 };
 

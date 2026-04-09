@@ -389,8 +389,23 @@ export type DemoStage =
   | "meeting_booked"
   | "generating"
   | "demo_ready"
+  | "demo_held"
   | "followup"
   | "cancelled";
+
+export interface Questionnaire {
+  id: string;
+  lead_id: string | null;
+  deal_id: string | null;
+  token: string;
+  status: "pending" | "in_progress" | "completed";
+  customer_email: string;
+  opened_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  inserted_at: string;
+  updated_at: string;
+}
 
 export interface DemoConfig {
   id: string;
@@ -410,6 +425,7 @@ export interface DemoConfig {
 export interface DemoConfigDetail extends DemoConfig {
   lead: Lead;
   meetings: Meeting[];
+  questionnaire: Questionnaire | null;
 }
 
 export interface ScorecardQuestion {
