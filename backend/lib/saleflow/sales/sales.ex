@@ -845,6 +845,143 @@ defmodule Saleflow.Sales do
   end
 
   @doc """
+  Orchestrates the full followup booking flow:
+
+    1. Validates demo_config is in :demo_held
+    2. Creates a new Meeting record for the followup
+    3. Creates Teams meeting via Microsoft Graph (module configurable via app env)
+    4. Creates a Questionnaire tied to the lead
+    5. Sends custom email (Swedish or English) with all three links
+    6. Advances the demo_config to :followup
+
+  `params` must include `:meeting_date`, `:meeting_time`, `:personal_message`
+  and may include `:language` (defaults to `"sv"`).
+
+  Returns `{:ok, %{demo_config, meeting, questionnaire}}` on success, or
+  `{:error, reason}` on any failure.
+  """
+  def book_followup(demo_config, params, user) do
+    language = Map.get(params, :language, "sv")
+
+    with :ok <- validate_demo_held(demo_config),
+         {:ok, lead} <- get_lead(demo_config.lead_id),
+         :ok <- validate_lead_email(lead),
+         {:ok, ms_conn} <- get_ms_connection_for_book(user),
+         {:ok, meeting} <- create_followup_meeting(demo_config, lead, user, params, language),
+         {:ok, meeting} <- create_teams_for_followup_meeting(meeting, ms_conn),
+         {:ok, questionnaire} <- create_followup_questionnaire(lead),
+         :ok <- send_followup_email(lead, meeting, questionnaire, demo_config, user, params, language),
+         {:ok, advanced} <- advance_to_followup(demo_config) do
+      {:ok, %{demo_config: advanced, meeting: meeting, questionnaire: questionnaire}}
+    end
+  end
+
+  defp validate_demo_held(%{stage: :demo_held}), do: :ok
+  defp validate_demo_held(_), do: {:error, :invalid_stage}
+
+  defp validate_lead_email(%{epost: email}) when is_binary(email) and email != "", do: :ok
+  defp validate_lead_email(_), do: {:error, :no_email}
+
+  defp get_ms_connection_for_book(user) do
+    require Ash.Query
+
+    case Saleflow.Accounts.MicrosoftConnection
+         |> Ash.Query.filter(user_id == ^user.id)
+         |> Ash.read() do
+      {:ok, [conn | _]} ->
+        graph_module = Application.get_env(:saleflow, :graph_module, Saleflow.Microsoft.Graph)
+
+        case graph_module.ensure_fresh_token(conn) do
+          {:ok, fresh} -> {:ok, fresh}
+          _ -> {:error, :no_microsoft_connection}
+        end
+
+      _ ->
+        {:error, :no_microsoft_connection}
+    end
+  end
+
+  defp create_followup_meeting(demo_config, lead, user, params, language) do
+    title_prefix = if language == "en", do: "Follow-up", else: "Uppföljning"
+
+    create_meeting(%{
+      lead_id: lead.id,
+      user_id: user.id,
+      title: "#{title_prefix} — #{lead.företag}",
+      meeting_date: params.meeting_date,
+      meeting_time: params.meeting_time,
+      duration_minutes: 30,
+      demo_config_id: demo_config.id
+    })
+  end
+
+  defp create_teams_for_followup_meeting(meeting, ms_conn) do
+    start_dt = NaiveDateTime.new!(meeting.meeting_date, meeting.meeting_time)
+    end_dt = NaiveDateTime.add(start_dt, 1800)
+
+    graph_module = Application.get_env(:saleflow, :graph_module, Saleflow.Microsoft.Graph)
+
+    case graph_module.create_meeting_with_invite(ms_conn.access_token, %{
+           subject: meeting.title,
+           start_datetime: NaiveDateTime.to_iso8601(start_dt),
+           end_datetime: NaiveDateTime.to_iso8601(end_dt),
+           # We send our own email — skip Graph's auto-invite
+           attendee_email: nil,
+           attendee_name: nil
+         }) do
+      {:ok, %{join_url: join_url, event_id: event_id}} ->
+        meeting
+        |> Ash.Changeset.for_update(:update_teams, %{
+          teams_join_url: join_url,
+          teams_event_id: event_id
+        })
+        |> Ash.update()
+
+      {:error, reason} ->
+        {:error, {:teams_failed, reason}}
+    end
+  end
+
+  defp create_followup_questionnaire(lead) do
+    token = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
+
+    create_questionnaire_for_lead(%{
+      lead_id: lead.id,
+      customer_email: lead.epost,
+      token: token
+    })
+  end
+
+  defp send_followup_email(lead, meeting, questionnaire, demo_config, user, params, language) do
+    preview_url = demo_config.preview_url || "https://demo.siteflow.se"
+
+    q_base_url = Application.get_env(:saleflow, :questionnaire_base_url, "https://siteflow.se")
+    questionnaire_url = "#{q_base_url}/q/#{questionnaire.token}"
+
+    agent_name = user.name || "Siteflow"
+    lead_name = lead.vd_namn || lead.företag
+
+    {subject, html} =
+      Saleflow.Notifications.FollowupEmail.render(
+        %{
+          lead_name: lead_name,
+          company_name: lead.företag,
+          preview_url: preview_url,
+          questionnaire_url: questionnaire_url,
+          teams_join_url: meeting.teams_join_url,
+          meeting_date: Date.to_string(meeting.meeting_date),
+          meeting_time: Time.to_string(meeting.meeting_time) |> String.slice(0, 5),
+          personal_message: Map.get(params, :personal_message, ""),
+          agent_name: agent_name
+        },
+        language
+      )
+
+    Saleflow.Notifications.Mailer.send_email_async(lead.epost, subject, html)
+    :ok
+  end
+
+  @doc """
   Cancels a demo config (from any stage).
   """
   def cancel_demo_config(demo_config) do
