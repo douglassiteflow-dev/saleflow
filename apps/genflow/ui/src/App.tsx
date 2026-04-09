@@ -110,7 +110,7 @@ export default function App() {
       <header className="border-b bg-[var(--color-bg-primary)]">
         <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between px-[var(--spacing-page)]">
           <div className="flex items-center gap-3">
-            <img src="/genflow-logo.svg" alt="Genflow" className="h-7 w-7" />
+            <img src="/genflow-logo.png" alt="Genflow" className="h-7 w-7 rounded-[6px]" />
             <h1 className="text-[15px] font-semibold tracking-tight text-[var(--color-text-primary)]">
               Genflow
             </h1>
