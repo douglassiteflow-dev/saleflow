@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, utilityProcess, UtilityProcess } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -14,6 +14,32 @@ const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 let mainWindow: BrowserWindow | null = null
+
+let serverProc: UtilityProcess | null = null
+
+function startServerProcess() {
+  const serverPath = path.join(__dirname, 'server-worker.js')
+  serverProc = utilityProcess.fork(serverPath, [], {
+    stdio: 'pipe',
+    serviceName: 'genflow-server',
+  })
+
+  serverProc.stdout?.on('data', (chunk: Buffer) => {
+    console.log('[server]', chunk.toString().trimEnd())
+  })
+  serverProc.stderr?.on('data', (chunk: Buffer) => {
+    console.error('[server err]', chunk.toString().trimEnd())
+  })
+
+  serverProc.on('message', (msg: unknown) => {
+    console.log('[main] from server:', msg)
+  })
+
+  serverProc.on('exit', (code: number) => {
+    console.log('[main] server exited with code', code)
+    serverProc = null
+  })
+}
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -36,6 +62,7 @@ function createMainWindow() {
 }
 
 app.whenReady().then(() => {
+  startServerProcess()
   createMainWindow()
 })
 

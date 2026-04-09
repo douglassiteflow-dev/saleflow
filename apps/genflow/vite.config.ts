@@ -33,6 +33,17 @@ export default defineConfig({
           },
         },
       },
+      {
+        entry: 'electron/server-worker.ts',
+        vite: {
+          build: {
+            outDir: 'dist-electron',
+            rollupOptions: {
+              external: ['electron'],
+            },
+          },
+        },
+      },
     ]),
     renderer(),
   ],
