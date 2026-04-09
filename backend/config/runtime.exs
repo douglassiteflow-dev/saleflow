@@ -25,6 +25,8 @@ if config_env() != :test do
   config :saleflow, :assemblyai_api_key, System.get_env("ASSEMBLYAI_API_KEY") || ""
   config :saleflow, :genflow_api_key, System.get_env("GENFLOW_API_KEY") || "dev-genflow-key"
   config :saleflow, :use_genflow_jobs, System.get_env("USE_GENFLOW_JOBS") == "true"
+  config :saleflow, :vercel_token, System.get_env("VERCEL_TOKEN") || ""
+  config :saleflow, :vercel_team_id, System.get_env("VERCEL_TEAM_ID") || ""
 
   # Cloudflare R2 (S3-compatible)
   r2_account_id = System.get_env("R2_ACCOUNT_ID") || ""

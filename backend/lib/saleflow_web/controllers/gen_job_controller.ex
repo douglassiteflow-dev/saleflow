@@ -29,6 +29,7 @@ defmodule SaleflowWeb.GenJobController do
     with {:ok, job} <- Generation.get_job(id),
          {:ok, completed} <- Generation.complete_job(job, result_url) do
       maybe_update_deal(completed)
+      maybe_disable_vercel_protection(completed)
       json(conn, %{job: serialize(completed)})
     else
       _ -> conn |> put_status(422) |> json(%{error: "Could not complete job"})
@@ -68,6 +69,47 @@ defmodule SaleflowWeb.GenJobController do
           Saleflow.Sales.advance_deal(deal)
         _ -> :ok
       end
+    end
+  end
+
+  # Disable Vercel deployment protection on the newly created demo project
+  # so demo.siteflow.se/:slug can proxy to it without 401.
+  defp maybe_disable_vercel_protection(%{slug: slug}) when is_binary(slug) do
+    token = Application.get_env(:saleflow, :vercel_token)
+    team_id = Application.get_env(:saleflow, :vercel_team_id)
+
+    if is_binary(token) and token != "" and is_binary(team_id) and team_id != "" do
+      Task.start(fn ->
+        disable_protection(slug, token, team_id)
+      end)
+    end
+
+    :ok
+  end
+
+  defp maybe_disable_vercel_protection(_), do: :ok
+
+  defp disable_protection(slug, token, team_id) do
+    # 1. Find the project by slug (project name matches slug)
+    headers = [
+      {"authorization", "Bearer #{token}"},
+      {"content-type", "application/json"}
+    ]
+
+    url = "https://api.vercel.com/v9/projects/#{slug}?teamId=#{team_id}"
+
+    case Req.patch(url, headers: headers, json: %{ssoProtection: nil}) do
+      {:ok, %{status: 200}} ->
+        require Logger
+        Logger.info("Vercel protection disabled for #{slug}")
+
+      {:ok, %{status: status, body: body}} ->
+        require Logger
+        Logger.warning("Vercel protection disable failed for #{slug}: #{status} #{inspect(body)}")
+
+      {:error, reason} ->
+        require Logger
+        Logger.warning("Vercel protection disable error for #{slug}: #{inspect(reason)}")
     end
   end
 end

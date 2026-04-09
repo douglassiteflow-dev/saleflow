@@ -25,14 +25,10 @@ export async function middleware(req: NextRequest) {
   // Look up target URL from Saleflow API
   try {
     const lookupRes = await fetch(`${SALEFLOW_API}/api/d/${slug}`, {
-      // Cache lookups for 5 min at the edge
       next: { revalidate: 300 },
     });
 
-    if (!lookupRes.ok) {
-      // Let Next handle 404
-      return NextResponse.next();
-    }
+    if (!lookupRes.ok) return NextResponse.next();
 
     const data = (await lookupRes.json()) as { url: string };
     if (!data.url) return NextResponse.next();
