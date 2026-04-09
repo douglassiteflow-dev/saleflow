@@ -117,8 +117,10 @@ function startHeartbeatWatchdog() {
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 1000,
-    height: 700,
+    width: 1100,
+    height: 720,
+    minWidth: 1000,
+    minHeight: 640,
     title: 'Genflow',
     show: !startedHidden,
     webPreferences: {

@@ -110,9 +110,7 @@ export default function App() {
       <header className="border-b bg-[var(--color-bg-primary)]">
         <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between px-[var(--spacing-page)]">
           <div className="flex items-center gap-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-[6px] bg-indigo-600 text-[12px] font-bold text-white">
-              G
-            </div>
+            <img src="/genflow-logo.svg" alt="Genflow" className="h-7 w-7" />
             <h1 className="text-[15px] font-semibold tracking-tight text-[var(--color-text-primary)]">
               Genflow
             </h1>
@@ -123,8 +121,8 @@ export default function App() {
 
       {/* Page content */}
       <main className="mx-auto max-w-[1200px] px-[var(--spacing-page)] py-[var(--spacing-section)]">
-        <div className="grid grid-cols-1 gap-[var(--spacing-element)] lg:grid-cols-3">
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-3 gap-[var(--spacing-element)]">
+          <div className="col-span-2">
             <LogViewer logs={logs} />
           </div>
           <div>
