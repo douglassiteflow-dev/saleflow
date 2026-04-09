@@ -28,33 +28,72 @@ export async function runPolish(
     // ignore
   }
 
-  const prompt = `Du är senior webbutvecklare och kreativ designer. Du granskar OCH förbättrar sidan \`${pageSpec.filename}\`. Layout-mallen har redan genererats och är ansvarig för tema, header, footer och <style>-blocket. Din uppgift är att polera <main>-innehållet.
+  const prompt = `Du är senior webbutvecklare och kreativ designer som hatar platt/tråkig design. Sidan \`${pageSpec.filename}\` är just genererad men ser PLATT och LIFELESS ut. Din uppgift är att göra den VACKER och RIKT PIMPAD.
 
 Företag: ${businessName}
 Affärstyp: ${strategy.businessType}
 Sida: ${pageSpec.slug}
 
-## STEG 1: Läs filen på EN GÅNG (Read med limit 1000)
+## STEG 1: Läs hela filen (Read med limit 1000)
 
-## STEG 2: Granska <main>-innehållet
+## STEG 2: Identifiera problem
 
 Leta efter:
-- Ojämna grids, dålig spacing, överlappande element
-- Inkonsekvent typografi
-- Dålig kontrast
-- Tomma sektioner, placeholder-text
+- Sektioner som bara har text utan visuella accenter → för platta
+- Bara en bild på hela sidan → behöver fler
+- Inga dekorativa element → behöver former, patterns, accent-linjer
+- Monoton layout utan variation → alternera bakgrundsfärger och sektionstyper
 - Brutna Unsplash-URL:er
 - Två infinity-scroll-sektioner direkt efter varandra
+- Tomma sektioner eller placeholder-text
 
-## STEG 3: Förbättra — lägg till 2-4 av följande
+## STEG 3: LÄGG TILL RIKLIGT MED VISUELL PIMP (obligatoriskt — INTE försiktigt!)
 
-- Hero parallax (OBLIGATORISKT på index.html om sidan har hero)
-- Fade-in-on-scroll-animationer
-- Hover-effekter på kort och knappar
-- Gradient overlays på hero-bilder
-- Glassmorphism på kort (backdrop-filter: blur)
-- SVG wave-dividers
-- Subtila accent-linjer
+Du MÅSTE lägga till ALLT av följande som är relevant:
+
+### Bilder (OBLIGATORISKT på index)
+- Om sidan bara har 1-2 bilder → lägg till 3-5 fler Unsplash-bilder i olika sektioner
+- Varje stor sektion bör ha någon form av visuell (bild, gradient, pattern)
+- Format: \`https://images.unsplash.com/photo-XXX?w=1200&q=80\`
+
+### Hero-sektion
+- OBLIGATORISK: \`background-attachment: fixed\` för parallax-effekt
+- Gradient overlay: \`linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.6))\`
+- Stor typografi (60px+) med letter-spacing och text-shadow
+
+### SVG wave-dividers MELLAN sektioner
+- RIKTNING ÄR KRITISKT: vågen måste LUTAR ÅT RÄTT HÅLL
+- För en divider från en ljus sektion (ovan) till mörk sektion (under):
+  \`<svg viewBox="0 0 1440 100" preserveAspectRatio="none" style="display:block;width:100%;height:80px"><path fill="[MÖRKA SEKTIONENS FÄRG]" d="M0,50 C360,100 720,0 1440,50 L1440,100 L0,100 Z"/></svg>\`
+- För mörk → ljus, inverterad path:
+  \`<svg viewBox="0 0 1440 100" preserveAspectRatio="none" style="display:block;width:100%;height:80px"><path fill="[LJUSA SEKTIONENS FÄRG]" d="M0,50 C360,0 720,100 1440,50 L1440,100 L0,100 Z"/></svg>\`
+- VARIERA form: wave, diagonal cut, curve, zigzag — inte samma överallt
+
+### Dekorativa former
+- Absolut-positionerade dekorativa blobbar i bakgrunden (radial-gradients, stora cirklar med opacity)
+- Dot-patterns som accent (repeating-radial-gradient)
+- Accent-linjer (1-2px gradient bars som separators)
+- Blob-shapes med border-radius variation (ex \`border-radius: 60% 40% 50% 50%\`)
+
+### Kort och knappar
+- Glassmorphism där det passar: \`backdrop-filter: blur(10px); background: rgba(255,255,255,0.8)\`
+- Box-shadows med färgade accenter (t.ex. \`box-shadow: 0 20px 60px rgba(primary-color, 0.15)\`)
+- Hover: translateY(-4px) + shadow intensification
+- Border-radius variation (blanda 8px, 16px, 24px — inte samma överallt)
+
+### Animationer (CSS only)
+- Fade-in on scroll: \`@keyframes fadeInUp\` + staggered animation-delay per element
+- Hover-effekter på allt interaktivt
+- Smooth transitions (ease-out 0.3s)
+
+### Typografi
+- Letter-spacing på rubriker (-0.02em på h1, +0.05em uppercase labels)
+- Accent-font för citat eller highlights
+- Gradient text-effekt på huvudrubriken: \`background: linear-gradient(135deg, primary, accent); -webkit-background-clip: text; -webkit-text-fill-color: transparent\`
+
+### Sektionsvariation
+- Alternera bakgrundsfärger mellan sektioner (vit → ljusgrå → vit → accent → vit)
+- Varje sektion ska kännas visuellt distinkt från den föregående
 
 ## REGLER — STRIKT
 
@@ -65,6 +104,7 @@ Leta efter:
 - Ändra INTE nav-länkar eller data-page-attribut
 - Ändra INTE active-state-klassen
 - ALL text på svenska
+- VAR DJÄRV med designen — tveka inte, lägg till MER pimp, inte mindre
 
 ## Beskriv kort på svenska vad du fixade`
 

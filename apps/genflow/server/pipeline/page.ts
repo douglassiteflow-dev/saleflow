@@ -108,33 +108,50 @@ function buildPageContext(pageSpec: PageSpec, strategy: Strategy, outputDir: str
 
 function getPageTypeRules(slug: string): string {
   const rules: Record<string, string> = {
-    index: `- Hero med företagsnamn, tagline, primär CTA, Unsplash-bakgrundsbild
-- Kort intro (2-3 meningar)
-- Featured tjänster-grid (bara strategy.services.featuredForIndex)
-- Om recensions-mode är infinity-scroll: horisontell auto-scroll, duplicerade kort, pause on hover, 5-8 recensioner
-- Om recensions-mode är statiska-kort: 3 kort i grid
-- Kontakt-CTA-sektion med adress, telefon, knapp`,
+    index: `OBLIGATORISKA SEKTIONER (i denna ordning, MINST dessa):
+1. Hero — fullbred, stor Unsplash-bakgrundsbild, företagsnamn i stor typografi, tagline, primär CTA-knapp, optional betygsbadge
+2. Intro — kort text (2-3 meningar) PLUS en dekorativ bild bredvid (2-kolumns layout med text + bild)
+3. Featured tjänster — grid med 3-6 tjänster, VARJE tjänstekort måste ha en liten Unsplash-bakgrundsbild eller accent-bild
+4. Bildgalleri-teaser — 3-4 Unsplash-bilder i ett asymmetriskt bento-grid eller mosaic (om galleri-sidan finns, annars fullständigt galleri)
+5. Recensioner — om mode är infinity-scroll: horisontell auto-scroll med duplicerade kort, pause on hover, 5-8 recensioner. Om mode är statiska-kort: 3 kort i grid.
+6. Kontakt-CTA — fullbred sektion med bakgrundsbild, text och primär CTA-knapp
 
-    tjanster: `- Rubriksektion "Våra tjänster"
+BILD-KRAV (STRIKT):
+- MINST 6 Unsplash-bilder TOTALT på sidan — INTE bara en hero-bild
+- Använd olika bilder i olika sektioner (hero, intro-bild, service-bilder, galleri-teaser, cta-bakgrund)
+- Bilder ska vara stora och dominerande, inte små thumbnails
+
+DESIGN-KRAV (pimp and polish):
+- Hero måste ha gradient overlay för textläsbarhet
+- Varje sektion ska kännas distinkt — använd alternerande bakgrundsfärger (vit → sage → vit → accent)
+- Dekorativa element: SVG dividers MELLAN sektioner, accent-linjer, små dot-patterns, badge-ikoner
+- Subtila hover-effekter på kort och knappar
+- Använd CSS-variabler från layout för färgkonsistens`,
+
+    tjanster: `- Rubriksektion "Våra tjänster" med stor Unsplash-hero eller gradient
 - Grupperade per kategori i strategy.services.categoryOrder
-- Varje tjänst: namn, beskrivning, pris, varaktighet
+- Varje tjänst-kort: namn, beskrivning, pris, varaktighet + liten accent-bild eller ikon
 - ALLA tjänster från företagsdata.json
-- Strukturerad layout (inte kort med bakgrundsbilder)`,
+- Separatorer mellan kategorier (SVG divider eller färgad bar)
+- Hover-effekter på korten`,
 
-    'om-oss': `- Hero med kort beskrivning
-- Historia/värderingar från om_oss-text
-- Personal som TEXT (ingen team-grid)
-- Eventuell Unsplash-bild av lokaltyp`,
+    'om-oss': `- Hero med stor Unsplash-bild och kort beskrivning
+- 2-kolumns sektion: text + bild för historia/värderingar
+- Personal som TEXT-block (ingen team-grid)
+- MINST 2-3 Unsplash-bilder av lokaltyp spridda i sektionerna
+- CTA-sektion längst ner`,
 
-    galleri: `- Bento-grid layout (variarade cell-storlekar)
+    galleri: `- Bento-grid layout (variarade cell-storlekar — några stora, några små, asymmetriskt)
 - 8-12 Unsplash-bilder från strategy.gallery.themes
 - ALDRIG infinity-scroll eller carousel
-- Hover-effekter tillåtna`,
+- Hover-effekter med zoom + overlay
+- Kort rubriksektion ovanför grid:en`,
 
-    kontakt: `- Kontaktformulär (rent visuellt, action="#")
-- Adress, telefon, email
-- Öppettider som tabell
-- Google Maps iframe om adress finns`,
+    kontakt: `- Hero-sektion med stor bakgrundsbild och rubrik
+- 2-kolumns layout: kontaktformulär (rent visuellt, action="#") bredvid info-kort
+- Info-kort: adress, telefon, email, öppettider (snyggt formaterat)
+- Google Maps iframe om adress finns
+- Bakgrundsbild eller gradient på heron`,
   }
   return rules[slug] ?? ''
 }
