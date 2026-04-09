@@ -1,7 +1,7 @@
 import { app, BrowserWindow, utilityProcess, UtilityProcess } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createTray, destroyTray, TrayStatus } from './tray'
+import { createTray, updateTray, destroyTray, TrayStatus } from './tray'
 
 declare global {
   namespace Electron {
@@ -49,12 +49,50 @@ function startServerProcess() {
   })
 
   serverProc.on('message', (msg: unknown) => {
-    const typedMsg = msg as { type?: string; timestamp?: number }
+    const typedMsg = msg as { type?: string; timestamp?: number; payload?: unknown }
+
     if (typedMsg.type === 'heartbeat') {
       lastHeartbeat = typedMsg.timestamp ?? Date.now()
       return
     }
-    console.log('[main] from server:', msg)
+
+    // Spåra status
+    if (typedMsg.type === 'polling-status') {
+      const p = typedMsg.payload as { running: boolean; paused: boolean }
+      currentStatus = p.paused ? 'paused' : p.running ? 'connected' : 'disconnected'
+      updateTray({
+        getMainWindow: () => mainWindow,
+        createMainWindow,
+        onTogglePolling: () => serverProc?.postMessage({ type: 'toggle-polling' }),
+        getStatus: () => currentStatus,
+        getRecentJobs: () => recentJobs,
+      })
+    }
+
+    if (typedMsg.type === 'job-start') {
+      currentStatus = 'working'
+      const job = (typedMsg.payload as { job: { slug: string } }).job
+      recentJobs = [{ slug: job.slug, status: 'running' as const }, ...recentJobs].slice(0, 5)
+    }
+
+    if (typedMsg.type === 'job-complete') {
+      currentStatus = 'connected'
+      const job = (typedMsg.payload as { job: { slug: string } }).job
+      recentJobs = recentJobs.map((j) =>
+        j.slug === job.slug ? { slug: j.slug, status: 'ok' as const } : j,
+      )
+    }
+
+    if (typedMsg.type === 'job-failed') {
+      currentStatus = 'connected'
+      const job = (typedMsg.payload as { job: { slug: string } }).job
+      recentJobs = recentJobs.map((j) =>
+        j.slug === job.slug ? { slug: j.slug, status: 'failed' as const } : j,
+      )
+    }
+
+    // Forward till renderer
+    mainWindow?.webContents.send('server-event', typedMsg)
   })
 
   serverProc.on('exit', (code: number) => {
