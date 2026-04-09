@@ -37,6 +37,41 @@ defmodule SaleflowWeb.QuestionnairePublicControllerTest do
       resp = get(build_conn(), "/api/q/totally-invalid-token-does-not-exist")
       assert json_response(resp, 404)
     end
+
+    test "sets opened_at on first visit" do
+      lead = create_lead!()
+      {:ok, q} = Sales.create_questionnaire_for_lead(%{
+        lead_id: lead.id,
+        customer_email: "k@t.se",
+        token: "tok-" <> Integer.to_string(System.unique_integer([:positive]))
+      })
+      assert q.opened_at == nil
+
+      _resp = get(build_conn(), "/api/q/#{q.token}")
+
+      {:ok, refreshed} = Sales.get_questionnaire(q.id)
+      assert refreshed.opened_at != nil
+    end
+
+    test "does not change opened_at on subsequent visits" do
+      lead = create_lead!()
+      {:ok, q} = Sales.create_questionnaire_for_lead(%{
+        lead_id: lead.id,
+        customer_email: "k@t.se",
+        token: "tok-" <> Integer.to_string(System.unique_integer([:positive]))
+      })
+
+      # First visit
+      _ = get(build_conn(), "/api/q/#{q.token}")
+      {:ok, after_first} = Sales.get_questionnaire(q.id)
+      first_opened = after_first.opened_at
+      assert first_opened != nil
+
+      # Second visit
+      _ = get(build_conn(), "/api/q/#{q.token}")
+      {:ok, after_second} = Sales.get_questionnaire(q.id)
+      assert after_second.opened_at == first_opened
+    end
   end
 
   # ---------------------------------------------------------------------------

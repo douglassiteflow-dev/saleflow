@@ -5,11 +5,13 @@ defmodule SaleflowWeb.QuestionnairePublicController do
 
   import SaleflowWeb.ControllerHelpers, only: [maybe_put: 3]
 
-  @doc "GET /q/:token — fetch questionnaire data and questions"
+  @doc "GET /q/:token — fetch questionnaire data and questions. Tracks first visit."
   def show(conn, %{"token" => token}) do
     case Sales.get_questionnaire_by_token(token) do
       {:ok, q} ->
-        json(conn, %{questionnaire: serialize(q)})
+        # Track first visit — sets opened_at if nil
+        {:ok, updated} = Sales.mark_questionnaire_opened(q)
+        json(conn, %{questionnaire: serialize(updated)})
 
       {:error, :not_found} ->
         conn |> put_status(:not_found) |> json(%{error: "Formuläret hittades inte"})
@@ -94,6 +96,7 @@ defmodule SaleflowWeb.QuestionnairePublicController do
     %{
       id: q.id,
       deal_id: q.deal_id,
+      lead_id: q.lead_id,
       token: q.token,
       status: q.status,
       customer_email: q.customer_email,
@@ -107,6 +110,8 @@ defmodule SaleflowWeb.QuestionnairePublicController do
       wants_quote_generator: q.wants_quote_generator,
       addon_services: q.addon_services,
       media_urls: q.media_urls,
+      opened_at: q.opened_at,
+      started_at: q.started_at,
       completed_at: q.completed_at,
       inserted_at: q.inserted_at,
       updated_at: q.updated_at
