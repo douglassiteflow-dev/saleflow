@@ -5,6 +5,7 @@ import { BookFollowupModal } from "./book-followup-modal";
 import { InfoRow } from "@/components/ui/info-row";
 import { formatPhone, formatDate, formatTime } from "@/lib/format";
 import Loader from "@/components/kokonutui/loader";
+import type { DemoConfigDetail } from "@/api/types";
 
 interface DemoDetailTabProps {
   demoConfigId: string;
@@ -237,7 +238,7 @@ function DemoHeldContent({
 
 /* ── Stage: followup ── */
 
-function FollowupContent({ data }: { data: NonNullable<ReturnType<typeof useDemoConfigDetail>["data"]> }) {
+function FollowupContent({ data }: { data: DemoConfigDetail }) {
   const q = data.questionnaire;
   const followupMeeting = data.meetings.find((m) => m.title?.startsWith("Uppföljning") || m.title?.startsWith("Follow-up"));
 

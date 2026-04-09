@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "./client";
-import type { DemoConfig, DemoConfigDetail, Lead, Meeting } from "./types";
+import type { DemoConfig, DemoConfigDetail, Lead, Meeting, Questionnaire } from "./types";
 
 export function useDemoConfigs() {
   return useQuery<DemoConfig[]>({
@@ -21,8 +21,14 @@ export function useDemoConfigDetail(id: string | null) {
         demo_config: DemoConfig;
         lead: Lead;
         meetings: Meeting[];
+        questionnaire: Questionnaire | null;
       }>(`/api/demo-configs/${id}`);
-      return { ...data.demo_config, lead: data.lead, meetings: data.meetings };
+      return {
+        ...data.demo_config,
+        lead: data.lead,
+        meetings: data.meetings,
+        questionnaire: data.questionnaire,
+      };
     },
     enabled: !!id,
   });
