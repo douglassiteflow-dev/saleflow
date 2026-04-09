@@ -1,0 +1,44 @@
+<h2 style="margin: 0 0 16px 0; color: #0f172a;">Hej <%= lead_name %>!</h2>
+
+<p style="margin: 0 0 16px 0; color: #334155; line-height: 1.6;">
+  Tack för ett trevligt demo-möte idag. Det var roligt att visa hur hemsidan kan se ut — här är länken så du kan titta på den igen i lugn och ro:
+</p>
+
+<div style="margin: 24px 0;">
+  <a href="<%= preview_url %>" style="display: inline-block; padding: 12px 20px; background: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">Visa din hemsida →</a>
+</div>
+
+<%= if personal_message != "" do %>
+<p style="margin: 24px 0; padding: 16px; background: #f1f5f9; border-left: 3px solid #2563eb; color: #334155; line-height: 1.6;">
+  <%= personal_message %>
+</p>
+<% end %>
+
+<p style="margin: 24px 0 16px 0; color: #334155; line-height: 1.6;">
+  Fyll i vårt frågeformulär så kan vi konfigurera hemsidan efter era preferenser. Bildfält kan lämnas tomma, och självklart kan vi ändra vad som helst senare.
+</p>
+
+<div style="margin: 24px 0;">
+  <a href="<%= questionnaire_url %>" style="display: inline-block; padding: 12px 20px; background: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">Fyll i formuläret →</a>
+</div>
+
+<p style="margin: 32px 0 16px 0; color: #334155; line-height: 1.6;">
+  Vi har även bokat in ett kort uppföljningsmöte där vi går igenom ändringarna tillsammans:
+</p>
+
+<div style="margin: 16px 0; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+  <p style="margin: 0 0 8px 0; font-weight: 500; color: #0f172a;">
+    📅 <%= meeting_date %> kl <%= meeting_time %>
+  </p>
+  <a href="<%= teams_join_url %>" style="color: #2563eb; text-decoration: underline;">Anslut till Teams-mötet →</a>
+</div>
+
+<p style="margin: 32px 0 8px 0; color: #334155; line-height: 1.6;">
+  Vid frågor, svara bara på detta mail.
+</p>
+
+<p style="margin: 16px 0 0 0; color: #64748b;">
+  Hälsningar,<br/>
+  <strong><%= agent_name %></strong><br/>
+  Siteflow
+</p>

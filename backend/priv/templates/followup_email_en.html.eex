@@ -1,0 +1,44 @@
+<h2 style="margin: 0 0 16px 0; color: #0f172a;">Hi <%= lead_name %>!</h2>
+
+<p style="margin: 0 0 16px 0; color: #334155; line-height: 1.6;">
+  Thanks for a great demo meeting today. It was fun to show you what your website could look like — here is the link so you can take another look whenever you like:
+</p>
+
+<div style="margin: 24px 0;">
+  <a href="<%= preview_url %>" style="display: inline-block; padding: 12px 20px; background: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">View your website →</a>
+</div>
+
+<%= if personal_message != "" do %>
+<p style="margin: 24px 0; padding: 16px; background: #f1f5f9; border-left: 3px solid #2563eb; color: #334155; line-height: 1.6;">
+  <%= personal_message %>
+</p>
+<% end %>
+
+<p style="margin: 24px 0 16px 0; color: #334155; line-height: 1.6;">
+  Please fill in our questionnaire so we can configure the website to your preferences. Image fields can be left empty, and of course we can adjust anything later.
+</p>
+
+<div style="margin: 24px 0;">
+  <a href="<%= questionnaire_url %>" style="display: inline-block; padding: 12px 20px; background: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">Fill in the form →</a>
+</div>
+
+<p style="margin: 32px 0 16px 0; color: #334155; line-height: 1.6;">
+  We have also booked a short follow-up meeting where we will go through the changes together:
+</p>
+
+<div style="margin: 16px 0; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+  <p style="margin: 0 0 8px 0; font-weight: 500; color: #0f172a;">
+    📅 <%= meeting_date %> at <%= meeting_time %>
+  </p>
+  <a href="<%= teams_join_url %>" style="color: #2563eb; text-decoration: underline;">Join the Teams meeting →</a>
+</div>
+
+<p style="margin: 32px 0 8px 0; color: #334155; line-height: 1.6;">
+  Reply to this email with any questions.
+</p>
+
+<p style="margin: 16px 0 0 0; color: #64748b;">
+  Best regards,<br/>
+  <strong><%= agent_name %></strong><br/>
+  Siteflow
+</p>
