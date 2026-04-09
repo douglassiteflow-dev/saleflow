@@ -154,7 +154,7 @@ defmodule SaleflowWeb.DemoConfigController do
   end
 
   @doc """
-  Advance demo config from demo_ready to followup.
+  Advance demo config from demo_held to followup.
   """
   def advance(conn, %{"id" => id}) do
     user = conn.assigns.current_user
@@ -174,6 +174,31 @@ defmodule SaleflowWeb.DemoConfigController do
         conn
         |> put_status(:unprocessable_entity)
         |> json(%{error: "Failed to advance demo config"})
+    end
+  end
+
+  @doc """
+  Manually mark the demo meeting as conducted — transitions from demo_ready to demo_held.
+  Alternative to marking the meeting as completed in the meeting list.
+  """
+  def mark_demo_held(conn, %{"id" => id}) do
+    user = conn.assigns.current_user
+
+    with {:ok, dc} <- get_demo_config(id),
+         :ok <- check_ownership(dc, user),
+         {:ok, advanced} <- Sales.advance_to_demo_held(dc) do
+      json(conn, %{demo_config: serialize_simple(advanced)})
+    else
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "DemoConfig not found"})
+
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "Access denied"})
+
+      {:error, _} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: "Failed to mark demo held (must be in demo_ready)"})
     end
   end
 

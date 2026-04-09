@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useDemoConfigDetail, useRetryDemoConfig } from "@/api/demo-configs";
+import { useDemoConfigDetail, useRetryDemoConfig, useMarkDemoHeld } from "@/api/demo-configs";
 import { DemoStageIndicator } from "./demo-stage-indicator";
 import { BookFollowupModal } from "./book-followup-modal";
 import { InfoRow } from "@/components/ui/info-row";
@@ -15,6 +15,7 @@ interface DemoDetailTabProps {
 export function DemoDetailTab({ demoConfigId, onBack }: DemoDetailTabProps) {
   const { data, isLoading } = useDemoConfigDetail(demoConfigId);
   const retry = useRetryDemoConfig();
+  const markHeld = useMarkDemoHeld();
   const [logs, setLogs] = useState<string[]>([]);
   const logContainerRef = useRef<HTMLDivElement>(null);
 
@@ -76,6 +77,8 @@ export function DemoDetailTab({ demoConfigId, onBack }: DemoDetailTabProps) {
             previewUrl={data.preview_url}
             onRetry={() => retry.mutate(demoConfigId)}
             isRetrying={retry.isPending}
+            onMarkHeld={() => markHeld.mutate(demoConfigId)}
+            isMarkingHeld={markHeld.isPending}
           />
         )}
         {data.stage === "demo_held" && (
@@ -141,25 +144,46 @@ function DemoReadyContent({
   previewUrl,
   onRetry,
   isRetrying,
+  onMarkHeld,
+  isMarkingHeld,
 }: {
   previewUrl: string | null;
   onRetry: () => void;
   isRetrying: boolean;
+  onMarkHeld: () => void;
+  isMarkingHeld: boolean;
 }) {
   return (
-    <div>
-      {previewUrl && (
-        <iframe
-          src={previewUrl}
-          title="Demo preview"
-          className="w-full h-80 rounded-lg border border-[var(--color-border)] mb-4"
-        />
-      )}
-      <p className="text-[13px] text-[var(--color-text-secondary)] mb-3">
-        Hemsidan är klar att visa under demo-mötet. När du har genomfört mötet markerar du
-        det som genomfört i möteslistan — då går demo-config automatiskt vidare till nästa steg.
+    <div className="space-y-4">
+      <p className="text-[13px] text-[var(--color-text-primary)]">
+        Hemsidan är klar att visa under demo-mötet. Klicka nedan när mötet är genomfört.
       </p>
+
+      {previewUrl && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+          <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-emerald-700 mb-1.5">
+            Deras demo-hemsida
+          </p>
+          <a
+            href={previewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[13px] font-medium text-emerald-800 hover:underline break-all"
+          >
+            {previewUrl}
+          </a>
+        </div>
+      )}
+
       <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onMarkHeld}
+          disabled={isMarkingHeld}
+          className="rounded-md bg-[var(--color-accent)] px-4 py-2 text-[13px] font-medium text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+        >
+          {isMarkingHeld ? "Markerar..." : "Markera demo-mötet som genomfört →"}
+        </button>
         {previewUrl && (
           <a
             href={previewUrl}

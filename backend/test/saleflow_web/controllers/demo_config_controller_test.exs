@@ -712,6 +712,53 @@ defmodule SaleflowWeb.DemoConfigControllerTest do
   end
 
   # ---------------------------------------------------------------------------
+  # POST /api/demo-configs/:id/mark-demo-held
+  # ---------------------------------------------------------------------------
+
+  describe "POST /api/demo-configs/:id/mark-demo-held" do
+    test "advances demo_ready to demo_held", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      dc = create_demo_config!(lead, agent)
+      {:ok, dc} = Sales.start_generation(dc)
+      {:ok, dc} = Sales.generation_complete(dc, %{website_path: "/x", preview_url: "/p"})
+      assert dc.stage == :demo_ready
+
+      resp = post(agent_conn, "/api/demo-configs/#{dc.id}/mark-demo-held")
+      body = json_response(resp, 200)
+      assert body["demo_config"]["stage"] == "demo_held"
+    end
+
+    test "returns 422 if not in demo_ready", %{conn: conn} do
+      lead = create_lead!()
+      {agent_conn, agent} = create_agent!(conn)
+      dc = create_demo_config!(lead, agent)
+      # Still meeting_booked
+
+      resp = post(agent_conn, "/api/demo-configs/#{dc.id}/mark-demo-held")
+      assert json_response(resp, 422)
+    end
+
+    test "returns 403 for another agent's config", %{conn: conn} do
+      lead = create_lead!()
+      {_, other_agent} = create_agent!(conn, %{name: "Other"})
+      dc = create_demo_config!(lead, other_agent)
+
+      {agent_conn, _} = create_agent!(build_conn(), %{name: "Me"})
+
+      resp = post(agent_conn, "/api/demo-configs/#{dc.id}/mark-demo-held")
+      assert json_response(resp, 403)
+    end
+
+    test "returns 404 for non-existent config", %{conn: conn} do
+      {agent_conn, _} = create_agent!(conn)
+
+      resp = post(agent_conn, "/api/demo-configs/#{Ecto.UUID.generate()}/mark-demo-held")
+      assert json_response(resp, 404)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
   # POST /api/demo-configs/:id/book-followup
   # ---------------------------------------------------------------------------
 

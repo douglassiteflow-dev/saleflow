@@ -9,6 +9,7 @@ import type { DemoConfigDetail, Lead, Meeting, Questionnaire } from "@/api/types
 vi.mock("@/api/demo-configs", () => ({
   useDemoConfigDetail: vi.fn(),
   useRetryDemoConfig: vi.fn(),
+  useMarkDemoHeld: vi.fn(),
 }));
 
 vi.mock("@/components/dialer/book-followup-modal", () => ({
@@ -31,10 +32,11 @@ class MockEventSource {
 }
 vi.stubGlobal("EventSource", MockEventSource);
 
-import { useDemoConfigDetail, useRetryDemoConfig } from "@/api/demo-configs";
+import { useDemoConfigDetail, useRetryDemoConfig, useMarkDemoHeld } from "@/api/demo-configs";
 
 const mockUseDemoConfigDetail = vi.mocked(useDemoConfigDetail);
 const mockUseRetryDemoConfig = vi.mocked(useRetryDemoConfig);
+const mockUseMarkDemoHeld = vi.mocked(useMarkDemoHeld);
 
 // ── Fixtures ──
 
@@ -137,6 +139,7 @@ describe("DemoDetailTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseRetryDemoConfig.mockReturnValue(defaultMutation);
+    mockUseMarkDemoHeld.mockReturnValue(defaultMutation);
   });
 
   it("renders loading state", () => {
@@ -243,18 +246,56 @@ describe("DemoDetailTab", () => {
     expect(link.closest("a")).toHaveAttribute("target", "_blank");
   });
 
-  it("shows retry button and helper text when demo_ready", () => {
+  it("shows mark-held, retry, and preview link when demo_ready", () => {
     mockUseDemoConfigDetail.mockReturnValue({
-      data: makeDetail({ stage: "demo_ready", preview_url: "https://preview.example.com/dc-1" }),
+      data: makeDetail({ stage: "demo_ready", preview_url: "https://demo.siteflow.se/dc-1" }),
       isLoading: false,
     } as ReturnType<typeof useDemoConfigDetail>);
 
     render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
 
     expect(screen.getByText(/Hemsidan är klar/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /markera demo-mötet som genomfört/i })).toBeInTheDocument();
     expect(screen.getByText("Generera om")).toBeInTheDocument();
-    // The modal's "Boka uppföljning →" button only appears in demo_held, not demo_ready
+    expect(screen.getByText("https://demo.siteflow.se/dc-1")).toBeInTheDocument();
+    // The modal's "Boka uppföljning →" button only appears in demo_held
     expect(screen.queryByText(/Boka uppföljning/i)).not.toBeInTheDocument();
+  });
+
+  it("calls mark-held mutation when 'Markera demo-mötet som genomfört' is clicked", async () => {
+    const user = userEvent.setup();
+    const mutate = vi.fn();
+    mockUseMarkDemoHeld.mockReturnValue({
+      mutate,
+      isPending: false,
+    } as unknown as ReturnType<typeof useMarkDemoHeld>);
+
+    mockUseDemoConfigDetail.mockReturnValue({
+      data: makeDetail({ stage: "demo_ready", preview_url: "https://demo.siteflow.se/dc-1" }),
+      isLoading: false,
+    } as ReturnType<typeof useDemoConfigDetail>);
+
+    render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: /markera demo-mötet som genomfört/i }));
+    expect(mutate).toHaveBeenCalledWith("dc-1");
+  });
+
+  it("shows marking text when mark-held isPending", () => {
+    mockUseMarkDemoHeld.mockReturnValue({
+      mutate: vi.fn(),
+      isPending: true,
+    } as unknown as ReturnType<typeof useMarkDemoHeld>);
+
+    mockUseDemoConfigDetail.mockReturnValue({
+      data: makeDetail({ stage: "demo_ready", preview_url: "https://demo.siteflow.se/dc-1" }),
+      isLoading: false,
+    } as ReturnType<typeof useDemoConfigDetail>);
+
+    render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
+
+    expect(screen.getByText("Markerar...")).toBeInTheDocument();
+    expect(screen.getByText("Markerar...").closest("button")).toBeDisabled();
   });
 
   it("calls retry mutation when 'Generera om' is clicked", async () => {
@@ -276,16 +317,15 @@ describe("DemoDetailTab", () => {
     expect(retryMutate).toHaveBeenCalledWith("dc-1");
   });
 
-  it("renders iframe with preview_url when demo_ready", () => {
+  it("renders preview link URL when demo_ready has preview_url", () => {
     mockUseDemoConfigDetail.mockReturnValue({
-      data: makeDetail({ stage: "demo_ready", preview_url: "https://preview.example.com/dc-1" }),
+      data: makeDetail({ stage: "demo_ready", preview_url: "https://demo.siteflow.se/dc-1" }),
       isLoading: false,
     } as ReturnType<typeof useDemoConfigDetail>);
 
     render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
 
-    const iframe = screen.getByTitle("Demo preview");
-    expect(iframe).toHaveAttribute("src", "https://preview.example.com/dc-1");
+    expect(screen.getByText("https://demo.siteflow.se/dc-1")).toBeInTheDocument();
   });
 
   it("shows followup content with tracking, links, meeting and lead info", () => {
@@ -462,7 +502,7 @@ describe("DemoDetailTab", () => {
     vi.stubGlobal("EventSource", OrigES);
   });
 
-  it("does not render iframe or link when demo_ready has no preview_url", () => {
+  it("does not render preview section when demo_ready has no preview_url", () => {
     mockUseDemoConfigDetail.mockReturnValue({
       data: makeDetail({ stage: "demo_ready", preview_url: null }),
       isLoading: false,
@@ -470,9 +510,10 @@ describe("DemoDetailTab", () => {
 
     render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
 
-    expect(screen.queryByTitle("Demo preview")).not.toBeInTheDocument();
+    expect(screen.queryByText("Deras demo-hemsida")).not.toBeInTheDocument();
     expect(screen.queryByText("Öppna i ny flik")).not.toBeInTheDocument();
-    // Retry button still renders even without preview
+    // Mark-held and retry buttons still render
+    expect(screen.getByRole("button", { name: /markera demo-mötet/i })).toBeInTheDocument();
     expect(screen.getByText("Generera om")).toBeInTheDocument();
   });
 

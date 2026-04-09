@@ -61,3 +61,17 @@ export function useRetryDemoConfig() {
     },
   });
 }
+
+export function useMarkDemoHeld() {
+  const queryClient = useQueryClient();
+
+  return useMutation<DemoConfig, ApiError, string>({
+    mutationFn: (id) =>
+      api<{ demo_config: DemoConfig }>(`/api/demo-configs/${id}/mark-demo-held`, {
+        method: "POST",
+      }).then((r) => r.demo_config),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["demo-configs"] });
+    },
+  });
+}
