@@ -110,10 +110,16 @@ process.parentPort?.on('message', (event: Electron.MessageEvent) => {
   }
 })
 
-// Heartbeat var 30:e sekund
+// Heartbeat var 30:e sekund + re-broadcast polling-status
 setInterval(() => {
   send({ type: 'heartbeat', timestamp: Date.now() })
-}, 30_000)
+  // Re-broadcast polling state så renderern alltid kan synca även om
+  // den missade initial broadcast pga race condition vid startup.
+  broadcast({
+    type: 'polling-status',
+    payload: { running: !!config.apiKey, paused: false },
+  })
+}, 5_000)
 
 // Starta polling
 const startupLog = (message: string) => {

@@ -129,11 +129,19 @@ export default function App() {
             />
             <button
               onClick={() => {
-                if (testUrl.trim()) {
-                  window.genflow?.send('trigger-test', { sourceUrl: testUrl.trim() })
+                console.log('[ui] test button clicked', {
+                  testUrl,
+                  hasGenflow: !!window.genflow,
+                  hasSend: !!window.genflow?.send,
+                })
+                if (testUrl.trim() && window.genflow?.send) {
+                  window.genflow.send('trigger-test', { sourceUrl: testUrl.trim() })
+                  console.log('[ui] trigger-test sent')
+                } else {
+                  console.warn('[ui] cannot send: testUrl empty or window.genflow missing')
                 }
               }}
-              disabled={status === 'working' || !testUrl.trim()}
+              disabled={!testUrl.trim()}
               className="rounded-[6px] bg-indigo-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               ⚡ Testa pipeline
