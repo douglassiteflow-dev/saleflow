@@ -21,9 +21,17 @@ describe("DemoStageIndicator", () => {
     expect(screen.getByText("3. Demo klar")).toBeInTheDocument();
   });
 
+  it("shows demo_held as fourth step with three completed", () => {
+    render(<DemoStageIndicator stage="demo_held" />);
+    expect(screen.getByText("✓ Möte bokat")).toBeInTheDocument();
+    expect(screen.getByText("✓ Genererar")).toBeInTheDocument();
+    expect(screen.getByText("✓ Demo klar")).toBeInTheDocument();
+    expect(screen.getByText("4. Demo genomfört")).toBeInTheDocument();
+  });
+
   it("shows followup as current with all prior completed", () => {
     render(<DemoStageIndicator stage="followup" />);
-    expect(screen.getByText("4. Uppföljning")).toBeInTheDocument();
+    expect(screen.getByText("5. Uppföljning")).toBeInTheDocument();
   });
 
   it("renders cancelled with no stage highlighted as current or completed", () => {
@@ -36,14 +44,15 @@ describe("DemoStageIndicator", () => {
     expect(screen.getByText("Möte bokat")).toBeInTheDocument();
     expect(screen.getByText("Genererar")).toBeInTheDocument();
     expect(screen.getByText("Demo klar")).toBeInTheDocument();
+    expect(screen.getByText("Demo genomfört")).toBeInTheDocument();
     expect(screen.getByText("Uppföljning")).toBeInTheDocument();
   });
 
   it("renders separators between stages", () => {
     render(<DemoStageIndicator stage="meeting_booked" />);
-    // There should be 3 separators (between 4 stages)
+    // There should be 4 separators (between 5 stages)
     const separators = screen.getAllByText("—");
-    expect(separators).toHaveLength(3);
+    expect(separators).toHaveLength(4);
   });
 
   it("handles unknown stage gracefully via nullish coalescing fallback", () => {
@@ -54,6 +63,7 @@ describe("DemoStageIndicator", () => {
     expect(screen.getByText("Möte bokat")).toBeInTheDocument();
     expect(screen.getByText("Genererar")).toBeInTheDocument();
     expect(screen.getByText("Demo klar")).toBeInTheDocument();
+    expect(screen.getByText("Demo genomfört")).toBeInTheDocument();
     expect(screen.getByText("Uppföljning")).toBeInTheDocument();
   });
 });

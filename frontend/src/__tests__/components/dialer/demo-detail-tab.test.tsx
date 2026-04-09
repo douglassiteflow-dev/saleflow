@@ -1,19 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, act, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DemoDetailTab } from "@/components/dialer/demo-detail-tab";
-import type { DemoConfigDetail, Lead, Meeting } from "@/api/types";
+import type { DemoConfigDetail, Lead, Meeting, Questionnaire } from "@/api/types";
 
 // ── Mocks ──
 
 vi.mock("@/api/demo-configs", () => ({
   useDemoConfigDetail: vi.fn(),
-  useAdvanceDemoConfig: vi.fn(),
   useRetryDemoConfig: vi.fn(),
 }));
 
-vi.mock("@/components/send-invite-button", () => ({
-  SendInviteButton: (props: any) => props.teamsJoinUrl ? null : <button data-testid="send-invite">Skicka inbjudan</button>,
+vi.mock("@/components/dialer/book-followup-modal", () => ({
+  BookFollowupModal: ({ open, leadName }: { open: boolean; leadName: string }) =>
+    open ? <div data-testid="book-followup-modal">Modal för {leadName}</div> : null,
 }));
 
 vi.mock("@/lib/format", () => ({
@@ -31,10 +31,9 @@ class MockEventSource {
 }
 vi.stubGlobal("EventSource", MockEventSource);
 
-import { useDemoConfigDetail, useAdvanceDemoConfig, useRetryDemoConfig } from "@/api/demo-configs";
+import { useDemoConfigDetail, useRetryDemoConfig } from "@/api/demo-configs";
 
 const mockUseDemoConfigDetail = vi.mocked(useDemoConfigDetail);
-const mockUseAdvanceDemoConfig = vi.mocked(useAdvanceDemoConfig);
 const mockUseRetryDemoConfig = vi.mocked(useRetryDemoConfig);
 
 // ── Fixtures ──
@@ -91,6 +90,23 @@ function makeMeeting(overrides: Partial<Meeting> = {}): Meeting {
   };
 }
 
+function makeQuestionnaire(overrides: Partial<Questionnaire> = {}): Questionnaire {
+  return {
+    id: "q-1",
+    lead_id: "lead-1",
+    deal_id: null,
+    token: "q-token-1",
+    status: "pending",
+    customer_email: "c@e.se",
+    opened_at: null,
+    started_at: null,
+    completed_at: null,
+    inserted_at: "2026-04-09T14:32:00Z",
+    updated_at: "2026-04-09T14:32:00Z",
+    ...overrides,
+  };
+}
+
 function makeDetail(overrides: Partial<DemoConfigDetail> = {}): DemoConfigDetail {
   return {
     id: "dc-1",
@@ -107,19 +123,19 @@ function makeDetail(overrides: Partial<DemoConfigDetail> = {}): DemoConfigDetail
     updated_at: "2026-04-01T10:00:00Z",
     lead: makeLead(),
     meetings: [],
+    questionnaire: null,
     ...overrides,
   };
 }
 
 const mutateFn = vi.fn();
-const defaultMutation = { mutate: mutateFn, isPending: false } as unknown as ReturnType<typeof useAdvanceDemoConfig>;
+const defaultMutation = { mutate: mutateFn, isPending: false } as unknown as ReturnType<typeof useRetryDemoConfig>;
 
 // ── Tests ──
 
 describe("DemoDetailTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseAdvanceDemoConfig.mockReturnValue(defaultMutation);
     mockUseRetryDemoConfig.mockReturnValue(defaultMutation);
   });
 
@@ -227,7 +243,7 @@ describe("DemoDetailTab", () => {
     expect(link.closest("a")).toHaveAttribute("target", "_blank");
   });
 
-  it("shows advance and retry buttons when demo_ready", () => {
+  it("shows retry button and helper text when demo_ready", () => {
     mockUseDemoConfigDetail.mockReturnValue({
       data: makeDetail({ stage: "demo_ready", preview_url: "https://preview.example.com/dc-1" }),
       isLoading: false,
@@ -235,27 +251,10 @@ describe("DemoDetailTab", () => {
 
     render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
 
-    expect(screen.getByText("Gå till uppföljning →")).toBeInTheDocument();
+    expect(screen.getByText(/Hemsidan är klar/i)).toBeInTheDocument();
     expect(screen.getByText("Generera om")).toBeInTheDocument();
-  });
-
-  it("calls advance mutation when 'Gå till uppföljning →' is clicked", async () => {
-    const user = userEvent.setup();
-    const advanceMutate = vi.fn();
-    mockUseAdvanceDemoConfig.mockReturnValue({
-      mutate: advanceMutate,
-      isPending: false,
-    } as unknown as ReturnType<typeof useAdvanceDemoConfig>);
-
-    mockUseDemoConfigDetail.mockReturnValue({
-      data: makeDetail({ stage: "demo_ready", preview_url: "https://preview.example.com/dc-1" }),
-      isLoading: false,
-    } as ReturnType<typeof useDemoConfigDetail>);
-
-    render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
-
-    await user.click(screen.getByText("Gå till uppföljning →"));
-    expect(advanceMutate).toHaveBeenCalledWith("dc-1");
+    // The modal's "Boka uppföljning →" button only appears in demo_held, not demo_ready
+    expect(screen.queryByText(/Boka uppföljning/i)).not.toBeInTheDocument();
   });
 
   it("calls retry mutation when 'Generera om' is clicked", async () => {
@@ -289,34 +288,90 @@ describe("DemoDetailTab", () => {
     expect(iframe).toHaveAttribute("src", "https://preview.example.com/dc-1");
   });
 
-  it("shows followup content with demo link and lead info", () => {
+  it("shows followup content with tracking, links, meeting and lead info", () => {
     mockUseDemoConfigDetail.mockReturnValue({
       data: makeDetail({
         stage: "followup",
-        preview_url: "https://preview.example.com/dc-1",
-        meetings: [makeMeeting()],
+        preview_url: "https://demo.siteflow.se/acme",
+        meetings: [makeMeeting({ title: "Uppföljning — Acme AB", teams_join_url: "https://teams.url/x" })],
+        questionnaire: makeQuestionnaire({
+          token: "tok-1",
+          opened_at: "2026-04-09T14:45:00Z",
+        }),
       }),
       isLoading: false,
     } as ReturnType<typeof useDemoConfigDetail>);
 
     render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
 
-    expect(screen.getByText("https://preview.example.com/dc-1")).toBeInTheDocument();
-    expect(screen.getByText("Demo med Acme")).toBeInTheDocument();
-    // "Acme AB" appears in both header and kundinfo section
-    expect(screen.getAllByText("Acme AB")).toHaveLength(2);
+    // Tracking labels
+    expect(screen.getByText("Mail skickat:")).toBeInTheDocument();
+    expect(screen.getByText("Frågeformulär öppnat:")).toBeInTheDocument();
+    expect(screen.getByText("Formulär påbörjat:")).toBeInTheDocument();
+    expect(screen.getByText("Formulär ifyllt:")).toBeInTheDocument();
+
+    // Links
+    expect(screen.getByText("https://demo.siteflow.se/acme")).toBeInTheDocument();
+    expect(screen.getByText("Öppna formulär →")).toBeInTheDocument();
+    expect(screen.getByText("Anslut till Teams-mötet →")).toBeInTheDocument();
+
+    // Lead info
+    expect(screen.getAllByText("Acme AB").length).toBeGreaterThan(0);
     expect(screen.getByText("info@acme.se")).toBeInTheDocument();
   });
 
-  it("shows empty meetings message in followup when no meetings", () => {
+  it("shows dash for missing tracking timestamps in followup", () => {
     mockUseDemoConfigDetail.mockReturnValue({
-      data: makeDetail({ stage: "followup", meetings: [] }),
+      data: makeDetail({
+        stage: "followup",
+        questionnaire: makeQuestionnaire({ opened_at: null, started_at: null, completed_at: null }),
+        meetings: [],
+      }),
       isLoading: false,
     } as ReturnType<typeof useDemoConfigDetail>);
 
     render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
 
-    expect(screen.getByText("Inga möten.")).toBeInTheDocument();
+    // 4 tracking rows total. Mail skickat has value (inserted_at); others show em-dash.
+    const values = screen.getAllByTestId("tracking-value");
+    expect(values).toHaveLength(4);
+    const empty = values.filter((v) => v.getAttribute("data-empty") === "true");
+    expect(empty).toHaveLength(3);
+  });
+
+  it("handles followup with no questionnaire gracefully", () => {
+    mockUseDemoConfigDetail.mockReturnValue({
+      data: makeDetail({ stage: "followup", questionnaire: null, meetings: [] }),
+      isLoading: false,
+    } as ReturnType<typeof useDemoConfigDetail>);
+
+    render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
+
+    // Without questionnaire, all 4 tracking rows show em-dash
+    const values = screen.getAllByTestId("tracking-value");
+    expect(values).toHaveLength(4);
+    const empty = values.filter((v) => v.getAttribute("data-empty") === "true");
+    expect(empty).toHaveLength(4);
+  });
+
+  it("renders DemoHeldContent with preview link and Boka uppföljning button", async () => {
+    const user = userEvent.setup();
+    mockUseDemoConfigDetail.mockReturnValue({
+      data: makeDetail({
+        stage: "demo_held",
+        preview_url: "https://demo.siteflow.se/acme",
+      }),
+      isLoading: false,
+    } as ReturnType<typeof useDemoConfigDetail>);
+
+    render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
+
+    expect(screen.getByText(/Demo-mötet är genomfört/i)).toBeInTheDocument();
+    expect(screen.getByText("https://demo.siteflow.se/acme")).toBeInTheDocument();
+    expect(screen.queryByTestId("book-followup-modal")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /boka uppföljning/i }));
+    expect(screen.getByTestId("book-followup-modal")).toBeInTheDocument();
   });
 
   it("uses lead.företag as fallback when lead_name is null", () => {
@@ -417,26 +472,8 @@ describe("DemoDetailTab", () => {
 
     expect(screen.queryByTitle("Demo preview")).not.toBeInTheDocument();
     expect(screen.queryByText("Öppna i ny flik")).not.toBeInTheDocument();
-    // Buttons should still render
-    expect(screen.getByText("Gå till uppföljning →")).toBeInTheDocument();
+    // Retry button still renders even without preview
     expect(screen.getByText("Generera om")).toBeInTheDocument();
-  });
-
-  it("shows advancing text when advance isPending", () => {
-    mockUseAdvanceDemoConfig.mockReturnValue({
-      mutate: vi.fn(),
-      isPending: true,
-    } as unknown as ReturnType<typeof useAdvanceDemoConfig>);
-
-    mockUseDemoConfigDetail.mockReturnValue({
-      data: makeDetail({ stage: "demo_ready", preview_url: "https://preview.example.com/dc-1" }),
-      isLoading: false,
-    } as ReturnType<typeof useDemoConfigDetail>);
-
-    render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
-
-    expect(screen.getByText("Avancerar...")).toBeInTheDocument();
-    expect(screen.getByText("Avancerar...").closest("button")).toBeDisabled();
   });
 
   it("shows retrying text when retry isPending", () => {
@@ -456,16 +493,16 @@ describe("DemoDetailTab", () => {
     expect(screen.getByText("Genererar om...").closest("button")).toBeDisabled();
   });
 
-  it("does not show demo link in followup when preview_url is null", () => {
+  it("does not show hemsida section in followup when preview_url is null", () => {
     mockUseDemoConfigDetail.mockReturnValue({
-      data: makeDetail({ stage: "followup", preview_url: null, meetings: [] }),
+      data: makeDetail({ stage: "followup", preview_url: null, meetings: [], questionnaire: null }),
       isLoading: false,
     } as ReturnType<typeof useDemoConfigDetail>);
 
     render(<DemoDetailTab demoConfigId="dc-1" onBack={vi.fn()} />);
 
-    expect(screen.queryByText("Demo-länk")).not.toBeInTheDocument();
-    expect(screen.getByText("Inga möten.")).toBeInTheDocument();
+    // Hemsida heading should not be present without preview_url
+    expect(screen.queryByText("Hemsida")).not.toBeInTheDocument();
   });
 
   it("does not show telefon and epost when lead lacks them in followup", () => {

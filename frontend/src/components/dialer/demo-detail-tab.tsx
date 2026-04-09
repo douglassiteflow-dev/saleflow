@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { useDemoConfigDetail, useAdvanceDemoConfig, useRetryDemoConfig } from "@/api/demo-configs";
+import { useDemoConfigDetail, useRetryDemoConfig } from "@/api/demo-configs";
 import { DemoStageIndicator } from "./demo-stage-indicator";
-import { SendInviteButton } from "@/components/send-invite-button";
+import { BookFollowupModal } from "./book-followup-modal";
 import { InfoRow } from "@/components/ui/info-row";
 import { formatPhone, formatDate, formatTime } from "@/lib/format";
 import Loader from "@/components/kokonutui/loader";
@@ -13,7 +13,6 @@ interface DemoDetailTabProps {
 
 export function DemoDetailTab({ demoConfigId, onBack }: DemoDetailTabProps) {
   const { data, isLoading } = useDemoConfigDetail(demoConfigId);
-  const advance = useAdvanceDemoConfig();
   const retry = useRetryDemoConfig();
   const [logs, setLogs] = useState<string[]>([]);
   const logContainerRef = useRef<HTMLDivElement>(null);
@@ -74,10 +73,15 @@ export function DemoDetailTab({ demoConfigId, onBack }: DemoDetailTabProps) {
         {data.stage === "demo_ready" && (
           <DemoReadyContent
             previewUrl={data.preview_url}
-            onAdvance={() => advance.mutate(demoConfigId)}
             onRetry={() => retry.mutate(demoConfigId)}
-            isAdvancing={advance.isPending}
             isRetrying={retry.isPending}
+          />
+        )}
+        {data.stage === "demo_held" && (
+          <DemoHeldContent
+            demoConfigId={demoConfigId}
+            leadName={companyName}
+            previewUrl={data.preview_url}
           />
         )}
         {data.stage === "followup" && <FollowupContent data={data} />}
@@ -134,15 +138,11 @@ function GeneratingContent({
 
 function DemoReadyContent({
   previewUrl,
-  onAdvance,
   onRetry,
-  isAdvancing,
   isRetrying,
 }: {
   previewUrl: string | null;
-  onAdvance: () => void;
   onRetry: () => void;
-  isAdvancing: boolean;
   isRetrying: boolean;
 }) {
   return (
@@ -154,6 +154,10 @@ function DemoReadyContent({
           className="w-full h-80 rounded-lg border border-[var(--color-border)] mb-4"
         />
       )}
+      <p className="text-[13px] text-[var(--color-text-secondary)] mb-3">
+        Hemsidan är klar att visa under demo-mötet. När du har genomfört mötet markerar du
+        det som genomfört i möteslistan — då går demo-config automatiskt vidare till nästa steg.
+      </p>
       <div className="flex items-center gap-3">
         {previewUrl && (
           <a
@@ -167,14 +171,6 @@ function DemoReadyContent({
         )}
         <button
           type="button"
-          onClick={onAdvance}
-          disabled={isAdvancing}
-          className="rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-[13px] font-medium text-white hover:opacity-90 transition-opacity disabled:opacity-50"
-        >
-          {isAdvancing ? "Avancerar..." : "Gå till uppföljning →"}
-        </button>
-        <button
-          type="button"
           onClick={onRetry}
           disabled={isRetrying}
           className="rounded-md border border-orange-300 bg-orange-50 px-3 py-1.5 text-[13px] font-medium text-orange-700 hover:bg-orange-100 transition-colors disabled:opacity-50"
@@ -186,76 +182,180 @@ function DemoReadyContent({
   );
 }
 
+/* ── Stage: demo_held ── */
+
+function DemoHeldContent({
+  demoConfigId,
+  leadName,
+  previewUrl,
+}: {
+  demoConfigId: string;
+  leadName: string;
+  previewUrl: string | null;
+}) {
+  const [modalOpen, setModalOpen] = useState(false);
+
+  return (
+    <div className="space-y-4">
+      <p className="text-[13px] text-[var(--color-text-primary)]">
+        Demo-mötet är genomfört. Dags att boka uppföljning med kunden och skicka frågeformuläret.
+      </p>
+
+      {previewUrl && (
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-1.5">
+            Deras hemsida
+          </p>
+          <a
+            href={previewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[13px] text-[var(--color-accent)] hover:underline break-all"
+          >
+            {previewUrl}
+          </a>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setModalOpen(true)}
+        className="rounded-md bg-[var(--color-accent)] px-4 py-2 text-[13px] font-medium text-white hover:opacity-90 transition-opacity"
+      >
+        Boka uppföljning →
+      </button>
+
+      <BookFollowupModal
+        demoConfigId={demoConfigId}
+        leadName={leadName}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+      />
+    </div>
+  );
+}
+
 /* ── Stage: followup ── */
 
 function FollowupContent({ data }: { data: NonNullable<ReturnType<typeof useDemoConfigDetail>["data"]> }) {
+  const q = data.questionnaire;
+  const followupMeeting = data.meetings.find((m) => m.title?.startsWith("Uppföljning") || m.title?.startsWith("Follow-up"));
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-      {/* Left: Demo link + Meetings */}
-      <div className="pr-5 border-r border-[var(--color-border)]">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      {/* Left: tracking + links */}
+      <div className="space-y-5">
+        {/* Tracking */}
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">
+            Kundstatus
+          </p>
+          <div className="space-y-2">
+            <TrackingRow icon="✉️" label="Mail skickat" value={formatTimestamp(q?.inserted_at)} />
+            <TrackingRow icon="👁" label="Frågeformulär öppnat" value={formatTimestamp(q?.opened_at)} />
+            <TrackingRow icon="✏️" label="Formulär påbörjat" value={formatTimestamp(q?.started_at)} />
+            <TrackingRow icon="✅" label="Formulär ifyllt" value={formatTimestamp(q?.completed_at)} />
+          </div>
+        </div>
+
+        {/* Preview link */}
         {data.preview_url && (
-          <div className="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-            <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-emerald-700 mb-1.5">
-              Demo-länk
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-1.5">
+              Hemsida
             </p>
             <a
               href={data.preview_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[13px] font-medium text-emerald-800 hover:underline truncate block"
+              className="text-[13px] text-[var(--color-accent)] hover:underline break-all"
             >
               {data.preview_url}
             </a>
           </div>
         )}
 
-        <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">
-          Möten
-        </p>
-        {data.meetings.length === 0 ? (
-          <p className="text-xs text-[var(--color-text-secondary)]">Inga möten.</p>
-        ) : (
-          <div className="space-y-2">
-            {data.meetings.map((m) => (
-              <div key={m.id} className="bg-[var(--color-bg-panel)] rounded-md p-2.5 text-xs">
-                <div className="flex justify-between mb-1">
-                  <span className="font-medium text-[var(--color-text-primary)]">{m.title}</span>
-                  <span className="text-[10px] text-[var(--color-text-secondary)]">{m.status}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-[var(--color-text-secondary)]">
-                    {formatDate(m.meeting_date)} {formatTime(m.meeting_time)}
-                  </p>
-                  <SendInviteButton
-                    meetingId={m.id}
-                    teamsJoinUrl={m.teams_join_url}
-                    attendeeEmail={m.attendee_email}
-                    attendeeName={m.attendee_name}
-                    leadEmail={data.lead?.epost}
-                    leadName={data.lead?.företag}
-                    meetingDate={m.meeting_date}
-                    meetingTime={m.meeting_time}
-                    size="sm"
-                  />
-                </div>
-              </div>
-            ))}
+        {/* Questionnaire link */}
+        {q && (
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-1.5">
+              Frågeformulär
+            </p>
+            <a
+              href={`/q/${q.token}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[13px] text-[var(--color-accent)] hover:underline"
+            >
+              Öppna formulär →
+            </a>
           </div>
         )}
       </div>
 
-      {/* Right: Lead info */}
-      <div className="pl-5">
-        <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">
-          Kundinfo
-        </p>
-        <div className="space-y-0">
-          <InfoRow label="Företag" value={data.lead.företag} bold />
-          {data.lead.telefon && <InfoRow label="Telefon" value={formatPhone(data.lead.telefon)} mono />}
-          {data.lead.epost && <InfoRow label="E-post" value={data.lead.epost} />}
+      {/* Right: meeting info + lead info */}
+      <div className="space-y-5">
+        {followupMeeting && (
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-1.5">
+              Uppföljningsmöte
+            </p>
+            <p className="text-[13px] text-[var(--color-text-primary)]">
+              {formatDate(followupMeeting.meeting_date)} kl {formatTime(followupMeeting.meeting_time)}
+            </p>
+            {followupMeeting.teams_join_url && (
+              <a
+                href={followupMeeting.teams_join_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[13px] text-[var(--color-accent)] hover:underline"
+              >
+                Anslut till Teams-mötet →
+              </a>
+            )}
+          </div>
+        )}
+
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">
+            Kundinfo
+          </p>
+          <div className="space-y-0">
+            <InfoRow label="Företag" value={data.lead.företag} bold />
+            {data.lead.telefon && <InfoRow label="Telefon" value={formatPhone(data.lead.telefon)} mono />}
+            {data.lead.epost && <InfoRow label="E-post" value={data.lead.epost} />}
+          </div>
         </div>
       </div>
     </div>
   );
+}
+
+function TrackingRow({ icon, label, value }: { icon: string; label: string; value: string | null }) {
+  return (
+    <div className="flex items-center gap-3 text-[13px]" data-testid="tracking-row">
+      <span className="text-base" aria-hidden="true">{icon}</span>
+      <span className="text-[var(--color-text-secondary)] w-40">{label}:</span>
+      <span
+        data-testid="tracking-value"
+        data-empty={value ? "false" : "true"}
+        className={value ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-secondary)]"}
+      >
+        {value || "—"}
+      </span>
+    </div>
+  );
+}
+
+function formatTimestamp(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return d.toLocaleString("sv-SE", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
