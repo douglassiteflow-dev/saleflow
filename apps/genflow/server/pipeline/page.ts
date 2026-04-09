@@ -111,20 +111,20 @@ function getPageTypeRules(slug: string): string {
     index: `OBLIGATORISKA SEKTIONER (i denna ordning, MINST dessa):
 1. Hero — fullbred, stor Unsplash-bakgrundsbild, företagsnamn i stor typografi, tagline, primär CTA-knapp, optional betygsbadge
 2. Intro — kort text (2-3 meningar) PLUS en dekorativ bild bredvid (2-kolumns layout med text + bild)
-3. Featured tjänster — grid med 3-6 tjänster, VARJE tjänstekort måste ha en liten Unsplash-bakgrundsbild eller accent-bild
-4. Bildgalleri-teaser — 3-4 Unsplash-bilder i ett asymmetriskt bento-grid eller mosaic (om galleri-sidan finns, annars fullständigt galleri)
-5. Recensioner — om mode är infinity-scroll: horisontell auto-scroll med duplicerade kort, pause on hover, 5-8 recensioner. Om mode är statiska-kort: 3 kort i grid.
-6. Kontakt-CTA — fullbred sektion med bakgrundsbild, text och primär CTA-knapp
+3. Featured tjänster — grid med 3-6 tjänster. Tjänstekort behöver INTE ha bilder — det räcker med stark typografi, pris och ikon/accent.
+4. Recensioner — om mode är infinity-scroll: horisontell auto-scroll med duplicerade kort, pause on hover, 5-8 recensioner. Om mode är statiska-kort: 3 kort i grid.
+5. Kontakt-CTA — fullbred sektion med bakgrundsbild eller gradient, text och primär CTA-knapp
 
-BILD-KRAV (STRIKT):
-- MINST 6 Unsplash-bilder TOTALT på sidan — INTE bara en hero-bild
-- Använd olika bilder i olika sektioner (hero, intro-bild, service-bilder, galleri-teaser, cta-bakgrund)
-- Bilder ska vara stora och dominerande, inte små thumbnails
+BILD-BALANS (viktigt):
+- Totalt 3-4 stora bilder på sidan (hero, intro-bild, cta-bakgrund, eventuellt en liten accent)
+- INTE bild på varje tjänste-kort
+- INTE galleri-teaser med bilder (lägg galleri på galleri-sidan istället)
+- Kvalitet över kvantitet — få men starka bilder
 
-DESIGN-KRAV (pimp and polish):
+DESIGN-KRAV (pimp and polish — behåll):
 - Hero måste ha gradient overlay för textläsbarhet
 - Varje sektion ska kännas distinkt — använd alternerande bakgrundsfärger (vit → sage → vit → accent)
-- Dekorativa element: SVG dividers MELLAN sektioner, accent-linjer, små dot-patterns, badge-ikoner
+- Dekorativa element: små accent-linjer, dot-patterns, badge-ikoner — SPARSAMT med dividers
 - Subtila hover-effekter på kort och knappar
 - Använd CSS-variabler från layout för färgkonsistens`,
 

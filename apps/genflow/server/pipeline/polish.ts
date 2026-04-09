@@ -51,9 +51,11 @@ Leta efter:
 
 Du MÅSTE lägga till ALLT av följande som är relevant:
 
-### Bilder (OBLIGATORISKT på index)
-- Om sidan bara har 1-2 bilder → lägg till 3-5 fler Unsplash-bilder i olika sektioner
-- Varje stor sektion bör ha någon form av visuell (bild, gradient, pattern)
+### Bilder (MÅTTLIGT — kvalitet över kvantitet)
+- Mål: 3-4 stora bilder på hela sidan, inte fler
+- Om sidan bara har 1 bild (hero) → lägg till 1-2 till i nyckelsektioner (intro, cta)
+- Om sidan redan har 4+ bilder → LÄGG INTE TILL FLER
+- Varje stor sektion BEHÖVER INTE en bild — gradient eller färgat block räcker ofta
 - Format: \`https://images.unsplash.com/photo-XXX?w=1200&q=80\`
 
 ### Hero-sektion
@@ -61,13 +63,14 @@ Du MÅSTE lägga till ALLT av följande som är relevant:
 - Gradient overlay: \`linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.6))\`
 - Stor typografi (60px+) med letter-spacing och text-shadow
 
-### SVG wave-dividers MELLAN sektioner
-- RIKTNING ÄR KRITISKT: vågen måste LUTAR ÅT RÄTT HÅLL
+### SVG wave-dividers MELLAN sektioner (SPARSAMT)
+- **MAX 2 dividers per sida** — inte mellan varje sektion, bara vid viktiga övergångar
+- RIKTNING ÄR KRITISKT: vågen måste LUTA ÅT RÄTT HÅLL
 - För en divider från en ljus sektion (ovan) till mörk sektion (under):
   \`<svg viewBox="0 0 1440 100" preserveAspectRatio="none" style="display:block;width:100%;height:80px"><path fill="[MÖRKA SEKTIONENS FÄRG]" d="M0,50 C360,100 720,0 1440,50 L1440,100 L0,100 Z"/></svg>\`
 - För mörk → ljus, inverterad path:
   \`<svg viewBox="0 0 1440 100" preserveAspectRatio="none" style="display:block;width:100%;height:80px"><path fill="[LJUSA SEKTIONENS FÄRG]" d="M0,50 C360,0 720,100 1440,50 L1440,100 L0,100 Z"/></svg>\`
-- VARIERA form: wave, diagonal cut, curve, zigzag — inte samma överallt
+- Ofta räcker det att ALTERNERA bakgrundsfärger mellan sektioner (ingen divider behövs)
 
 ### Dekorativa former — Z-INDEX REGLER ÄR KRITISKA
 - Absolut-positionerade dekorativa blobbar i bakgrunden (radial-gradients, stora cirklar med opacity)
