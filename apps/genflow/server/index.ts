@@ -23,3 +23,6 @@ setInterval(() => {
 }, 30_000)
 
 console.log('[server] ready, awaiting jobs')
+
+// Make this file an ES module so it can be re-exported
+export {}
