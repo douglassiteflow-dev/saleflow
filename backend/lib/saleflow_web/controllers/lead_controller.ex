@@ -307,6 +307,23 @@ defmodule SaleflowWeb.LeadController do
           # Link meeting to deal
           {:ok, meeting} = Sales.update_meeting(meeting, %{deal_id: deal.id})
 
+          # Auto-create DemoConfig + trigger generation if source_url provided
+          source_url = params["source_url"]
+          if is_binary(source_url) and source_url != "" do
+            case Sales.create_demo_config(%{
+              lead_id: lead.id,
+              user_id: user.id,
+              source_url: source_url
+            }) do
+              {:ok, demo_config} ->
+                Sales.update_meeting(meeting, %{demo_config_id: demo_config.id})
+                %{"demo_config_id" => demo_config.id}
+                |> Saleflow.Workers.DemoGenerationWorker.new()
+                |> Oban.insert()
+              {:error, _} -> :ok
+            end
+          end
+
           # Auto-create Teams meeting if user has Microsoft connected and opted in
           if params["create_teams_meeting"] != false do
             attendee_overrides = %{
