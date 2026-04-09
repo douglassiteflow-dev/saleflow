@@ -122,6 +122,7 @@ describe("useBookFollowup", () => {
       meeting_time: "14:00",
       personal_message: "Hej",
       language: "sv",
+      email: "kund@test.se",
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -132,6 +133,7 @@ describe("useBookFollowup", () => {
     expect(body.language).toBe("sv");
     expect(body.meeting_date).toBe("2026-04-16");
     expect(body.meeting_time).toBe("14:00");
+    expect(body.email).toBe("kund@test.se");
   });
 
   it("handles error response", async () => {
@@ -149,6 +151,7 @@ describe("useBookFollowup", () => {
       meeting_time: "14:00",
       personal_message: "",
       language: "sv",
+      email: "kund@test.se",
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));

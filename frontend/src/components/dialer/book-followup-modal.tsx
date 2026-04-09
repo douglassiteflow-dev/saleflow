@@ -7,6 +7,7 @@ import { todayISO } from "@/lib/date";
 interface BookFollowupModalProps {
   demoConfigId: string;
   leadName: string;
+  leadEmail: string | null;
   open: boolean;
   onClose: () => void;
 }
@@ -16,12 +17,19 @@ const DEFAULT_MESSAGES: Record<FollowupLanguage, string> = {
   en: "We talked about some adjustments during the meeting — please fill in the form below with your preferences so we can tailor the website.",
 };
 
-export function BookFollowupModal({ demoConfigId, leadName, open, onClose }: BookFollowupModalProps) {
+export function BookFollowupModal({
+  demoConfigId,
+  leadName,
+  leadEmail,
+  open,
+  onClose,
+}: BookFollowupModalProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [language, setLanguage] = useState<FollowupLanguage>("sv");
   const [personalMessage, setPersonalMessage] = useState(DEFAULT_MESSAGES.sv);
+  const [email, setEmail] = useState(leadEmail ?? "");
 
   const book = useBookFollowup();
   const preview = usePreviewFollowupMail(step === 2 ? demoConfigId : null, {
@@ -39,12 +47,18 @@ export function BookFollowupModal({ demoConfigId, leadName, open, onClose }: Boo
       setTime("");
       setLanguage("sv");
       setPersonalMessage(DEFAULT_MESSAGES.sv);
+      setEmail(leadEmail ?? "");
     }
-  }, [book.isSuccess, onClose]);
+  }, [book.isSuccess, onClose, leadEmail]);
+
+  // Sync email when leadEmail prop changes (e.g., opening modal for a different demo)
+  useEffect(() => {
+    setEmail(leadEmail ?? "");
+  }, [leadEmail]);
 
   if (!open) return null;
 
-  const canAdvance = !!date && !!time;
+  const canAdvance = !!date && !!time && !!email.trim();
 
   const handleLanguageChange = (lang: FollowupLanguage) => {
     if (personalMessage === DEFAULT_MESSAGES[language]) {
@@ -60,6 +74,7 @@ export function BookFollowupModal({ demoConfigId, leadName, open, onClose }: Boo
       meeting_time: time + ":00",
       personal_message: personalMessage,
       language,
+      email: email.trim(),
     });
   };
 
@@ -103,6 +118,23 @@ export function BookFollowupModal({ demoConfigId, leadName, open, onClose }: Boo
                 </label>
                 <TimeSelect value={time} onChange={setTime} />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className={labelClass} htmlFor="followup-email">
+                Kundens e-post
+              </label>
+              <input
+                id="followup-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="namn@foretag.se"
+                className={inputClass}
+              />
+              <p className="text-[11px] text-[var(--color-text-secondary)]">
+                Mailet (med möteslänk, preview och frågeformulär) skickas till denna adress.
+              </p>
             </div>
 
             <div className="space-y-1.5">

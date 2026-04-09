@@ -13,8 +13,20 @@ vi.mock("@/api/demo-configs", () => ({
 }));
 
 vi.mock("@/components/dialer/book-followup-modal", () => ({
-  BookFollowupModal: ({ open, leadName }: { open: boolean; leadName: string }) =>
-    open ? <div data-testid="book-followup-modal">Modal för {leadName}</div> : null,
+  BookFollowupModal: ({
+    open,
+    leadName,
+    leadEmail,
+  }: {
+    open: boolean;
+    leadName: string;
+    leadEmail: string | null;
+  }) =>
+    open ? (
+      <div data-testid="book-followup-modal">
+        Modal för {leadName} ({leadEmail ?? "ingen email"})
+      </div>
+    ) : null,
 }));
 
 vi.mock("@/lib/format", () => ({
@@ -411,7 +423,10 @@ describe("DemoDetailTab", () => {
     expect(screen.queryByTestId("book-followup-modal")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /boka uppföljning/i }));
-    expect(screen.getByTestId("book-followup-modal")).toBeInTheDocument();
+    const modal = screen.getByTestId("book-followup-modal");
+    expect(modal).toBeInTheDocument();
+    // leadEmail prop is passed through
+    expect(modal.textContent).toContain("info@acme.se");
   });
 
   it("uses lead.företag as fallback when lead_name is null", () => {

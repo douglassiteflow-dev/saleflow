@@ -24,93 +24,114 @@ import { useBookFollowup, usePreviewFollowupMail } from "@/api/followup";
 const mockBook = vi.mocked(useBookFollowup);
 const mockPreview = vi.mocked(usePreviewFollowupMail);
 
-describe("BookFollowupModal", () => {
-  const mutate = vi.fn();
+const mutate = vi.fn();
 
+const defaultProps = {
+  demoConfigId: "dc-1",
+  leadName: "Acme",
+  leadEmail: "info@acme.se",
+  open: true,
+  onClose: vi.fn(),
+};
+
+function renderModal(overrides: Partial<typeof defaultProps> = {}) {
+  return render(<BookFollowupModal {...defaultProps} {...overrides} />);
+}
+
+function setBookReturn(overrides: Partial<ReturnType<typeof useBookFollowup>> = {}) {
+  mockBook.mockReturnValue({
+    mutate,
+    isPending: false,
+    isSuccess: false,
+    isError: false,
+    ...overrides,
+  } as unknown as ReturnType<typeof useBookFollowup>);
+}
+
+function setPreviewReturn(data: { subject: string; html: string } | undefined, isLoading = false) {
+  mockPreview.mockReturnValue({
+    data,
+    isLoading,
+  } as unknown as ReturnType<typeof usePreviewFollowupMail>);
+}
+
+async function fillStep1AndAdvance(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText(/datum/i), "2026-04-16");
+  await user.type(screen.getByLabelText(/tid/i), "14:00");
+  await user.click(screen.getByRole("button", { name: /nästa/i }));
+}
+
+describe("BookFollowupModal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockBook.mockReturnValue({
-      mutate,
-      isPending: false,
-      isSuccess: false,
-      isError: false,
-    } as unknown as ReturnType<typeof useBookFollowup>);
-    mockPreview.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-    } as unknown as ReturnType<typeof usePreviewFollowupMail>);
+    setBookReturn();
+    setPreviewReturn(undefined);
   });
 
   it("does not render when open is false", () => {
-    render(
-      <BookFollowupModal demoConfigId="dc-1" leadName="Acme" open={false} onClose={vi.fn()} />,
-    );
+    renderModal({ open: false });
     expect(screen.queryByText(/boka uppföljning med/i)).not.toBeInTheDocument();
   });
 
-  it("renders step 1 with date, time, language and message inputs", () => {
-    render(
-      <BookFollowupModal demoConfigId="dc-1" leadName="Acme" open={true} onClose={vi.fn()} />,
-    );
+  it("renders step 1 with date, time, email, language and message inputs", () => {
+    renderModal();
     expect(screen.getByLabelText(/datum/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/tid/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/kundens e-post/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/språk/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/personligt meddelande/i)).toBeInTheDocument();
     expect(screen.getByText(/steg 1 av 2/i)).toBeInTheDocument();
   });
 
+  it("auto-fills email from leadEmail prop", () => {
+    renderModal();
+    const emailInput = screen.getByLabelText(/kundens e-post/i) as HTMLInputElement;
+    expect(emailInput.value).toBe("info@acme.se");
+  });
+
+  it("leaves email empty when leadEmail is null", () => {
+    renderModal({ leadEmail: null });
+    const emailInput = screen.getByLabelText(/kundens e-post/i) as HTMLInputElement;
+    expect(emailInput.value).toBe("");
+  });
+
   it("defaults language to Swedish", () => {
-    render(
-      <BookFollowupModal demoConfigId="dc-1" leadName="Acme" open={true} onClose={vi.fn()} />,
-    );
+    renderModal();
     const select = screen.getByLabelText(/språk/i) as HTMLSelectElement;
     expect(select.value).toBe("sv");
   });
 
-  it("disables Nästa until date and time are filled", async () => {
+  it("disables Nästa until date, time and email are filled", async () => {
     const user = userEvent.setup();
-    render(
-      <BookFollowupModal demoConfigId="dc-1" leadName="Acme" open={true} onClose={vi.fn()} />,
-    );
+    renderModal({ leadEmail: null });
     const next = screen.getByRole("button", { name: /nästa/i });
     expect(next).toBeDisabled();
 
     await user.type(screen.getByLabelText(/datum/i), "2026-04-16");
     await user.type(screen.getByLabelText(/tid/i), "14:00");
+    expect(next).toBeDisabled();
+
+    await user.type(screen.getByLabelText(/kundens e-post/i), "kund@test.se");
     expect(next).not.toBeDisabled();
   });
 
   it("advances to step 2 and shows preview", async () => {
     const user = userEvent.setup();
-    mockPreview.mockReturnValue({
-      data: { subject: "Uppföljning — Acme", html: "<h1>Preview content</h1>" },
-      isLoading: false,
-    } as unknown as ReturnType<typeof usePreviewFollowupMail>);
+    setPreviewReturn({ subject: "Uppföljning — Acme", html: "<h1>Preview content</h1>" });
 
-    render(
-      <BookFollowupModal demoConfigId="dc-1" leadName="Acme" open={true} onClose={vi.fn()} />,
-    );
-    await user.type(screen.getByLabelText(/datum/i), "2026-04-16");
-    await user.type(screen.getByLabelText(/tid/i), "14:00");
-    await user.click(screen.getByRole("button", { name: /nästa/i }));
+    renderModal();
+    await fillStep1AndAdvance(user);
 
     expect(screen.getByText(/Uppföljning — Acme/i)).toBeInTheDocument();
     expect(screen.getByText(/steg 2 av 2/i)).toBeInTheDocument();
   });
 
-  it("sends with Swedish when submit clicked", async () => {
+  it("sends with Swedish + auto-filled email on submit", async () => {
     const user = userEvent.setup();
-    mockPreview.mockReturnValue({
-      data: { subject: "S", html: "<h1>P</h1>" },
-      isLoading: false,
-    } as unknown as ReturnType<typeof usePreviewFollowupMail>);
+    setPreviewReturn({ subject: "S", html: "<h1>P</h1>" });
 
-    render(
-      <BookFollowupModal demoConfigId="dc-1" leadName="Acme" open={true} onClose={vi.fn()} />,
-    );
-    await user.type(screen.getByLabelText(/datum/i), "2026-04-16");
-    await user.type(screen.getByLabelText(/tid/i), "14:00");
-    await user.click(screen.getByRole("button", { name: /nästa/i }));
+    renderModal();
+    await fillStep1AndAdvance(user);
     await user.click(screen.getByRole("button", { name: /skicka/i }));
 
     expect(mutate).toHaveBeenCalledWith(
@@ -119,20 +140,16 @@ describe("BookFollowupModal", () => {
         meeting_date: "2026-04-16",
         meeting_time: "14:00:00",
         language: "sv",
+        email: "info@acme.se",
       }),
     );
   });
 
   it("sends with English when language changed", async () => {
     const user = userEvent.setup();
-    mockPreview.mockReturnValue({
-      data: { subject: "Follow-up — Acme", html: "<h1>en</h1>" },
-      isLoading: false,
-    } as unknown as ReturnType<typeof usePreviewFollowupMail>);
+    setPreviewReturn({ subject: "Follow-up — Acme", html: "<h1>en</h1>" });
 
-    render(
-      <BookFollowupModal demoConfigId="dc-1" leadName="Acme" open={true} onClose={vi.fn()} />,
-    );
+    renderModal();
     await user.type(screen.getByLabelText(/datum/i), "2026-04-16");
     await user.type(screen.getByLabelText(/tid/i), "14:00");
     await user.selectOptions(screen.getByLabelText(/språk/i), "en");
@@ -142,19 +159,46 @@ describe("BookFollowupModal", () => {
     expect(mutate).toHaveBeenCalledWith(expect.objectContaining({ language: "en" }));
   });
 
-  it("can go back from step 2 to step 1", async () => {
+  it("sends with custom email when agent edits it", async () => {
     const user = userEvent.setup();
-    mockPreview.mockReturnValue({
-      data: { subject: "S", html: "<h1>P</h1>" },
-      isLoading: false,
-    } as unknown as ReturnType<typeof usePreviewFollowupMail>);
+    setPreviewReturn({ subject: "S", html: "<h1>P</h1>" });
 
-    render(
-      <BookFollowupModal demoConfigId="dc-1" leadName="Acme" open={true} onClose={vi.fn()} />,
-    );
+    renderModal();
+    const emailInput = screen.getByLabelText(/kundens e-post/i);
+    await user.clear(emailInput);
+    await user.type(emailInput, "custom@override.se");
     await user.type(screen.getByLabelText(/datum/i), "2026-04-16");
     await user.type(screen.getByLabelText(/tid/i), "14:00");
     await user.click(screen.getByRole("button", { name: /nästa/i }));
+    await user.click(screen.getByRole("button", { name: /skicka/i }));
+
+    expect(mutate).toHaveBeenCalledWith(
+      expect.objectContaining({ email: "custom@override.se" }),
+    );
+  });
+
+  it("trims whitespace from email before sending", async () => {
+    const user = userEvent.setup();
+    setPreviewReturn({ subject: "S", html: "<h1>P</h1>" });
+
+    renderModal({ leadEmail: null });
+    await user.type(screen.getByLabelText(/kundens e-post/i), "  spaces@test.se  ");
+    await user.type(screen.getByLabelText(/datum/i), "2026-04-16");
+    await user.type(screen.getByLabelText(/tid/i), "14:00");
+    await user.click(screen.getByRole("button", { name: /nästa/i }));
+    await user.click(screen.getByRole("button", { name: /skicka/i }));
+
+    expect(mutate).toHaveBeenCalledWith(
+      expect.objectContaining({ email: "spaces@test.se" }),
+    );
+  });
+
+  it("can go back from step 2 to step 1", async () => {
+    const user = userEvent.setup();
+    setPreviewReturn({ subject: "S", html: "<h1>P</h1>" });
+
+    renderModal();
+    await fillStep1AndAdvance(user);
     expect(screen.getByText(/steg 2 av 2/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /tillbaka/i }));
@@ -163,38 +207,18 @@ describe("BookFollowupModal", () => {
 
   it("closes on success via useEffect", () => {
     const onClose = vi.fn();
-    mockBook.mockReturnValue({
-      mutate,
-      isPending: false,
-      isSuccess: true,
-      isError: false,
-    } as unknown as ReturnType<typeof useBookFollowup>);
-
-    render(
-      <BookFollowupModal demoConfigId="dc-1" leadName="Acme" open={true} onClose={onClose} />,
-    );
+    setBookReturn({ isSuccess: true } as never);
+    renderModal({ onClose });
     expect(onClose).toHaveBeenCalled();
   });
 
   it("shows error when booking fails", async () => {
     const user = userEvent.setup();
-    mockBook.mockReturnValue({
-      mutate,
-      isPending: false,
-      isSuccess: false,
-      isError: true,
-    } as unknown as ReturnType<typeof useBookFollowup>);
-    mockPreview.mockReturnValue({
-      data: { subject: "S", html: "<h1>P</h1>" },
-      isLoading: false,
-    } as unknown as ReturnType<typeof usePreviewFollowupMail>);
+    setBookReturn({ isError: true } as never);
+    setPreviewReturn({ subject: "S", html: "<h1>P</h1>" });
 
-    render(
-      <BookFollowupModal demoConfigId="dc-1" leadName="Acme" open={true} onClose={vi.fn()} />,
-    );
-    await user.type(screen.getByLabelText(/datum/i), "2026-04-16");
-    await user.type(screen.getByLabelText(/tid/i), "14:00");
-    await user.click(screen.getByRole("button", { name: /nästa/i }));
+    renderModal();
+    await fillStep1AndAdvance(user);
 
     expect(screen.getByText(/kontrollera att du har en microsoft-anslutning/i)).toBeInTheDocument();
   });
@@ -202,9 +226,7 @@ describe("BookFollowupModal", () => {
   it("closes modal when clicking overlay", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
-    render(
-      <BookFollowupModal demoConfigId="dc-1" leadName="Acme" open={true} onClose={onClose} />,
-    );
+    renderModal({ onClose });
 
     await user.click(screen.getByTestId("book-followup-overlay"));
     expect(onClose).toHaveBeenCalled();
@@ -212,17 +234,10 @@ describe("BookFollowupModal", () => {
 
   it("shows loading state in step 2 while preview fetches", async () => {
     const user = userEvent.setup();
-    mockPreview.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-    } as unknown as ReturnType<typeof usePreviewFollowupMail>);
+    setPreviewReturn(undefined, true);
 
-    render(
-      <BookFollowupModal demoConfigId="dc-1" leadName="Acme" open={true} onClose={vi.fn()} />,
-    );
-    await user.type(screen.getByLabelText(/datum/i), "2026-04-16");
-    await user.type(screen.getByLabelText(/tid/i), "14:00");
-    await user.click(screen.getByRole("button", { name: /nästa/i }));
+    renderModal();
+    await fillStep1AndAdvance(user);
 
     expect(screen.getByText(/laddar preview/i)).toBeInTheDocument();
   });

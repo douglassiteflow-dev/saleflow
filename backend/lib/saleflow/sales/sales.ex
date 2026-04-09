@@ -855,7 +855,8 @@ defmodule Saleflow.Sales do
     6. Advances the demo_config to :followup
 
   `params` must include `:meeting_date`, `:meeting_time`, `:personal_message`
-  and may include `:language` (defaults to `"sv"`).
+  and may include `:language` (defaults to `"sv"`) and `:email` (falls back to
+  `lead.epost` if missing).
 
   Returns `{:ok, %{demo_config, meeting, questionnaire}}` on success, or
   `{:error, reason}` on any failure.
@@ -865,12 +866,13 @@ defmodule Saleflow.Sales do
 
     with :ok <- validate_demo_held(demo_config),
          {:ok, lead} <- get_lead(demo_config.lead_id),
-         :ok <- validate_lead_email(lead),
+         {:ok, recipient_email} <- resolve_recipient_email(lead, params),
          {:ok, ms_conn} <- get_ms_connection_for_book(user),
          {:ok, meeting} <- create_followup_meeting(demo_config, lead, user, params, language),
          {:ok, meeting} <- create_teams_for_followup_meeting(meeting, ms_conn),
-         {:ok, questionnaire} <- create_followup_questionnaire(lead),
-         :ok <- send_followup_email(lead, meeting, questionnaire, demo_config, user, params, language),
+         {:ok, questionnaire} <- create_followup_questionnaire(lead, recipient_email),
+         :ok <-
+           send_followup_email(lead, meeting, questionnaire, demo_config, user, params, language, recipient_email),
          {:ok, advanced} <- advance_to_followup(demo_config) do
       {:ok, %{demo_config: advanced, meeting: meeting, questionnaire: questionnaire}}
     end
@@ -879,8 +881,15 @@ defmodule Saleflow.Sales do
   defp validate_demo_held(%{stage: :demo_held}), do: :ok
   defp validate_demo_held(_), do: {:error, :invalid_stage}
 
-  defp validate_lead_email(%{epost: email}) when is_binary(email) and email != "", do: :ok
-  defp validate_lead_email(_), do: {:error, :no_email}
+  defp resolve_recipient_email(lead, params) do
+    custom = Map.get(params, :email)
+
+    cond do
+      is_binary(custom) and String.trim(custom) != "" -> {:ok, String.trim(custom)}
+      is_binary(lead.epost) and lead.epost != "" -> {:ok, lead.epost}
+      true -> {:error, :no_email}
+    end
+  end
 
   defp get_ms_connection_for_book(user) do
     require Ash.Query
@@ -942,17 +951,17 @@ defmodule Saleflow.Sales do
     end
   end
 
-  defp create_followup_questionnaire(lead) do
+  defp create_followup_questionnaire(lead, recipient_email) do
     token = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
 
     create_questionnaire_for_lead(%{
       lead_id: lead.id,
-      customer_email: lead.epost,
+      customer_email: recipient_email,
       token: token
     })
   end
 
-  defp send_followup_email(lead, meeting, questionnaire, demo_config, user, params, language) do
+  defp send_followup_email(lead, meeting, questionnaire, demo_config, user, params, language, recipient_email) do
     preview_url = demo_config.preview_url || "https://demo.siteflow.se"
 
     q_base_url = Application.get_env(:saleflow, :questionnaire_base_url, "https://siteflow.se")
@@ -977,7 +986,7 @@ defmodule Saleflow.Sales do
         language
       )
 
-    Saleflow.Notifications.Mailer.send_email_async(lead.epost, subject, html)
+    Saleflow.Notifications.Mailer.send_email_async(recipient_email, subject, html)
     :ok
   end
 

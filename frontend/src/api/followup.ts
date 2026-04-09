@@ -18,6 +18,7 @@ export interface PreviewFollowupInput {
 
 export interface BookFollowupInput extends PreviewFollowupInput {
   id: string;
+  email: string;
 }
 
 export interface BookFollowupResult {

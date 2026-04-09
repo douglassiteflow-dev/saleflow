@@ -159,7 +159,7 @@ defmodule Saleflow.Sales.BookFollowupTest do
                )
     end
 
-    test "fails with :no_email when lead has no email" do
+    test "fails with :no_email when lead has no email and no custom email" do
       user = create_user!()
       lead = create_lead!(%{epost: nil})
       dc = setup_demo_held!(lead, user)
@@ -176,6 +176,72 @@ defmodule Saleflow.Sales.BookFollowupTest do
                  },
                  user
                )
+    end
+
+    test "custom :email overrides lead.epost" do
+      user = create_user!()
+      lead = create_lead!(%{epost: "default@lead.se"})
+      dc = setup_demo_held!(lead, user)
+      create_ms_connection!(user)
+
+      assert {:ok, result} =
+               Sales.book_followup(
+                 dc,
+                 %{
+                   meeting_date: ~D[2026-04-16],
+                   meeting_time: ~T[14:00:00],
+                   personal_message: "",
+                   language: "sv",
+                   email: "custom@override.se"
+                 },
+                 user
+               )
+
+      assert result.questionnaire.customer_email == "custom@override.se"
+    end
+
+    test "works with custom email when lead has no email" do
+      user = create_user!()
+      lead = create_lead!(%{epost: nil})
+      dc = setup_demo_held!(lead, user)
+      create_ms_connection!(user)
+
+      assert {:ok, result} =
+               Sales.book_followup(
+                 dc,
+                 %{
+                   meeting_date: ~D[2026-04-16],
+                   meeting_time: ~T[14:00:00],
+                   personal_message: "",
+                   language: "sv",
+                   email: "provided@example.com"
+                 },
+                 user
+               )
+
+      assert result.questionnaire.customer_email == "provided@example.com"
+    end
+
+    test "trims whitespace from custom email" do
+      user = create_user!()
+      lead = create_lead!()
+      dc = setup_demo_held!(lead, user)
+      create_ms_connection!(user)
+
+      assert {:ok, result} =
+               Sales.book_followup(
+                 dc,
+                 %{
+                   meeting_date: ~D[2026-04-16],
+                   meeting_time: ~T[14:00:00],
+                   personal_message: "",
+                   language: "sv",
+                   email: "  spaces@example.com  "
+                 },
+                 user
+               )
+
+      assert result.questionnaire.customer_email == "spaces@example.com"
     end
 
     test "fails with :no_microsoft_connection when user has no MS connection" do

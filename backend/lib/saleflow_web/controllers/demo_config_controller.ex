@@ -74,7 +74,8 @@ defmodule SaleflowWeb.DemoConfigController do
                meeting_date: meeting_date,
                meeting_time: meeting_time,
                personal_message: params["personal_message"] || "",
-               language: language
+               language: language,
+               email: params["email"]
              },
              user
            ) do

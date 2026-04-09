@@ -85,6 +85,7 @@ export function DemoDetailTab({ demoConfigId, onBack }: DemoDetailTabProps) {
           <DemoHeldContent
             demoConfigId={demoConfigId}
             leadName={companyName}
+            leadEmail={data.lead.epost}
             previewUrl={data.preview_url}
           />
         )}
@@ -212,10 +213,12 @@ function DemoReadyContent({
 function DemoHeldContent({
   demoConfigId,
   leadName,
+  leadEmail,
   previewUrl,
 }: {
   demoConfigId: string;
   leadName: string;
+  leadEmail: string | null;
   previewUrl: string | null;
 }) {
   const [modalOpen, setModalOpen] = useState(false);
@@ -253,6 +256,7 @@ function DemoHeldContent({
       <BookFollowupModal
         demoConfigId={demoConfigId}
         leadName={leadName}
+        leadEmail={leadEmail}
         open={modalOpen}
         onClose={() => setModalOpen(false)}
       />
