@@ -1,4 +1,4 @@
-import { app, BrowserWindow, utilityProcess, UtilityProcess } from 'electron'
+import { app, BrowserWindow, utilityProcess, UtilityProcess, ipcMain } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createTray, updateTray, destroyTray, TrayStatus } from './tray'
@@ -114,6 +114,12 @@ function startHeartbeatWatchdog() {
     }
   }, 10_000)
 }
+
+// IPC från renderer → forward till utility process
+ipcMain.on('trigger-test', (_event, payload: { sourceUrl?: string }) => {
+  console.log('[main] trigger-test mottaget, vidarebefordrar till server')
+  serverProc?.postMessage({ type: 'trigger-test', sourceUrl: payload?.sourceUrl })
+})
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({

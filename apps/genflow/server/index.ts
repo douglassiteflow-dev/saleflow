@@ -35,24 +35,40 @@ async function handleJob(job: GenJob): Promise<void> {
   const logPath = join(OUTPUT_DIR, job.slug, 'pipeline.log')
   const { log } = createJobLogger(job.slug, logPath, broadcast)
 
-  log(`Nytt jobb plockat: ${job.slug} (${job.source_url})`)
+  // Test-jobb (id startar med "test-") kringgår saleflow backend completely.
+  // De skapas av "Test pipeline"-knappen i UI:t för lokal verifiering.
+  const isTest = job.id.startsWith('test-')
+
+  log(`Nytt jobb${isTest ? ' (TEST)' : ''} plockat: ${job.slug} (${job.source_url})`)
   broadcast({ type: 'job-start', payload: { job } })
 
   try {
     const { siteDir } = await runJob(job, log)
     const resultUrl = await deployToVercel(siteDir, job.slug, log)
-    await completeJob(job.id, resultUrl, config)
+    if (!isTest) await completeJob(job.id, resultUrl, config)
     log(`Jobb komplett: ${resultUrl}`)
     broadcast({ type: 'job-complete', payload: { job, resultUrl } })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     log(`Jobb misslyckades: ${msg}`)
-    try {
-      await failJob(job.id, msg, config)
-    } catch (failErr) {
-      log(`Kunde inte rapportera fail till backend: ${(failErr as Error).message}`)
+    if (!isTest) {
+      try {
+        await failJob(job.id, msg, config)
+      } catch (failErr) {
+        log(`Kunde inte rapportera fail till backend: ${(failErr as Error).message}`)
+      }
     }
     broadcast({ type: 'job-failed', payload: { job, error: msg } })
+  }
+}
+
+function buildSlugFromUrl(url: string): string {
+  try {
+    const path = new URL(url).pathname
+    const parts = path.split('/').filter(Boolean)
+    return parts[parts.length - 1] ?? `test-${Date.now()}`
+  } catch {
+    return `test-${Date.now()}`
   }
 }
 
@@ -73,6 +89,24 @@ process.parentPort?.on('message', (event: Electron.MessageEvent) => {
     killAllActive()
     stopPolling()
     setTimeout(() => process.exit(0), 500)
+  }
+
+  if (msg?.type === 'trigger-test') {
+    const testMsg = msg as { type: 'trigger-test'; sourceUrl?: string }
+    const sourceUrl = testMsg.sourceUrl ?? 'https://bokadirekt.se/places/sakura-relax-massage-59498'
+    const slug = `test-${buildSlugFromUrl(sourceUrl)}-${Date.now()}`
+    const fakeJob: GenJob = {
+      id: `test-${Date.now()}`,
+      source_url: sourceUrl,
+      slug,
+      status: 'pending',
+      deal_id: null,
+      demo_config_id: null,
+    }
+    console.log('[server] Test-pipeline triggad:', sourceUrl)
+    handleJob(fakeJob).catch((err) => {
+      console.error('[server] Test-pipeline error:', err.message)
+    })
   }
 })
 

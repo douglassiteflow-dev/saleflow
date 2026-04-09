@@ -115,7 +115,24 @@ export default function App() {
               Genflow
             </h1>
           </div>
-          <StatusPanel status={status} />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                const sourceUrl = window.prompt(
+                  'Bokadirekt-URL att testa pipeline mot:',
+                  'https://bokadirekt.se/places/sakura-relax-massage-59498',
+                )
+                if (sourceUrl) {
+                  window.genflow?.send('trigger-test', { sourceUrl })
+                }
+              }}
+              disabled={status === 'working'}
+              className="rounded-[6px] border border-[var(--color-border-input)] bg-white px-3 py-1.5 text-[12px] font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-bg-panel)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              ⚡ Testa pipeline
+            </button>
+            <StatusPanel status={status} />
+          </div>
         </div>
       </header>
 
