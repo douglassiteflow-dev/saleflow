@@ -79,7 +79,7 @@ function escapeHtml(s: string): string {
 
 function setActiveNav(html: string, slug: string): string {
   const activeRe = new RegExp(
-    `(<a[^>]*data-page=["']${slug}["'][^>]*?)(class=["']([^"']*)["'])?`,
+    `(<a[^>]*data-page=["']${slug}["'][^>]*)(class=["']([^"']*)["'])?`,
   )
   return html.replace(activeRe, (_match, prefix: string, classAttr: string | undefined, classes: string | undefined) => {
     if (classAttr) {
