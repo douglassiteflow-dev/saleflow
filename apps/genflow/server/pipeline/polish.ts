@@ -71,7 +71,6 @@ Leta efter:
   await runClaude({
     args: [
       '--dangerously-skip-permissions',
-      '--bare',
       '-p', prompt,
       '--output-format', 'stream-json',
     ],

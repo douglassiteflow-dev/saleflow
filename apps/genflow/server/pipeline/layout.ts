@@ -35,7 +35,6 @@ export async function runLayout(strategy: Strategy, outputDir: string, log: LogF
     await runClaude({
       args: [
         '--dangerously-skip-permissions',
-        '--bare',
         '--add-dir', SKILLS_DIR,
         '-p', prompt,
         '--output-format', 'stream-json',

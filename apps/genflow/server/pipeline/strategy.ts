@@ -20,10 +20,8 @@ export async function runStrategy(outputDir: string, log: LogFn): Promise<Strate
   const stdout = await runClaude({
     args: [
       '--dangerously-skip-permissions',
-      '--bare',
       '-p', prompt,
       '--output-format', 'json',
-      '--max-turns', '5',
     ],
     cwd: outputDir,
     log,

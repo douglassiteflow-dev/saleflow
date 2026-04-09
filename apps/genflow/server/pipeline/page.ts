@@ -41,7 +41,6 @@ export async function runPagePipeline(
   await runClaude({
     args: [
       '--dangerously-skip-permissions',
-      '--bare',
       '--add-dir', SKILLS_DIR,
       '-p', prompt,
       '--output-format', 'stream-json',

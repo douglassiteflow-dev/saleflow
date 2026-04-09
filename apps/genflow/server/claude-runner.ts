@@ -19,10 +19,17 @@ export interface RunClaudeOptions {
 
 export function runClaude(opts: RunClaudeOptions): Promise<string> {
   return limit(() => new Promise<string>((resolve, reject) => {
+    // Strip ANTHROPIC_API_KEY so claude falls back on OAuth/keychain auth.
+    // The user's env var is invalid (revoked/wrong-account) but their
+    // Claude Code subscription works fine via OAuth — claude --print uses
+    // the env var first if set, even if invalid.
+    const env = { ...process.env }
+    delete env.ANTHROPIC_API_KEY
+
     const proc = spawn(CLAUDE_BIN, opts.args, {
       cwd: opts.cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: process.env,
+      env,
     })
     activeProcesses.add(proc)
 
