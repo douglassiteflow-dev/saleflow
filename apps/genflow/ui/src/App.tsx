@@ -36,6 +36,9 @@ export default function App() {
   const [status, setStatus] = useState<'connected' | 'disconnected' | 'paused' | 'working'>(
     'disconnected',
   )
+  const [testUrl, setTestUrl] = useState(
+    'https://bokadirekt.se/places/sakura-relax-massage-59498',
+  )
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [jobs, setJobs] = useState<Job[]>([])
 
@@ -115,19 +118,23 @@ export default function App() {
               Genflow
             </h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={testUrl}
+              onChange={(e) => setTestUrl(e.target.value)}
+              placeholder="https://bokadirekt.se/places/..."
+              disabled={status === 'working'}
+              className="w-[340px] rounded-[6px] border border-[var(--color-border-input)] bg-white px-2.5 py-1.5 text-[11px] font-mono text-[var(--color-text-primary)] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
+            />
             <button
               onClick={() => {
-                const sourceUrl = window.prompt(
-                  'Bokadirekt-URL att testa pipeline mot:',
-                  'https://bokadirekt.se/places/sakura-relax-massage-59498',
-                )
-                if (sourceUrl) {
-                  window.genflow?.send('trigger-test', { sourceUrl })
+                if (testUrl.trim()) {
+                  window.genflow?.send('trigger-test', { sourceUrl: testUrl.trim() })
                 }
               }}
-              disabled={status === 'working'}
-              className="rounded-[6px] border border-[var(--color-border-input)] bg-white px-3 py-1.5 text-[12px] font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-bg-panel)] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={status === 'working' || !testUrl.trim()}
+              className="rounded-[6px] bg-indigo-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               ⚡ Testa pipeline
             </button>
