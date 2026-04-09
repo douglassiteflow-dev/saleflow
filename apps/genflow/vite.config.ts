@@ -36,14 +36,6 @@ export default defineConfig({
             outDir: r('dist-electron'),
             rollupOptions: {
               external: ['electron'],
-              output: {
-                // Build preload as CommonJS .cjs because Electron's sandboxed
-                // renderer cannot load ESM preload scripts (the package.json
-                // type:module makes .js files ESM, so we use .cjs to opt out).
-                format: 'cjs',
-                entryFileNames: 'preload.cjs',
-                inlineDynamicImports: true,
-              },
             },
           },
         },

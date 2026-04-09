@@ -24,6 +24,14 @@ const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 const startedHidden = process.argv.includes('--hidden')
 
+// Single instance lock — only ONE Genflow can run on this machine
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  console.log('[main] Another Genflow instance is already running — exiting')
+  app.quit()
+  process.exit(0)
+}
+
 let mainWindow: BrowserWindow | null = null
 
 let serverProc: UtilityProcess | null = null
@@ -130,9 +138,13 @@ function createMainWindow() {
     title: 'Genflow',
     show: !startedHidden,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.cjs'),
+      preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      // sandbox: false allows the preload script to be ESM (the project
+      // uses "type": "module" in package.json so .js files are ESM by
+      // default). contextIsolation:true is the primary security boundary.
+      sandbox: false,
     },
   })
 
@@ -154,6 +166,18 @@ function createMainWindow() {
     }
   })
 }
+
+// När en andra instans försöker starta — visa befintliga fönster istället
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    if (!mainWindow.isVisible()) mainWindow.show()
+    mainWindow.focus()
+    if (process.platform === 'darwin') app.dock?.show()
+  } else {
+    createMainWindow()
+  }
+})
 
 app.whenReady().then(() => {
   // Register as login item so the app starts automatically at Mac login
