@@ -391,16 +391,38 @@ defmodule Saleflow.Workers.DemoGenerationWorkerTest do
   # ---------------------------------------------------------------------------
 
   describe "slug_from_url/1" do
-    test "extracts hostname from URL" do
+    test "extracts last path segment from Bokadirekt URL" do
+      assert DemoGenerationWorker.slug_from_url(
+               "https://www.bokadirekt.se/places/sakura-relax-massage-59498"
+             ) == "sakura-relax-massage-59498"
+    end
+
+    test "extracts last segment from URL with multiple path segments" do
+      assert DemoGenerationWorker.slug_from_url(
+               "https://www.bokadirekt.se/places/headzone-sankt-eriksplan-vasastan-36692"
+             ) == "headzone-sankt-eriksplan-vasastan-36692"
+    end
+
+    test "handles trailing slash" do
+      assert DemoGenerationWorker.slug_from_url("https://www.bokadirekt.se/places/acme/") ==
+               "acme"
+    end
+
+    test "falls back to hostname when URL has no path" do
       assert DemoGenerationWorker.slug_from_url("https://example.se") == "example-se"
     end
 
-    test "strips www. prefix" do
+    test "strips www. prefix in hostname fallback" do
       assert DemoGenerationWorker.slug_from_url("https://www.example.se") == "example-se"
     end
 
-    test "replaces dots with hyphens" do
+    test "replaces dots with hyphens in hostname fallback" do
       assert DemoGenerationWorker.slug_from_url("https://sub.example.se") == "sub-example-se"
+    end
+
+    test "sanitizes non-alphanumeric chars in path segment" do
+      assert DemoGenerationWorker.slug_from_url("https://ex.se/path/with spaces") ==
+               "with-spaces"
     end
 
     test "returns unknown for nil" do
@@ -411,7 +433,7 @@ defmodule Saleflow.Workers.DemoGenerationWorkerTest do
       assert DemoGenerationWorker.slug_from_url("") == "unknown"
     end
 
-    test "returns unknown for string without host" do
+    test "returns unknown for string without host or path" do
       assert DemoGenerationWorker.slug_from_url("not-a-url") == "unknown"
     end
   end

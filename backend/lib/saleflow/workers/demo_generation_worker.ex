@@ -113,23 +113,56 @@ defmodule Saleflow.Workers.DemoGenerationWorker do
   end
 
   @doc """
-  Generates a slug from a URL by extracting the hostname, removing www. prefix,
-  and replacing non-alphanumeric characters with hyphens.
+  Generates a slug from a URL by extracting the LAST path segment.
+
+  For Bokadirekt URLs like `https://www.bokadirekt.se/places/sakura-relax-massage-59498`
+  this returns `"sakura-relax-massage-59498"`. Falls back to hostname-derived slug
+  if there's no path.
   """
   def slug_from_url(nil), do: "unknown"
   def slug_from_url(""), do: "unknown"
 
   def slug_from_url(url) do
     case URI.parse(url) do
+      # Valid URL with scheme + host + path — extract last path segment
+      %URI{scheme: scheme, host: host, path: path}
+      when is_binary(scheme) and is_binary(host) and is_binary(path) ->
+        path
+        |> String.trim("/")
+        |> String.split("/")
+        |> List.last()
+        |> case do
+          nil -> hostname_slug(url)
+          "" -> hostname_slug(url)
+          segment -> sanitize_slug(segment)
+        end
+
+      # Valid URL with scheme + host but no path — fall back to hostname
+      %URI{scheme: scheme, host: host} when is_binary(scheme) and is_binary(host) ->
+        hostname_slug(url)
+
+      # No scheme/host → not a URL
+      _ ->
+        "unknown"
+    end
+  end
+
+  defp hostname_slug(url) do
+    case URI.parse(url) do
       %URI{host: host} when is_binary(host) and host != "" ->
         host
         |> String.replace(~r/^www\./, "")
-        |> String.replace(~r/[^a-zA-Z0-9\-]/, "-")
-        |> String.trim("-")
+        |> sanitize_slug()
 
       _ ->
         "unknown"
     end
+  end
+
+  defp sanitize_slug(str) do
+    str
+    |> String.replace(~r/[^a-zA-Z0-9\-]/, "-")
+    |> String.trim("-")
   end
 
   # ---------------------------------------------------------------------------
