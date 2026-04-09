@@ -5,9 +5,9 @@ import type { LogFn } from './lib/types'
 
 const CLAUDE_CONCURRENCY = 3
 const CLAUDE_MAX_RUNTIME_MS = 45 * 60 * 1000  // 45 min hard timeout
-const STDOUT_IDLE_MS = 5 * 60 * 1000           // 5 min utan stdout = hang
-                                               // (index-sidan kan tänka länge på
-                                               // en stor write utan stdout-aktivitet)
+const STDOUT_IDLE_MS = 10 * 60 * 1000          // 10 min utan stdout = hang
+                                               // Polish-pass med aggressiv prompt
+                                               // kan tänka 5-8 min mellan Edits
 
 const limit = pLimit(CLAUDE_CONCURRENCY)
 const activeProcesses = new Set<ChildProcess>()
