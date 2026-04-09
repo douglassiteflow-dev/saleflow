@@ -44,10 +44,15 @@ async function handleJob(job: GenJob): Promise<void> {
 
   try {
     const { siteDir } = await runJob(job, log)
-    const resultUrl = await deployToVercel(siteDir, job.slug, log)
+    const { rawUrl, friendlyUrl } = await deployToVercel(siteDir, job.slug, log)
+    // Test-jobb visar raw Vercel-URL (saleflow backend har inte slug:en så
+    // friendly URL ger 404). Production-jobb rapporterar raw till backend
+    // och backend konstruerar friendly URL vid complete.
+    const resultUrl = isTest ? rawUrl : rawUrl  // alltid raw till backend — backend gör friendly
     if (!isTest) await completeJob(job.id, resultUrl, config)
-    log(`Jobb komplett: ${resultUrl}`)
-    broadcast({ type: 'job-complete', payload: { job, resultUrl } })
+    const displayUrl = isTest ? rawUrl : friendlyUrl
+    log(`Jobb komplett: ${displayUrl}`)
+    broadcast({ type: 'job-complete', payload: { job, resultUrl: displayUrl } })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     log(`Jobb misslyckades: ${msg}`)

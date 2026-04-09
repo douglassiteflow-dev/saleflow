@@ -3,11 +3,18 @@ import { existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { LogFn } from '../lib/types'
 
+export interface DeployResult {
+  /** Raw Vercel URL that works immediately (e.g. https://site-xxx.vercel.app) */
+  rawUrl: string
+  /** Friendly URL via saleflow proxy (requires backend to have slug in DB) */
+  friendlyUrl: string
+}
+
 export async function deployToVercel(
   siteDir: string,
   slug: string,
   log: LogFn,
-): Promise<string> {
+): Promise<DeployResult> {
   log(`Deploy startat för ${slug}`)
 
   if (!existsSync(siteDir)) {
@@ -51,17 +58,16 @@ export async function deployToVercel(
     })
   })
 
-  // Extrahera raw Vercel URL från output (behövs för verifiering/debugging)
+  // Extrahera raw Vercel URL från output
   const fullOutput = output.join('')
   const urlMatch = fullOutput.match(/https:\/\/[\w-]+\.vercel\.app/g)
   if (!urlMatch || urlMatch.length === 0) {
     throw new Error('Kunde inte hitta deployed URL i vercel output')
   }
-  const rawVercelUrl = urlMatch[urlMatch.length - 1]
-
-  // Friendly URL via saleflow-proxy. demo.siteflow.se rewriter till den
-  // aktuella Vercel-deployen via slug-lookup i backend-databasen.
+  const rawUrl = urlMatch[urlMatch.length - 1]
   const friendlyUrl = `https://demo.siteflow.se/${slug}`
-  log(`Deploy klar: ${friendlyUrl} (raw: ${rawVercelUrl})`)
-  return friendlyUrl
+
+  log(`Deploy klar: ${rawUrl}`)
+  log(`(friendly URL i prod: ${friendlyUrl})`)
+  return { rawUrl, friendlyUrl }
 }
