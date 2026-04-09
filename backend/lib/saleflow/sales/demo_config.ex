@@ -4,8 +4,8 @@ defmodule Saleflow.Sales.DemoConfig do
 
   ## Stages
 
-      meeting_booked → generating → demo_ready → followup
-                                                     ↘ cancelled (from any stage)
+      meeting_booked → generating → demo_ready → demo_held → followup
+                                                                 ↘ cancelled (from any stage)
   """
 
   use Ash.Resource,
@@ -35,6 +35,7 @@ defmodule Saleflow.Sales.DemoConfig do
         :meeting_booked,
         :generating,
         :demo_ready,
+        :demo_held,
         :followup,
         :cancelled
       ]
@@ -169,19 +170,39 @@ defmodule Saleflow.Sales.DemoConfig do
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "demo_config.generation_failed"}
     end
 
-    update :advance_to_followup do
-      description "Transition from demo_ready to followup"
+    update :advance_to_demo_held do
+      description "Transition from demo_ready to demo_held (demo meeting completed)"
       require_atomic? false
 
       change fn changeset, _context ->
         current = Ash.Changeset.get_attribute(changeset, :stage)
 
         if current == :demo_ready do
+          Ash.Changeset.force_change_attribute(changeset, :stage, :demo_held)
+        else
+          Ash.Changeset.add_error(changeset,
+            field: :stage,
+            message: "must be demo_ready to advance to demo_held"
+          )
+        end
+      end
+
+      change {Saleflow.Audit.Changes.CreateAuditLog, action: "demo_config.advanced_to_demo_held"}
+    end
+
+    update :advance_to_followup do
+      description "Transition from demo_held to followup"
+      require_atomic? false
+
+      change fn changeset, _context ->
+        current = Ash.Changeset.get_attribute(changeset, :stage)
+
+        if current == :demo_held do
           Ash.Changeset.force_change_attribute(changeset, :stage, :followup)
         else
           Ash.Changeset.add_error(changeset,
             field: :stage,
-            message: "must be demo_ready to advance to followup"
+            message: "must be demo_held to advance to followup"
           )
         end
       end

@@ -146,8 +146,8 @@ defmodule Saleflow.Sales.DemoConfigTest do
     end
   end
 
-  describe "advance_to_followup/1" do
-    test "transitions demo_ready to followup" do
+  describe "advance_to_demo_held/1" do
+    test "transitions demo_ready to demo_held" do
       lead = create_lead!()
       user = create_user!()
       {:ok, dc} = Sales.create_demo_config(%{lead_id: lead.id, user_id: user.id})
@@ -161,11 +161,51 @@ defmodule Saleflow.Sales.DemoConfigTest do
 
       assert dc.stage == :demo_ready
 
+      assert {:ok, updated} = Sales.advance_to_demo_held(dc)
+      assert updated.stage == :demo_held
+    end
+
+    test "rejects transition from wrong stage (e.g. meeting_booked)" do
+      lead = create_lead!()
+      user = create_user!()
+      {:ok, dc} = Sales.create_demo_config(%{lead_id: lead.id, user_id: user.id})
+      assert dc.stage == :meeting_booked
+
+      assert {:error, _} = Sales.advance_to_demo_held(dc)
+    end
+
+    test "rejects transition from demo_held (already there)" do
+      dc = setup_demo_held_config()
+      assert {:error, _} = Sales.advance_to_demo_held(dc)
+    end
+  end
+
+  describe "advance_to_followup/1" do
+    test "transitions demo_held to followup" do
+      dc = setup_demo_held_config()
+      assert dc.stage == :demo_held
+
       assert {:ok, updated} = Sales.advance_to_followup(dc)
       assert updated.stage == :followup
     end
 
-    test "rejects transition from wrong stage" do
+    test "rejects transition from demo_ready (must go through demo_held first)" do
+      lead = create_lead!()
+      user = create_user!()
+      {:ok, dc} = Sales.create_demo_config(%{lead_id: lead.id, user_id: user.id})
+      {:ok, dc} = Sales.start_generation(dc)
+
+      {:ok, dc} =
+        Sales.generation_complete(dc, %{
+          website_path: "/sites/abc",
+          preview_url: "https://preview.example.com/abc"
+        })
+
+      assert dc.stage == :demo_ready
+      assert {:error, _} = Sales.advance_to_followup(dc)
+    end
+
+    test "rejects transition from meeting_booked" do
       lead = create_lead!()
       user = create_user!()
       {:ok, dc} = Sales.create_demo_config(%{lead_id: lead.id, user_id: user.id})
@@ -173,6 +213,22 @@ defmodule Saleflow.Sales.DemoConfigTest do
 
       assert {:error, _} = Sales.advance_to_followup(dc)
     end
+  end
+
+  defp setup_demo_held_config do
+    lead = create_lead!()
+    user = create_user!()
+    {:ok, dc} = Sales.create_demo_config(%{lead_id: lead.id, user_id: user.id})
+    {:ok, dc} = Sales.start_generation(dc)
+
+    {:ok, dc} =
+      Sales.generation_complete(dc, %{
+        website_path: "/sites/abc",
+        preview_url: "https://demo.siteflow.se/test"
+      })
+
+    {:ok, dc} = Sales.advance_to_demo_held(dc)
+    dc
   end
 
   describe "cancel_demo_config/1" do

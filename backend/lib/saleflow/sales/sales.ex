@@ -827,7 +827,16 @@ defmodule Saleflow.Sales do
   end
 
   @doc """
-  Transitions a demo config from demo_ready to followup.
+  Transitions a demo config from demo_ready to demo_held (demo meeting conducted).
+  """
+  def advance_to_demo_held(demo_config) do
+    demo_config
+    |> Ash.Changeset.for_update(:advance_to_demo_held, %{})
+    |> Ash.update()
+  end
+
+  @doc """
+  Transitions a demo config from demo_held to followup (followup booked).
   """
   def advance_to_followup(demo_config) do
     demo_config
