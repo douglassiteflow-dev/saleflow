@@ -73,14 +73,14 @@ defmodule Saleflow.Sales.QueueTest do
       assert result.id == lead.id
     end
 
-    test "returns one of the available leads (random order)" do
+    test "returns the oldest lead first (inserted_at ASC)" do
       agent = create_user!()
 
       old_lead = create_lead!(%{företag: "Old Company"})
-      new_lead = create_lead!(%{företag: "New Company"})
+      _new_lead = create_lead!(%{företag: "New Company"})
 
       assert {:ok, result} = Sales.get_next_lead(agent)
-      assert result.id in [old_lead.id, new_lead.id]
+      assert result.id == old_lead.id
     end
 
     test "sets lead status to :assigned after dequeue" do
@@ -233,17 +233,16 @@ defmodule Saleflow.Sales.QueueTest do
       lead2 = create_lead!()
       agent = create_user!()
 
-      # Agent gets the first lead (order is random, so we just track IDs)
+      # Agent gets the oldest lead first (inserted_at ASC)
       {:ok, first_lead} = Sales.get_next_lead(agent)
-      assert first_lead.id in [lead1.id, lead2.id]
+      assert first_lead.id == lead1.id
 
       {:ok, assignment1} = Sales.get_active_assignment(agent)
       assert assignment1.lead_id == first_lead.id
 
-      # Agent calls get_next again — should release assignment1 and take the other lead
+      # Agent calls get_next again — should release assignment1 and take lead2
       {:ok, second_lead} = Sales.get_next_lead(agent)
-      remaining_id = if first_lead.id == lead1.id, do: lead2.id, else: lead1.id
-      assert second_lead.id == remaining_id
+      assert second_lead.id == lead2.id
 
       # Old assignment should now be released
       {:ok, old_assignment} = Ash.get(Saleflow.Sales.Assignment, assignment1.id)
@@ -347,14 +346,10 @@ defmodule Saleflow.Sales.QueueTest do
   # ---------------------------------------------------------------------------
 
   describe "get_next_lead/1 — queue ordering" do
-    test "leads are served in random order (each agent gets a unique lead)" do
-      # Queue uses ORDER BY RANDOM() so we only verify uniqueness,
-      # not insertion order.
+    test "leads are served in oldest-first order (inserted_at ASC)" do
       lead_a = create_lead!(%{företag: "A Corp"})
       lead_b = create_lead!(%{företag: "B Corp"})
       lead_c = create_lead!(%{företag: "C Corp"})
-
-      all_ids = MapSet.new([lead_a.id, lead_b.id, lead_c.id])
 
       agent1 = create_user!()
       agent2 = create_user!()
@@ -364,14 +359,10 @@ defmodule Saleflow.Sales.QueueTest do
       {:ok, second} = Sales.get_next_lead(agent2)
       {:ok, third} = Sales.get_next_lead(agent3)
 
-      returned_ids = [first.id, second.id, third.id]
-
-      # All three agents should get distinct leads
-      assert length(Enum.uniq(returned_ids)) == 3, "Expected 3 unique leads"
-
-      # All returned IDs belong to the original set
-      assert Enum.all?(returned_ids, &MapSet.member?(all_ids, &1)),
-             "Unexpected lead IDs returned"
+      # Oldest lead first
+      assert first.id == lead_a.id
+      assert second.id == lead_b.id
+      assert third.id == lead_c.id
     end
   end
 

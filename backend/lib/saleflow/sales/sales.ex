@@ -527,6 +527,13 @@ defmodule Saleflow.Sales do
           SELECT 1 FROM assignments a
           WHERE a.lead_id = l.id AND a.released_at IS NULL
         )
+        AND NOT EXISTS (
+          SELECT 1 FROM call_logs cl
+          WHERE cl.lead_id = l.id
+            AND cl.user_id = $1
+            AND cl.outcome = 'skipped'
+            AND cl.called_at > NOW() - INTERVAL '24 hours'
+        )
         AND (
           -- If the agent has no list assignments, they can access all leads
           NOT EXISTS (SELECT 1 FROM lead_list_assignments lla WHERE lla.user_id = $1)
@@ -538,7 +545,7 @@ defmodule Saleflow.Sales do
             WHERE lla.user_id = $1 AND ll.status = 'active'
           )
         )
-      ORDER BY RANDOM()
+      ORDER BY l.inserted_at ASC
       LIMIT 1
       FOR UPDATE OF l SKIP LOCKED
       """
@@ -546,17 +553,30 @@ defmodule Saleflow.Sales do
       case Saleflow.Repo.query(query, [agent_id_binary]) do
         {:ok, %{rows: [[lead_id_binary]]}} ->
           lead_id = decode_uuid(lead_id_binary)
-          {:ok, lead} = get_lead(lead_id)
 
           # Release any previous active assignment for this agent
           release_active_assignment(agent)
 
-          # Create new assignment
-          {:ok, _assignment} = assign_lead(lead, agent)
+          # Create new assignment (still inside the transaction holding the row lock)
+          lead_id_binary_insert = Ecto.UUID.dump!(lead_id)
+          now = DateTime.utc_now()
+
+          {:ok, _} =
+            Saleflow.Repo.query(
+              "INSERT INTO assignments (id, lead_id, user_id, assigned_at) VALUES ($1, $2, $3, $4)",
+              [Ecto.UUID.dump!(Ecto.UUID.generate()), lead_id_binary_insert, agent_id_binary, now]
+            )
 
           # Update lead status to :assigned
-          {:ok, updated_lead} = update_lead_status(lead, %{status: :assigned})
-          updated_lead
+          {:ok, _} =
+            Saleflow.Repo.query(
+              "UPDATE leads SET status = 'assigned', updated_at = $1 WHERE id = $2",
+              [now, lead_id_binary_insert]
+            )
+
+          # Fetch and return the updated lead
+          {:ok, lead} = get_lead(lead_id)
+          lead
 
         {:ok, %{rows: []}} ->
           nil
