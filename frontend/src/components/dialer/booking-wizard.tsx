@@ -52,7 +52,6 @@ export function BookingWizard({
   const [bokadirektUrl, setBokadirektUrl] = useState("");
   const [existingWebsiteUrl, setExistingWebsiteUrl] = useState("");
   const [manualInfo, setManualInfo] = useState("");
-  const [logoFile, setLogoFile] = useState<File | null>(null);
 
   // Error state
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +81,6 @@ export function BookingWizard({
       setBokadirektUrl("");
       setExistingWebsiteUrl("");
       setManualInfo("");
-      setLogoFile(null);
       setError(null);
     }
   }, [isOpen, lead.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -419,21 +417,6 @@ export function BookingWizard({
                             placeholder="Beskriv företaget, tjänster, målgrupp..."
                             className={`${inputClass} resize-y`}
                           />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className={labelClass}>Logotyp (valfritt)</label>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            aria-label="Ladda upp logotyp"
-                            onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
-                            className="block w-full text-sm text-[var(--color-text-secondary)] file:mr-3 file:py-1.5 file:px-3 file:rounded-[6px] file:border-0 file:text-sm file:font-medium file:bg-slate-100 file:text-[var(--color-text-primary)] hover:file:bg-slate-200 cursor-pointer"
-                          />
-                          {logoFile && (
-                            <p className="text-xs text-[var(--color-text-secondary)]">
-                              Vald fil: {logoFile.name}
-                            </p>
-                          )}
                         </div>
                       </div>
                     )}

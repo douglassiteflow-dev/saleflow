@@ -16,14 +16,14 @@ function usePrefetchForRoute(to: string) {
       void qc.prefetchQuery({
         queryKey: ["dashboard"],
         queryFn: () => api<DashboardData>("/api/dashboard"),
-        staleTime: 60_000,
+        staleTime: 5_000,  // Must match useDashboard
       });
     } else if (to === "/meetings") {
       void qc.prefetchQuery({
         queryKey: ["meetings"],
         queryFn: () =>
           api<{ meetings: Meeting[] }>("/api/meetings").then((r) => r.meetings),
-        staleTime: 60_000,
+        staleTime: 5_000,  // Must match useMeetings
       });
     }
     // dialer, history, profile — no cheap prefetch target

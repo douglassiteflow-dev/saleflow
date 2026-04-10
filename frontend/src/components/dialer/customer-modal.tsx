@@ -215,42 +215,44 @@ export function CustomerModal({
             {activeTab === "history" && <CustomerModalHistory calls={calls} />}
           </div>
 
-          {/* 6. Outcome section */}
-          <div className="px-6 py-4 border-t border-[var(--color-border)]">
-            <p className="text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">
-              Välj utfall
-            </p>
-            <div className="flex gap-2 mb-3">
-              {OUTCOMES.map((cfg) => (
-                <button
-                  key={cfg.outcome}
-                  type="button"
-                  onClick={() => handleOutcome(cfg.outcome)}
-                  disabled={submitOutcome.isPending}
-                  className={cn(
-                    "flex-1 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer",
-                    "disabled:opacity-50 disabled:pointer-events-none",
-                    cfg.className,
-                  )}
-                >
-                  {cfg.label}
-                </button>
-              ))}
+          {/* 6. Outcome section — only after hangup */}
+          {hungUp && (
+            <div className="px-6 py-4 border-t border-[var(--color-border)]">
+              <p className="text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--color-text-secondary)] mb-3">
+                Välj utfall
+              </p>
+              <div className="flex gap-2 mb-3">
+                {OUTCOMES.map((cfg) => (
+                  <button
+                    key={cfg.outcome}
+                    type="button"
+                    onClick={() => handleOutcome(cfg.outcome)}
+                    disabled={submitOutcome.isPending}
+                    className={cn(
+                      "flex-1 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer",
+                      "disabled:opacity-50 disabled:pointer-events-none",
+                      cfg.className,
+                    )}
+                  >
+                    {cfg.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Notes */}
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Anteckningar (valfritt)..."
+                rows={2}
+                className="w-full rounded-lg border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 resize-none"
+              />
+
+              {error && (
+                <p className="mt-2 text-sm text-red-600">{error}</p>
+              )}
             </div>
-
-            {/* Notes */}
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Anteckningar (valfritt)..."
-              rows={2}
-              className="w-full rounded-lg border border-[var(--color-border-input)] bg-[var(--color-bg-primary)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 resize-none"
-            />
-
-            {error && (
-              <p className="mt-2 text-sm text-red-600">{error}</p>
-            )}
-          </div>
+          )}
 
           {/* 7. Footer */}
           <div className="px-6 py-2 border-t border-[var(--color-border)] flex items-center justify-between">

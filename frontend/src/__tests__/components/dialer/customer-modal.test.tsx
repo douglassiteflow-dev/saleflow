@@ -233,8 +233,19 @@ describe("CustomerModal", () => {
     expect(historikBtn.querySelector("span")).toBeNull();
   });
 
-  it("shows all 6 outcome buttons", () => {
-    render(<CustomerModal {...defaultProps} />);
+  it("hides outcome buttons during active call", () => {
+    render(<CustomerModal {...defaultProps} hungUp={false} />);
+
+    expect(screen.queryByText("Möte bokat")).not.toBeInTheDocument();
+    expect(screen.queryByText("Återringning")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ej intresserad")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ej svar")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ring senare")).not.toBeInTheDocument();
+    expect(screen.queryByText("Fel nummer")).not.toBeInTheDocument();
+  });
+
+  it("shows all 6 outcome buttons after hangup", () => {
+    render(<CustomerModal {...defaultProps} hungUp={true} duration={30} />);
 
     expect(screen.getByText("Möte bokat")).toBeInTheDocument();
     expect(screen.getByText("Återringning")).toBeInTheDocument();
@@ -254,8 +265,8 @@ describe("CustomerModal", () => {
     expect(screen.queryByRole("button", { name: "\u00d7" })).not.toBeInTheDocument();
   });
 
-  it("outcome buttons are visible and clickable", () => {
-    render(<CustomerModal {...defaultProps} />);
+  it("outcome buttons are visible and clickable after hangup", () => {
+    render(<CustomerModal {...defaultProps} hungUp={true} duration={30} />);
 
     const outcomeButtons = [
       "Möte bokat", "Återringning", "Ej intresserad",
@@ -360,9 +371,14 @@ describe("CustomerModal", () => {
     expect(screen.getByText("...")).toBeInTheDocument();
   });
 
-  it("renders notes textarea", () => {
-    render(<CustomerModal {...defaultProps} />);
+  it("renders notes textarea after hangup", () => {
+    render(<CustomerModal {...defaultProps} hungUp={true} duration={30} />);
     expect(screen.getByPlaceholderText("Anteckningar (valfritt)...")).toBeInTheDocument();
+  });
+
+  it("hides notes textarea during active call", () => {
+    render(<CustomerModal {...defaultProps} hungUp={false} />);
+    expect(screen.queryByPlaceholderText("Anteckningar (valfritt)...")).not.toBeInTheDocument();
   });
 
   it("renders as fixed overlay covering entire screen", () => {

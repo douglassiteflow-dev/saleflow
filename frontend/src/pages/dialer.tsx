@@ -87,6 +87,16 @@ export function DialerPage() {
   /* --- skip outcome --- */
   const skipOutcome = useSubmitOutcome(currentLeadId ?? "");
 
+  /* --- validate sessionStorage lead against server --- */
+  useEffect(() => {
+    if (currentLeadId && leadData && !leadLoading) {
+      const status = leadData.lead?.status;
+      if (status && !["new", "assigned", "callback"].includes(status)) {
+        setCurrentLeadId(null);
+      }
+    }
+  }, [currentLeadId, leadData, leadLoading]);
+
   /* --- auto-load first lead on mount --- */
   useEffect(() => {
     if (!currentLeadId && !nextLeadMutation.isPending && !nextLeadMutation.data) {
@@ -100,6 +110,9 @@ export function DialerPage() {
 
   /* --- handlers --- */
   function handleNextLead() {
+    setCallDuration(0);
+    setCallHungUp(false);
+    setCallStart(0);
     nextLeadMutation.mutate(undefined, {
       onSuccess: (newLead) => {
         setCurrentLeadId(newLead ? newLead.id : null);

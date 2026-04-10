@@ -421,8 +421,8 @@ describe("BookingWizard", () => {
     );
   });
 
-  // 16. File input is visible in "Manuellt" mode
-  it("shows file input for logo upload in Manuellt mode", async () => {
+  // 16. Logo file input was removed (Bug #23: never uploaded, misleading)
+  it("does not show file input for logo upload in Manuellt mode", async () => {
     const user = userEvent.setup();
     renderWizard();
     await goToStep2(user);
@@ -430,9 +430,6 @@ describe("BookingWizard", () => {
     await user.click(screen.getByLabelText("Nej"));
     await user.click(screen.getByLabelText("Manuellt"));
 
-    const fileInput = screen.getByLabelText("Ladda upp logotyp");
-    expect(fileInput).toBeInTheDocument();
-    expect(fileInput).toHaveAttribute("type", "file");
-    expect(fileInput).toHaveAttribute("accept", "image/*");
+    expect(screen.queryByLabelText("Ladda upp logotyp")).not.toBeInTheDocument();
   });
 });

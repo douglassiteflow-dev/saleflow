@@ -60,9 +60,9 @@ export function useNextLead() {
     },
     onSuccess: (lead) => {
       void queryClient.invalidateQueries({ queryKey: ["leads", "list"] });
-      // Pre-populate lead detail cache from next-lead response
+      // Invalidate any stale detail cache and let useLeadDetail refetch with full data (incl. calls)
       if (lead) {
-        queryClient.setQueryData(["leads", "detail", lead.id], { lead, calls: [] });
+        void queryClient.invalidateQueries({ queryKey: ["leads", "detail", lead.id] });
       }
     },
   });
@@ -97,8 +97,11 @@ export function useSubmitOutcome(leadId: string) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["leads", "list"] });
+      void queryClient.invalidateQueries({ queryKey: ["leads", "detail", leadId] });
       void queryClient.invalidateQueries({ queryKey: ["meetings"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["callbacks"] });
+      void queryClient.invalidateQueries({ queryKey: ["calls", "history"] });
     },
   });
 }
