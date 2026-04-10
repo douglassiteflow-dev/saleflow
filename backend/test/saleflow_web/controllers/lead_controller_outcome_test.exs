@@ -238,7 +238,83 @@ defmodule SaleflowWeb.LeadControllerOutcomeTest do
   end
 
   # ---------------------------------------------------------------------------
-  # Test 6: Reactivate sets status to :new (Bug #9)
+  # Test 6: meeting_booked creates meeting before status update (Bug #8)
+  # ---------------------------------------------------------------------------
+
+  describe "meeting_booked creates meeting and updates status" do
+    test "meeting_booked with valid future date creates meeting and updates lead status",
+         %{conn: conn, user: user} do
+      {:ok, lead} = Sales.create_lead(%{företag: "Meeting AB", telefon: "+46700000040"})
+      {:ok, _assignment} = Sales.assign_lead(lead, user)
+      {:ok, _lead} = Sales.update_lead_status(lead, %{status: :assigned})
+
+      future_date = Date.utc_today() |> Date.add(3) |> Date.to_iso8601()
+
+      conn =
+        post(conn, "/api/leads/#{lead.id}/outcome", %{
+          outcome: "meeting_booked",
+          meeting_date: future_date,
+          meeting_time: "10:00"
+        })
+
+      assert %{"ok" => true} = json_response(conn, 200)
+
+      # Lead status should be :meeting_booked
+      {:ok, updated_lead} = Sales.get_lead(lead.id)
+      assert updated_lead.status == :meeting_booked
+
+      # Meeting should exist for this lead
+      {:ok, meetings} = Sales.list_meetings_for_lead(lead.id)
+      assert length(meetings) == 1
+
+      meeting = hd(meetings)
+      assert meeting.meeting_date == Date.from_iso8601!(future_date)
+      assert meeting.meeting_time == ~T[10:00:00]
+    end
+
+    test "meeting_booked with conflict returns error and does not change lead status",
+         %{conn: conn, user: user} do
+      {:ok, lead_a} = Sales.create_lead(%{företag: "First Meeting AB", telefon: "+46700000041"})
+      {:ok, _} = Sales.assign_lead(lead_a, user)
+      {:ok, _} = Sales.update_lead_status(lead_a, %{status: :assigned})
+
+      future_date = Date.utc_today() |> Date.add(5) |> Date.to_iso8601()
+
+      # Book first meeting
+      conn_a =
+        post(conn, "/api/leads/#{lead_a.id}/outcome", %{
+          outcome: "meeting_booked",
+          meeting_date: future_date,
+          meeting_time: "14:00"
+        })
+
+      assert %{"ok" => true} = json_response(conn_a, 200)
+
+      # Try to book second meeting at same time with a different lead
+      {:ok, lead_b} = Sales.create_lead(%{företag: "Conflict Meeting AB", telefon: "+46700000042"})
+      {:ok, _} = Sales.assign_lead(lead_b, user)
+      {:ok, _} = Sales.update_lead_status(lead_b, %{status: :assigned})
+
+      conn_b =
+        build_conn()
+        |> log_in_user(user)
+        |> post("/api/leads/#{lead_b.id}/outcome", %{
+          outcome: "meeting_booked",
+          meeting_date: future_date,
+          meeting_time: "14:00"
+        })
+
+      assert %{"error" => error_msg} = json_response(conn_b, 422)
+      assert error_msg =~ "redan ett möte"
+
+      # Lead B status should be unchanged (not :meeting_booked)
+      {:ok, lead_b_reloaded} = Sales.get_lead(lead_b.id)
+      refute lead_b_reloaded.status == :meeting_booked
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Test 7: Reactivate sets status to :new (Bug #9)
   # ---------------------------------------------------------------------------
 
   describe "reactivate sets status to :new" do

@@ -278,36 +278,36 @@ defmodule SaleflowWeb.LeadController do
         {:error, "Du har redan ett möte den #{date_str} kl #{time_str}"}
 
       :ok ->
-        with {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :meeting_booked}) do
-          default_title = "Möte med #{lead.företag}"
-          duration = parse_duration(params["meeting_duration"])
+        default_title = "Möte med #{lead.företag}"
+        duration = parse_duration(params["meeting_duration"])
 
-          meeting_params = %{
-            lead_id: lead.id,
-            user_id: user.id,
-            title: params["title"] || default_title,
-            meeting_date: meeting_date,
-            meeting_time: meeting_time,
-            duration_minutes: duration
-          }
+        meeting_params = %{
+          lead_id: lead.id,
+          user_id: user.id,
+          title: params["title"] || default_title,
+          meeting_date: meeting_date,
+          meeting_time: meeting_time,
+          duration_minutes: duration
+        }
 
-          meeting_params =
-            if params["meeting_notes"],
-              do: Map.put(meeting_params, :notes, params["meeting_notes"]),
-              else: meeting_params
+        meeting_params =
+          if params["meeting_notes"],
+            do: Map.put(meeting_params, :notes, params["meeting_notes"]),
+            else: meeting_params
 
-          meeting_params =
-            if params["customer_email"],
-              do: Map.put(meeting_params, :attendee_email, params["customer_email"]),
-              else: meeting_params
+        meeting_params =
+          if params["customer_email"],
+            do: Map.put(meeting_params, :attendee_email, params["customer_email"]),
+            else: meeting_params
 
-          meeting_params =
-            if params["customer_name"],
-              do: Map.put(meeting_params, :attendee_name, params["customer_name"]),
-              else: meeting_params
+        meeting_params =
+          if params["customer_name"],
+            do: Map.put(meeting_params, :attendee_name, params["customer_name"]),
+            else: meeting_params
 
-          {:ok, meeting} = Sales.create_meeting(meeting_params)
-
+        # Create meeting FIRST, then update lead status (Bug #8 fix)
+        with {:ok, meeting} <- Sales.create_meeting(meeting_params),
+             {:ok, updated_lead} <- Sales.update_lead_status(lead, %{status: :meeting_booked}) do
           # Auto-create or reuse deal for this lead
           deal =
             case Sales.get_active_deal_for_lead(lead.id) do
