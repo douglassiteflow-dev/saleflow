@@ -11,6 +11,9 @@ primary_region = "arn"
   MIX_ENV = "prod"
   POOL_SIZE = "10"
 
+[deploy]
+  release_command = "/app/bin/saleflow eval 'Saleflow.Release.migrate()'"
+
 [http_service]
   internal_port = 4000
   force_https = true
