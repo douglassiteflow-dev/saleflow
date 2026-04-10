@@ -168,4 +168,97 @@ defmodule SaleflowWeb.LeadControllerOutcomeTest do
         "Assignment for lead B should NOT be released when outcome is submitted for lead A"
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Test 5: Skip count off-by-one (Bug #7)
+  # ---------------------------------------------------------------------------
+
+  describe "skip count off-by-one fix" do
+    test "3rd skip is still quarantine not permanent (off-by-one regression)",
+         %{conn: conn, user: user} do
+      {:ok, lead} = Sales.create_lead(%{företag: "Skip3 AB", telefon: "+46700000020"})
+
+      # Insert 2 previous skip call_logs directly via SQL to bypass 20s dedup validation
+      uid = Ecto.UUID.dump!(user.id)
+      lid = Ecto.UUID.dump!(lead.id)
+      past = DateTime.utc_now() |> DateTime.add(-3600, :second)
+
+      for i <- 1..2 do
+        cid = Ecto.UUID.dump!(Ecto.UUID.generate())
+        ts = DateTime.add(past, -i * 60, :second)
+        Saleflow.Repo.query!(
+          "INSERT INTO call_logs (id, lead_id, user_id, outcome, called_at) VALUES ($1, $2, $3, 'skipped', $4)",
+          [cid, lid, uid, ts]
+        )
+      end
+
+      # 3rd skip via API — should be quarantine, NOT permanent
+      {:ok, _} = Sales.assign_lead(lead, user)
+      {:ok, _} = Sales.update_lead_status(lead, %{status: :assigned})
+
+      conn = post(conn, "/api/leads/#{lead.id}/outcome", %{outcome: "skipped"})
+      assert %{"ok" => true} = json_response(conn, 200)
+
+      {:ok, updated} = Sales.get_lead(lead.id)
+      assert updated.status == :quarantine
+      # Should NOT be permanent (quarantine_until should be ~24h from now, not 2099)
+      assert DateTime.compare(updated.quarantine_until, ~U[2098-01-01 00:00:00Z]) == :lt
+    end
+
+    test "4th skip triggers permanent not_interested",
+         %{conn: conn, user: user} do
+      {:ok, lead} = Sales.create_lead(%{företag: "Skip4 AB", telefon: "+46700000021"})
+
+      # Insert 3 previous skip call_logs directly via SQL
+      uid = Ecto.UUID.dump!(user.id)
+      lid = Ecto.UUID.dump!(lead.id)
+      past = DateTime.utc_now() |> DateTime.add(-3600, :second)
+
+      for i <- 1..3 do
+        cid = Ecto.UUID.dump!(Ecto.UUID.generate())
+        ts = DateTime.add(past, -i * 60, :second)
+        Saleflow.Repo.query!(
+          "INSERT INTO call_logs (id, lead_id, user_id, outcome, called_at) VALUES ($1, $2, $3, 'skipped', $4)",
+          [cid, lid, uid, ts]
+        )
+      end
+
+      # 4th skip via API — should trigger permanent not_interested
+      {:ok, _} = Sales.assign_lead(lead, user)
+      {:ok, _} = Sales.update_lead_status(lead, %{status: :assigned})
+
+      conn = post(conn, "/api/leads/#{lead.id}/outcome", %{outcome: "skipped"})
+      assert %{"ok" => true} = json_response(conn, 200)
+
+      {:ok, updated} = Sales.get_lead(lead.id)
+      assert updated.status == :quarantine
+      # Permanent: quarantine_until should be 2099
+      assert DateTime.compare(updated.quarantine_until, ~U[2098-01-01 00:00:00Z]) == :gt
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Test 6: Reactivate sets status to :new (Bug #9)
+  # ---------------------------------------------------------------------------
+
+  describe "reactivate sets status to :new" do
+    test "reactivate sets status to :new not :assigned",
+         %{conn: conn} do
+      {:ok, lead} = Sales.create_lead(%{företag: "Reactivate AB", telefon: "+46700000030"})
+
+      # Quarantine the lead
+      {:ok, _} = Sales.update_lead_status(lead, %{
+        status: :quarantine,
+        quarantine_until: DateTime.utc_now() |> DateTime.add(24, :hour)
+      })
+
+      conn = post(conn, "/api/leads/#{lead.id}/reactivate")
+      assert %{"ok" => true, "lead" => lead_json} = json_response(conn, 200)
+      assert lead_json["status"] == "new"
+
+      # Verify in database too
+      {:ok, reloaded} = Sales.get_lead(lead.id)
+      assert reloaded.status == :new
+    end
+  end
 end
