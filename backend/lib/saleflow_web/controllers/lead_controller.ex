@@ -133,7 +133,7 @@ defmodule SaleflowWeb.LeadController do
   def reactivate(conn, %{"id" => id}) do
     with {:ok, lead} <- Sales.get_lead(id),
          true <- lead.status in [:quarantine, :bad_number],
-         {:ok, updated} <- Sales.update_lead_status(lead, %{status: :assigned, quarantine_until: nil}) do
+         {:ok, updated} <- Sales.update_lead_status(lead, %{status: :new, quarantine_until: nil}) do
       json(conn, %{ok: true, lead: %{id: updated.id, status: updated.status}})
     else
       false -> conn |> put_status(422) |> json(%{error: "Lead är inte i karantän"})
@@ -383,21 +383,24 @@ defmodule SaleflowWeb.LeadController do
   end
 
   defp apply_outcome(lead, "skipped", user, _params) do
-    # Count how many times this lead has been skipped
+    # Count how many times this lead has been skipped BEFORE this call.
+    # The current call_log was already created earlier in the transaction,
+    # so we subtract 1 to get the previous skip count (Bug #7 fix).
     require Ash.Query
-    skip_count =
+    previous_skip_count =
       Saleflow.Sales.CallLog
       |> Ash.Query.filter(lead_id == ^lead.id and outcome == :skipped)
-      |> Ash.Query.sort(called_at: :desc)
       |> Ash.read!()
       |> length()
+      |> Kernel.-(1)
+      |> max(0)
 
-    if skip_count >= 3 do
-      # 3+ skips → permanent not_interested
+    if previous_skip_count >= 3 do
+      # 3+ previous skips → permanent not_interested
       apply_not_interested_outcome(lead, user)
     else
       # 24h quarantine per skip
-      apply_quarantine_outcome(lead, user, DateTime.utc_now() |> DateTime.add(24, :hour), "Skipped (#{skip_count}/3)")
+      apply_quarantine_outcome(lead, user, DateTime.utc_now() |> DateTime.add(24, :hour), "Skipped (#{previous_skip_count + 1}/3)")
     end
   end
 
@@ -411,7 +414,8 @@ defmodule SaleflowWeb.LeadController do
       {:ok, _q} = Sales.create_quarantine(%{
         lead_id: lead.id,
         user_id: user.id,
-        reason: reason
+        reason: reason,
+        released_at: quarantine_until
       })
       {:ok, updated_lead}
     end

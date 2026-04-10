@@ -63,19 +63,29 @@ defmodule Saleflow.Workers.QuarantineReleaseWorker do
   end
 
   defp release_quarantine(lead_id) do
-    {:ok, lead} = Sales.get_lead(lead_id)
-    {:ok, _updated} = Sales.update_lead_status(lead, %{status: :new, quarantine_until: nil})
+    case Sales.get_lead(lead_id) do
+      {:ok, lead} when lead.status == :quarantine ->
+        {:ok, _updated} = Sales.update_lead_status(lead, %{status: :new, quarantine_until: nil})
 
-    Saleflow.Audit.create_log(%{
-      action: "lead.quarantine_released",
-      resource_type: "Lead",
-      resource_id: lead_id,
-      changes: %{
-        "status" => %{"from" => "quarantine", "to" => "new"},
-        "quarantine_until" => %{"from" => to_string(lead.quarantine_until), "to" => nil}
-      },
-      metadata: %{"worker" => "QuarantineReleaseWorker"}
-    })
+        Saleflow.Audit.create_log(%{
+          action: "lead.quarantine_released",
+          resource_type: "Lead",
+          resource_id: lead_id,
+          changes: %{
+            "status" => %{"from" => "quarantine", "to" => "new"},
+            "quarantine_until" => %{"from" => to_string(lead.quarantine_until), "to" => nil}
+          },
+          metadata: %{"worker" => "QuarantineReleaseWorker"}
+        })
+
+      {:ok, _lead} ->
+        Logger.info("QuarantineReleaseWorker: lead #{lead_id} no longer in :quarantine — skipping")
+        :ok
+
+      {:error, _} ->
+        Logger.info("QuarantineReleaseWorker: lead #{lead_id} not found — skipping")
+        :ok
+    end
   end
 
   defp decode_uuid(value) when is_binary(value) and byte_size(value) == 16 do

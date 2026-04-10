@@ -184,4 +184,43 @@ defmodule Saleflow.Workers.QuarantineReleaseWorkerTest do
       assert refreshed.status == :new
     end
   end
+
+  describe "QuarantineReleaseWorker — status guard (Bug #13)" do
+    test "does not overwrite :assigned status when quarantine_until has expired" do
+      lead = create_lead!()
+      # First quarantine the lead with an expired time
+      past = DateTime.add(DateTime.utc_now(), -3600, :second)
+      {:ok, quarantined} = Sales.update_lead_status(lead, %{status: :quarantine, quarantine_until: past})
+
+      # Simulate manual reactivation: lead was assigned while still having expired quarantine_until
+      {:ok, _assigned} = Sales.update_lead_status(quarantined, %{status: :assigned})
+
+      # Worker should find it via SQL (status was quarantine when quarantine_until was set),
+      # but the lead is now :assigned — worker must NOT overwrite it
+      assert :ok = QuarantineReleaseWorker.perform(%Oban.Job{})
+
+      {:ok, refreshed} = Sales.get_lead(lead.id)
+      assert refreshed.status == :assigned
+    end
+
+    test "does not overwrite :new status if lead was already released" do
+      lead = create_lead!()
+      # Lead is :new with no quarantine — worker should skip gracefully
+      assert :ok = QuarantineReleaseWorker.perform(%Oban.Job{})
+
+      {:ok, refreshed} = Sales.get_lead(lead.id)
+      assert refreshed.status == :new
+    end
+
+    test "releases :quarantine leads with expired quarantine_until (guard allows it)" do
+      lead = create_lead!()
+      _quarantined = quarantine_lead_expired!(lead)
+
+      assert :ok = QuarantineReleaseWorker.perform(%Oban.Job{})
+
+      {:ok, updated} = Sales.get_lead(lead.id)
+      assert updated.status == :new
+      assert is_nil(updated.quarantine_until)
+    end
+  end
 end

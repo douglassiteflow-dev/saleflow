@@ -51,16 +51,21 @@ defmodule Saleflow.Sales.Quarantine do
     defaults [:read]
 
     create :create do
-      description "Quarantine a lead for 7 days from now"
-      accept [:lead_id, :user_id, :reason]
+      description "Quarantine a lead. released_at defaults to now + 7 days if not provided."
+      accept [:lead_id, :user_id, :reason, :released_at]
 
       change fn changeset, _context ->
         now = DateTime.utc_now()
-        released = DateTime.add(now, 7, :day)
 
-        changeset
-        |> Ash.Changeset.force_change_attribute(:quarantined_at, now)
-        |> Ash.Changeset.force_change_attribute(:released_at, released)
+        changeset = Ash.Changeset.force_change_attribute(changeset, :quarantined_at, now)
+
+        case Ash.Changeset.get_attribute(changeset, :released_at) do
+          nil ->
+            Ash.Changeset.force_change_attribute(changeset, :released_at, DateTime.add(now, 7, :day))
+
+          _explicit ->
+            changeset
+        end
       end
 
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "quarantine.created"}
