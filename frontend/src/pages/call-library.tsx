@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useCallSearch } from "@/api/call-search";
+import { useLeadDetail, useReactivateLead } from "@/api/leads";
 import { formatDuration, formatDateTime } from "@/lib/format";
 import { OUTCOME_LABELS, OUTCOME_COLORS } from "@/lib/constants";
 import Loader from "@/components/kokonutui/loader";
+import { BookingWizard } from "@/components/dialer/booking-wizard";
 import type { CallSearchResult } from "@/api/types";
 
 const OUTCOME_OPTIONS = [
@@ -25,12 +27,29 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
-function CallResultCard({ result }: { result: CallSearchResult }) {
+function CallResultCard({
+  result,
+  onBookMeeting,
+}: {
+  result: CallSearchResult;
+  onBookMeeting: (leadId: string) => void;
+}) {
+  const isQuarantined = result.lead_status === "quarantine" || result.lead_status === "bad_number";
+  const canBook = result.lead_id && !isQuarantined;
+  const reactivate = useReactivateLead(result.lead_id ?? "");
+
   return (
     <div className="rounded-[14px] bg-[var(--color-bg-primary)] p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
       <div className="flex items-start justify-between gap-4">
         {/* Left: snippet + meta */}
         <div className="min-w-0 flex-1 space-y-2">
+          {/* Lead name */}
+          {result.lead_name && (
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">
+              {result.lead_name}
+            </p>
+          )}
+
           {/* Snippet with highlighted text */}
           <p
             className="text-[13px] leading-relaxed text-[var(--color-text-primary)] [&_mark]:rounded [&_mark]:bg-amber-200 [&_mark]:px-0.5 [&_mark]:text-amber-900"
@@ -80,24 +99,39 @@ function CallResultCard({ result }: { result: CallSearchResult }) {
           )}
         </div>
 
-        {/* Right: play button */}
-        <a
-          href={`/api/calls/${result.id}/recording`}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Spela upp inspelning"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-white transition-opacity hover:opacity-80"
-        >
-          {/* Play icon */}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="h-4 w-4"
+        {/* Right: actions */}
+        <div className="flex shrink-0 items-center gap-2">
+          {isQuarantined && result.lead_id && (
+            <button
+              type="button"
+              onClick={() => reactivate.mutate(undefined, { onSuccess: () => onBookMeeting(result.lead_id!) })}
+              disabled={reactivate.isPending}
+              className="rounded-md border border-orange-300 bg-orange-50 px-2.5 py-1.5 text-[11px] font-medium text-orange-700 hover:bg-orange-100 transition-all disabled:opacity-50"
+            >
+              {reactivate.isPending ? "Aktiverar..." : "Aktivera & boka"}
+            </button>
+          )}
+          {canBook && (
+            <button
+              type="button"
+              onClick={() => onBookMeeting(result.lead_id!)}
+              className="rounded-md bg-[var(--color-accent)] px-2.5 py-1.5 text-[11px] font-medium text-white hover:brightness-110 transition-all"
+            >
+              Boka m&#246;te
+            </button>
+          )}
+          <a
+            href={`/api/calls/${result.id}/recording`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Spela upp inspelning"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-accent)] text-white transition-opacity hover:opacity-80"
           >
-            <path d="M8 5.14v14l11-7-11-7z" />
-          </svg>
-        </a>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+              <path d="M8 5.14v14l11-7-11-7z" />
+            </svg>
+          </a>
+        </div>
       </div>
     </div>
   );
@@ -110,6 +144,9 @@ export function CallLibraryPage() {
   const [dateTo, setDateTo] = useState("");
   const [outcomeFilter, setOutcomeFilter] = useState("");
   const [minScore, setMinScore] = useState("");
+  const [bookingLeadId, setBookingLeadId] = useState<string | null>(null);
+
+  const { data: leadData } = useLeadDetail(bookingLeadId);
 
   const debouncedQuery = useDebounce(rawQuery, 300);
 
@@ -245,9 +282,20 @@ export function CallLibraryPage() {
             {results.length} {results.length === 1 ? "träff" : "träffar"}
           </p>
           {results.map((result) => (
-            <CallResultCard key={result.id} result={result} />
+            <CallResultCard key={result.id} result={result} onBookMeeting={(leadId) => setBookingLeadId(leadId)} />
           ))}
         </div>
+      )}
+
+      {bookingLeadId && leadData?.lead && (
+        <BookingWizard
+          leadId={bookingLeadId}
+          lead={leadData.lead}
+          isOpen={true}
+          onClose={() => setBookingLeadId(null)}
+          onSuccess={() => setBookingLeadId(null)}
+          isMsConnected={false}
+        />
       )}
     </div>
   );

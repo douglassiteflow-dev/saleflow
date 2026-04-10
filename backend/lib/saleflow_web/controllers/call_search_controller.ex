@@ -16,10 +16,12 @@ defmodule SaleflowWeb.CallSearchController do
       SELECT pc.id, pc.received_at, pc.duration, pc.scorecard_avg, pc.sentiment,
              pc.call_summary, cl.outcome::text, u.name as agent_name,
              ts_headline('swedish', COALESCE(pc.transcription, ''), plainto_tsquery('swedish', $1),
-               'StartSel=<mark>, StopSel=</mark>, MaxFragments=2, MaxWords=30') as snippet
+               'StartSel=<mark>, StopSel=</mark>, MaxFragments=2, MaxWords=30') as snippet,
+             pc.lead_id, l.företag as lead_name, l.status::text as lead_status
       FROM phone_calls pc
       LEFT JOIN call_logs cl ON cl.id = pc.call_log_id
       LEFT JOIN users u ON u.id = pc.user_id
+      LEFT JOIN leads l ON l.id = pc.lead_id
       WHERE pc.transcription IS NOT NULL
         AND to_tsvector('swedish', pc.transcription) @@ plainto_tsquery('swedish', $1)
         #{filters}
@@ -30,8 +32,8 @@ defmodule SaleflowWeb.CallSearchController do
     case Saleflow.Repo.query(sql, [query | query_params]) do
       {:ok, %{rows: rows}} ->
         results =
-          Enum.map(rows, fn [id, at, dur, score, sent, summary, outcome, agent, snippet] ->
-            %{
+          Enum.map(rows, fn [id, at, dur, score, sent, summary, outcome, agent, snippet, lead_id, lead_name, lead_status] ->
+            result = %{
               id: Ecto.UUID.load!(id),
               received_at: at,
               duration: dur,
@@ -42,6 +44,16 @@ defmodule SaleflowWeb.CallSearchController do
               agent_name: agent,
               snippet: snippet
             }
+
+            if lead_id do
+              Map.merge(result, %{
+                lead_id: Ecto.UUID.load!(lead_id),
+                lead_name: lead_name,
+                lead_status: lead_status
+              })
+            else
+              result
+            end
           end)
 
         json(conn, %{results: results})

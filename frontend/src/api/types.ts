@@ -472,4 +472,7 @@ export interface CallSearchResult {
   outcome: string | null;
   agent_name: string | null;
   snippet: string;
+  lead_id: string | null;
+  lead_name: string | null;
+  lead_status: string | null;
 }
