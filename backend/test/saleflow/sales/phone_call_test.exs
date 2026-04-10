@@ -124,4 +124,74 @@ defmodule Saleflow.Sales.PhoneCallTest do
     end
   end
 
+  # ---------------------------------------------------------------------------
+  # link_phone_call_to_log/2
+  # ---------------------------------------------------------------------------
+
+  describe "link_phone_call_to_log/2" do
+    test "returns :ok when no matching phone_calls" do
+      user = create_user!()
+      lead = create_lead!()
+
+      {:ok, call_log} =
+        Sales.log_call(%{lead_id: lead.id, user_id: user.id, outcome: :callback})
+
+      # No phone_calls exist for this user, so nothing to link — should still return :ok
+      assert :ok = Sales.link_phone_call_to_log(user.id, call_log.id)
+    end
+
+    test "links matching phone_call to call_log" do
+      user = create_user!()
+      lead = create_lead!()
+
+      {:ok, phone_call} =
+        Sales.create_phone_call(%{
+          caller: "+46701234567",
+          callee: "+46709876543",
+          user_id: user.id,
+          direction: :outgoing
+        })
+
+      {:ok, call_log} =
+        Sales.log_call(%{lead_id: lead.id, user_id: user.id, outcome: :callback})
+
+      assert :ok = Sales.link_phone_call_to_log(user.id, call_log.id)
+
+      # Reload the phone_call and verify the link
+      reloaded = Saleflow.Repo.get!(Saleflow.Sales.PhoneCall, phone_call.id)
+      assert reloaded.call_log_id == call_log.id
+    end
+
+    test "15-minute window matches calls from 10 minutes ago" do
+      user = create_user!()
+      lead = create_lead!()
+
+      # Create phone_call via Ash (gets received_at = now)
+      {:ok, phone_call} =
+        Sales.create_phone_call(%{
+          caller: "+46701234567",
+          callee: "+46709876543",
+          user_id: user.id,
+          direction: :outgoing
+        })
+
+      # Backdate received_at to 10 minutes ago via raw SQL
+      ten_min_ago = DateTime.add(DateTime.utc_now(), -600, :second)
+
+      Saleflow.Repo.query!(
+        "UPDATE phone_calls SET received_at = $1 WHERE id = $2",
+        [ten_min_ago, Ecto.UUID.dump!(phone_call.id)]
+      )
+
+      {:ok, call_log} =
+        Sales.log_call(%{lead_id: lead.id, user_id: user.id, outcome: :callback})
+
+      assert :ok = Sales.link_phone_call_to_log(user.id, call_log.id)
+
+      # Verify the 10-minute-old call was linked (would fail with old 5-min window)
+      reloaded = Saleflow.Repo.get!(Saleflow.Sales.PhoneCall, phone_call.id)
+      assert reloaded.call_log_id == call_log.id
+    end
+  end
+
 end
