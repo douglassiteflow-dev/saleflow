@@ -455,62 +455,43 @@ defmodule Saleflow.Workers.DemoGenerationWorkerTest do
       :ok
     end
 
-    test "creates genflow job and times out when job stays pending" do
+    test "creates genflow job and returns :ok immediately (fire-and-forget)" do
       dc = create_demo_config!(source_url: "https://testforetag.se")
 
       # Subscribe to PubSub
       Phoenix.PubSub.subscribe(Saleflow.PubSub, "demo_generation:#{dc.id}")
 
       job = build_job(dc.id)
-      assert {:error, error_msg} = DemoGenerationWorker.perform(job)
-      assert error_msg =~ "timed out"
+      # Fire-and-forget: worker creates job and returns immediately
+      assert :ok = DemoGenerationWorker.perform(job)
 
       # Verify the queued broadcast was sent
-      assert_receive {:demo_generation, %{status: "queued", genflow_job_id: _}}
+      assert_receive {:demo_generation, %{status: "queued", genflow_job_id: job_id}}
 
-      # Verify the timeout error broadcast was sent
-      assert_receive {:demo_generation, %{status: "error", error: error}}
-      assert error =~ "timed out"
-
-      # Verify demo_config was marked as failed
-      {:ok, updated_dc} = Sales.get_demo_config(dc.id)
-      assert updated_dc.error =~ "timed out"
+      # Verify a generation_job was created in the database
+      {:ok, gen_job} = Saleflow.Generation.get_job(job_id)
+      assert gen_job.status == :pending
     end
 
-    test "creates genflow job and reports failure when job is marked failed" do
+    test "genflow job failure is handled by GenJobRecoveryWorker (not polling)" do
       dc = create_demo_config!(source_url: "https://testforetag.se")
-      test_pid = self()
 
-      # Subscribe to PubSub to capture the genflow_job_id
       Phoenix.PubSub.subscribe(Saleflow.PubSub, "demo_generation:#{dc.id}")
 
-      # Spawn a process that will fail the job as soon as it's created
-      _listener = spawn(fn ->
-        # Subscribe to get the job ID from the "queued" broadcast
-        Phoenix.PubSub.subscribe(Saleflow.PubSub, "demo_generation:#{dc.id}")
-
-        receive do
-          {:demo_generation, %{status: "queued", genflow_job_id: job_id}} ->
-            {:ok, job} = Saleflow.Generation.get_job(job_id)
-            {:ok, picked} = Saleflow.Generation.pick_job(job)
-            {:ok, _} = Saleflow.Generation.fail_job(picked, "Build error")
-            send(test_pid, :job_failed)
-        after
-          5_000 -> :ok
-        end
-      end)
-
       job = build_job(dc.id)
-      result = DemoGenerationWorker.perform(job)
+      assert :ok = DemoGenerationWorker.perform(job)
 
-      # The result depends on timing — either the fail was picked up or it timed out
-      case result do
-        {:error, msg} when is_binary(msg) ->
-          assert msg =~ "failed" or msg =~ "timed out"
+      # Get the created genflow job
+      assert_receive {:demo_generation, %{status: "queued", genflow_job_id: job_id}}
 
-        _ ->
-          flunk("Expected error result, got: #{inspect(result)}")
-      end
+      # Simulate genflow picking up and failing the job
+      {:ok, gen_job} = Saleflow.Generation.get_job(job_id)
+      {:ok, picked} = Saleflow.Generation.pick_job(gen_job)
+      {:ok, failed} = Saleflow.Generation.fail_job(picked, "Build error")
+
+      assert failed.status == :failed
+      assert failed.error == "Build error"
+      # GenJobRecoveryWorker will sync this back to demo_config
     end
 
     test "does not run local generation when genflow is enabled" do
@@ -518,12 +499,10 @@ defmodule Saleflow.Workers.DemoGenerationWorkerTest do
 
       # The MockRunner should NOT be called when genflow is enabled
       # If it were called, Mox would complain about unexpected calls
-      # (no expect set up for this test)
 
       job = build_job(dc.id)
-      # Will timeout since no one completes the genflow job, but it should
-      # not call the local runner
-      {:error, _} = DemoGenerationWorker.perform(job)
+      # Fire-and-forget: returns :ok without calling local runner
+      assert :ok = DemoGenerationWorker.perform(job)
     end
   end
 
