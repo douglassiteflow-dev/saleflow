@@ -129,12 +129,12 @@ defmodule SaleflowWeb.CallController do
     # TODO: move to Saleflow.Stats or Saleflow.Sales context module (e.g. Sales.list_call_history/2)
     query = """
     SELECT
-      COALESCE(cl.id, pc.id) as id,
-      COALESCE(cl.called_at, pc.received_at) as called_at,
+      cl.id as id,
+      cl.called_at as called_at,
       cl.outcome::text,
       cl.notes,
-      COALESCE(cl.user_id, pc.user_id) as user_id,
-      COALESCE(cl.lead_id, pc.lead_id) as lead_id,
+      cl.user_id as user_id,
+      cl.lead_id as lead_id,
       u.name as user_name,
       l.företag as lead_name, l.telefon as lead_phone,
       pc.duration as duration,
@@ -142,22 +142,21 @@ defmodule SaleflowWeb.CallController do
       pc.id as phone_call_id,
       pc.transcription,
       pc.transcription_analysis
-    FROM phone_calls pc
-    LEFT JOIN call_logs cl ON cl.id = pc.call_log_id
-    JOIN users u ON u.id = COALESCE(cl.user_id, pc.user_id)
-    LEFT JOIN leads l ON l.id = COALESCE(cl.lead_id, pc.lead_id)
-    WHERE pc.received_at::date >= $1 AND pc.received_at::date <= $2
-      AND pc.direction = 'outgoing'
+    FROM call_logs cl
+    JOIN users u ON u.id = cl.user_id
+    LEFT JOIN leads l ON l.id = cl.lead_id
+    LEFT JOIN phone_calls pc ON pc.call_log_id = cl.id
+    WHERE cl.called_at::date >= $1 AND cl.called_at::date <= $2
     """
 
     {query, query_params} =
       case user.role do
         :admin ->
-          {query <> " ORDER BY called_at DESC", [from_date, to_date]}
+          {query <> " ORDER BY cl.called_at DESC", [from_date, to_date]}
 
         _ ->
           uid = Ecto.UUID.dump!(user.id)
-          {query <> " AND pc.user_id = $3 ORDER BY called_at DESC", [from_date, to_date, uid]}
+          {query <> " AND cl.user_id = $3 ORDER BY cl.called_at DESC", [from_date, to_date, uid]}
       end
 
     {:ok, %{rows: rows}} = Saleflow.Repo.query(query, query_params)
