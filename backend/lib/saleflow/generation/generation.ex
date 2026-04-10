@@ -41,4 +41,15 @@ defmodule Saleflow.Generation do
   def get_job(id) do
     Saleflow.Generation.GenerationJob |> Ash.get(id)
   end
+
+  def reset_stuck_jobs do
+    require Ash.Query
+
+    Saleflow.Generation.GenerationJob
+    |> Ash.Query.filter(status == :processing)
+    |> Ash.read!()
+    |> Enum.map(fn job ->
+      job |> Ash.Changeset.for_update(:reset, %{}) |> Ash.update()
+    end)
+  end
 end

@@ -55,9 +55,11 @@ defmodule Saleflow.Workers.DemoGenerationWorker do
            source_text: demo_config.source_text
          }) do
       {:ok, gen_job} ->
-        Logger.info("DemoGenerationWorker: created genflow job #{gen_job.id} for #{id}")
+        Logger.info("DemoGenerationWorker: created genflow job #{gen_job.id} for #{id} — Genflow picks it up when ready")
         broadcast(id, %{status: "queued", genflow_job_id: gen_job.id})
-        poll_genflow_job(gen_job.id, demo_config, id, 0)
+        # Returnera :ok direkt — GenJobRecoveryWorker synkar resultatet tillbaka
+        # till demo_config när genflow-jobbet blir klart. Ingen polling behövs.
+        :ok
 
       {:error, reason} ->
         error_msg = "Failed to create genflow job: #{inspect(reason)}"
@@ -65,55 +67,6 @@ defmodule Saleflow.Workers.DemoGenerationWorker do
         broadcast(id, %{status: "error", error: error_msg})
         Logger.warning("DemoGenerationWorker: #{error_msg}")
         {:error, error_msg}
-    end
-  end
-
-  defp poll_genflow_job(job_id, demo_config, id, poll_count) do
-    max_polls = Application.get_env(:saleflow, :genflow_max_polls, 180)
-
-    if poll_count >= max_polls do
-      error_msg = "Genflow job timed out after #{max_polls} polls"
-      {:ok, _} = Sales.generation_failed(demo_config, %{error: error_msg})
-      broadcast(id, %{status: "error", error: error_msg})
-      Logger.warning("DemoGenerationWorker: #{error_msg} for #{id}")
-      {:error, error_msg}
-    else
-      poll_interval = Application.get_env(:saleflow, :genflow_poll_interval_ms, 5_000)
-      Process.sleep(poll_interval)
-
-      case Generation.get_job(job_id) do
-        {:ok, %{status: :completed, result_url: result_url, slug: slug}} ->
-          friendly_url = "https://demo.siteflow.se/#{slug}"
-
-          {:ok, demo_config} =
-            Sales.generation_complete(demo_config, %{
-              website_path: result_url,
-              preview_url: friendly_url
-            })
-
-          maybe_advance_deal(demo_config)
-          broadcast(id, %{status: "complete", website_path: result_url, preview_url: friendly_url})
-          Logger.info("DemoGenerationWorker: genflow job completed for #{id} (preview: #{friendly_url})")
-          :ok
-
-        {:ok, %{status: :failed, error: error}} ->
-          error_msg = "Genflow job failed: #{error}"
-          {:ok, _} = Sales.generation_failed(demo_config, %{error: error_msg})
-          broadcast(id, %{status: "error", error: error_msg})
-          Logger.warning("DemoGenerationWorker: #{error_msg} for #{id}")
-          {:error, error_msg}
-
-        {:ok, _job} ->
-          # Still pending or processing — keep polling
-          poll_genflow_job(job_id, demo_config, id, poll_count + 1)
-
-        {:error, reason} ->
-          error_msg = "Failed to poll genflow job: #{inspect(reason)}"
-          {:ok, _} = Sales.generation_failed(demo_config, %{error: error_msg})
-          broadcast(id, %{status: "error", error: error_msg})
-          Logger.warning("DemoGenerationWorker: #{error_msg} for #{id}")
-          {:error, error_msg}
-      end
     end
   end
 

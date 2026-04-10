@@ -27,6 +27,7 @@ defmodule Saleflow.Generation.GenerationJob do
 
     attribute :result_url, :string, allow_nil?: true, public?: true
     attribute :error, :string, allow_nil?: true, public?: true
+    attribute :retry_count, :integer, default: 0, allow_nil?: false, public?: true
     attribute :picked_up_at, :utc_datetime_usec, allow_nil?: true, public?: true
     attribute :completed_at, :utc_datetime_usec, allow_nil?: true, public?: true
 
@@ -67,6 +68,18 @@ defmodule Saleflow.Generation.GenerationJob do
         changeset
         |> Ash.Changeset.force_change_attribute(:status, :failed)
         |> Ash.Changeset.force_change_attribute(:completed_at, DateTime.utc_now())
+      end
+    end
+
+    update :reset do
+      require_atomic? false
+      change fn changeset, _context ->
+        current_count = Ash.Changeset.get_attribute(changeset, :retry_count) || 0
+
+        changeset
+        |> Ash.Changeset.force_change_attribute(:status, :pending)
+        |> Ash.Changeset.force_change_attribute(:picked_up_at, nil)
+        |> Ash.Changeset.force_change_attribute(:retry_count, current_count + 1)
       end
     end
   end

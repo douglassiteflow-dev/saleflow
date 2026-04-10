@@ -36,6 +36,12 @@ defmodule SaleflowWeb.GenJobController do
     end
   end
 
+  def reset_stuck(conn, _params) do
+    results = Generation.reset_stuck_jobs()
+    count = Enum.count(results, fn {:ok, _} -> true; _ -> false end)
+    json(conn, %{reset: count})
+  end
+
   def fail(conn, %{"id" => id, "error" => error_msg}) do
     with {:ok, job} <- Generation.get_job(id),
          {:ok, failed} <- Generation.fail_job(job, error_msg) do

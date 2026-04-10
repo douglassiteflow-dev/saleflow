@@ -210,6 +210,7 @@ defmodule SaleflowWeb.Router do
     pipe_through [:api, :require_gen_key]
 
     get "/pending", GenJobController, :pending
+    post "/reset-stuck", GenJobController, :reset_stuck
     post "/:id/pick", GenJobController, :pick
     post "/:id/complete", GenJobController, :complete
     post "/:id/fail", GenJobController, :fail

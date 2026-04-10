@@ -63,7 +63,8 @@ config :saleflow, Oban,
       {"10 16 * * 1-5", Saleflow.Workers.CoachReportWorker},
       {"*/5 * * * *", Saleflow.Workers.RecordingSyncWorker},
       {"15 16 * * 1-5", Saleflow.Workers.DealHealthWorker},
-      {"0 9 * * *", Saleflow.Workers.ContractReminderWorker}
+      {"0 9 * * *", Saleflow.Workers.ContractReminderWorker},
+      {"*/2 * * * *", Saleflow.Workers.GenJobRecoveryWorker}
     ]}
   ]
 
