@@ -239,6 +239,23 @@ defmodule Saleflow.Sales do
     end
   end
 
+  @doc """
+  Returns the active (unreleased) assignment for a given user AND lead, or `nil` if none.
+  Scoped to the specific lead to avoid releasing assignments for other leads.
+  """
+  def get_active_assignment_for_lead(user, lead_id) do
+    require Ash.Query
+
+    Saleflow.Sales.Assignment
+    |> Ash.Query.filter(user_id == ^user.id and lead_id == ^lead_id and is_nil(released_at))
+    |> Ash.Query.limit(1)
+    |> Ash.read()
+    |> case do
+      {:ok, [assignment | _]} -> {:ok, assignment}
+      {:ok, []} -> {:ok, nil}
+    end
+  end
+
   # ---------------------------------------------------------------------------
   # CallLog functions
   # ---------------------------------------------------------------------------

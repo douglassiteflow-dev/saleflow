@@ -79,16 +79,8 @@ defmodule SaleflowWeb.LeadController do
          {:ok, all_calls} <- Sales.list_calls_for_lead(id),
          {:ok, all_audit} <- Audit.list_for_resource("Lead", id),
          {:ok, contacts} <- Sales.list_contacts_for_lead(id) do
-      {calls, audit_logs} =
-        case user.role do
-          :admin ->
-            {all_calls, all_audit}
-
-          _ ->
-            filtered_calls = Enum.filter(all_calls, fn c -> c.user_id == user.id end)
-            filtered_audit = Enum.filter(all_audit, fn a -> a.user_id == user.id end)
-            {filtered_calls, filtered_audit}
-        end
+      # Alla säljare ser ALLA samtal för ett lead — historiken får aldrig försvinna
+      {calls, audit_logs} = {all_calls, all_audit}
 
       user_names = build_user_name_map(calls, audit_logs, user)
 
@@ -162,53 +154,65 @@ defmodule SaleflowWeb.LeadController do
       user = conn.assigns.current_user
       outcome_atom = String.to_existing_atom(outcome)
 
-      with {:ok, lead} <- Sales.get_lead(id),
-           {:ok, call_log} <- Sales.log_call(%{
-             lead_id: lead.id,
-             user_id: user.id,
-             outcome: outcome_atom,
-             notes: params["notes"]
-           }),
-         :ok <- Sales.link_phone_call_to_log(user.id, call_log.id),
-         {:ok, phone_call} <- create_outcome_phone_call(user, lead, call_log, params),
-         :ok <- release_active(user),
-         {:ok, _lead} <- apply_outcome(lead, outcome, user, params) do
-
-      # Broadcast dashboard update so stats refresh in real-time
-      broadcast_dashboard_update("call_completed")
-
-      # Schedule recording fetch + transcription in background
-      if phone_call do
-        require Logger
-
-        try do
-          %{phone_call_id: phone_call.id, user_id: user.id}
-          |> Saleflow.Workers.RecordingFetchWorker.new(schedule_in: 15)
-          |> Oban.insert()
-
-          # Transcribe meeting_booked calls (after recording is fetched)
-          if outcome == "meeting_booked" do
-            %{phone_call_id: phone_call.id}
-            |> Saleflow.Workers.TranscriptionWorker.new(schedule_in: 45)
-            |> Oban.insert()
+      # Wrap entire flow in a transaction so partial state is impossible.
+      # Side effects (broadcast, background jobs) run AFTER the transaction commits.
+      tx_result =
+        Saleflow.Repo.transaction(fn ->
+          with {:ok, lead} <- Sales.get_lead(id),
+               {:ok, call_log} <- Sales.log_call(%{
+                 lead_id: lead.id,
+                 user_id: user.id,
+                 outcome: outcome_atom,
+                 notes: params["notes"]
+               }),
+               :ok <- Sales.link_phone_call_to_log(user.id, call_log.id),
+               {:ok, phone_call} <- create_outcome_phone_call(user, lead, call_log, params),
+               # Bug #11 fix: apply_outcome BEFORE release — outcome must succeed first
+               {:ok, _lead} <- apply_outcome(lead, outcome, user, params),
+               # Bug #12 fix: scope release to this specific lead, not all user assignments
+               :ok <- release_active_for_lead(user, lead.id) do
+            # Return phone_call for side effects outside transaction
+            phone_call
+          else
+            {:error, reason} -> Saleflow.Repo.rollback(reason)
           end
-        rescue
-          e ->
-            Logger.warning("LeadController.outcome: failed to enqueue background job: #{inspect(e)}")
-        catch
-          kind, e ->
-            Logger.warning("LeadController.outcome: caught #{kind} in background job enqueue: #{inspect(e)}")
-        end
+        end)
+
+      case tx_result do
+        {:ok, phone_call} ->
+          # Side effects OUTSIDE transaction
+          broadcast_dashboard_update("call_completed")
+
+          if phone_call do
+            require Logger
+
+            try do
+              %{phone_call_id: phone_call.id, user_id: user.id}
+              |> Saleflow.Workers.RecordingFetchWorker.new(schedule_in: 15)
+              |> Oban.insert()
+
+              if outcome == "meeting_booked" do
+                %{phone_call_id: phone_call.id}
+                |> Saleflow.Workers.TranscriptionWorker.new(schedule_in: 45)
+                |> Oban.insert()
+              end
+            rescue
+              e ->
+                Logger.warning("LeadController.outcome: failed to enqueue background job: #{inspect(e)}")
+            catch
+              kind, e ->
+                Logger.warning("LeadController.outcome: caught #{kind} in background job enqueue: #{inspect(e)}")
+            end
+          end
+
+          json(conn, %{ok: true})
+
+        {:error, message} when is_binary(message) ->
+          conn |> put_status(:unprocessable_entity) |> json(%{error: message})
+
+        {:error, _reason} ->
+          conn |> put_status(:unprocessable_entity) |> json(%{error: "Failed to process outcome"})
       end
-
-      json(conn, %{ok: true})
-    else
-      {:error, message} when is_binary(message) ->
-        conn |> put_status(:unprocessable_entity) |> json(%{error: message})
-
-      {:error, _reason} ->
-        conn |> put_status(:unprocessable_entity) |> json(%{error: "Failed to process outcome"})
-    end
     end
   end
 
@@ -220,8 +224,8 @@ defmodule SaleflowWeb.LeadController do
   # Outcome logic
   # ---------------------------------------------------------------------------
 
-  defp release_active(user) do
-    case Sales.get_active_assignment(user) do
+  defp release_active_for_lead(user, lead_id) do
+    case Sales.get_active_assignment_for_lead(user, lead_id) do
       {:ok, nil} ->
         :ok
 
@@ -379,8 +383,27 @@ defmodule SaleflowWeb.LeadController do
   end
 
   defp apply_outcome(lead, "skipped", user, _params) do
-    # Short quarantine — lead goes back into queue after 1 hour
-    apply_quarantine_outcome(lead, user, DateTime.utc_now() |> DateTime.add(1, :hour), "Skipped")
+    # Count how many times this lead has been skipped
+    require Ash.Query
+    skip_count =
+      Saleflow.Sales.CallLog
+      |> Ash.Query.filter(lead_id == ^lead.id and outcome == :skipped)
+      |> Ash.Query.sort(called_at: :desc)
+      |> Ash.read!()
+      |> length()
+
+    if skip_count >= 3 do
+      # 3+ skips → permanent not_interested
+      apply_not_interested_outcome(lead, user)
+    else
+      # 24h quarantine per skip
+      apply_quarantine_outcome(lead, user, DateTime.utc_now() |> DateTime.add(24, :hour), "Skipped (#{skip_count}/3)")
+    end
+  end
+
+  defp apply_not_interested_outcome(lead, user) do
+    # Permanent quarantine — same approach as "not_interested" outcome
+    apply_quarantine_outcome(lead, user, ~U[2099-12-31 23:59:59Z], "Skipped 3+ times — auto not interested")
   end
 
   defp apply_quarantine_outcome(lead, user, quarantine_until, reason) do

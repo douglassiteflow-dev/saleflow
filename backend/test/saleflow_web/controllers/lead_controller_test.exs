@@ -82,7 +82,7 @@ defmodule SaleflowWeb.LeadControllerTest do
   # -------------------------------------------------------------------------
 
   describe "GET /api/leads/:id" do
-    test "agent sees only their own calls and audit logs", %{conn: conn, user: user} do
+    test "agent sees all calls and audit logs for the lead", %{conn: conn, user: user} do
       {:ok, lead} = Sales.create_lead(%{företag: "Acme AB", telefon: "+46700000001"})
       {:ok, _call} = Sales.log_call(%{lead_id: lead.id, user_id: user.id, outcome: :no_answer})
 
@@ -92,8 +92,8 @@ defmodule SaleflowWeb.LeadControllerTest do
       assert length(calls) == 1
       assert hd(calls)["outcome"] == "no_answer"
       assert hd(calls)["user_name"] == "Du"
-      # System audit log (nil user_id) is excluded for agents
-      assert Enum.all?(audit_logs, fn a -> a["user_id"] == user.id end)
+      # All audit logs are visible (including system entries like lead.created)
+      assert length(audit_logs) >= 1
     end
 
     test "admin sees all calls and audit logs including system entries", %{conn: conn, admin: admin, user: agent} do
