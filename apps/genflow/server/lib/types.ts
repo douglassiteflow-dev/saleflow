@@ -2,7 +2,14 @@ export interface GenflowConfig {
   backendUrl: string
   apiKey: string
   pollInterval: number
+  claudeConcurrency: number
+  claudeMaxRuntimeMs: number
+  claudeIdleTimeoutMs: number
+  autoStartPolling: boolean
+  outputDir: string
 }
+
+export type SourceType = 'bokadirekt' | 'description' | 'website'
 
 export interface GenJob {
   id: string
@@ -11,6 +18,8 @@ export interface GenJob {
   status: 'pending' | 'processing' | 'completed' | 'failed'
   deal_id: string | null
   demo_config_id: string | null
+  source_type: SourceType
+  source_text?: string
 }
 
 export interface JobResult {

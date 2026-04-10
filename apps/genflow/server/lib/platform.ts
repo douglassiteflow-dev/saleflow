@@ -46,14 +46,14 @@ export function resolveScraperCommand(): { cmd: string; args: (url: string) => s
   if (existsSync(packagedScraper)) {
     return {
       cmd: packagedScraper,
-      args: (url: string) => [url, '--no-images'],
+      args: (url: string) => [url, '--with-images'],
     }
   }
   // I dev: python3 scraper/scrape.py
   const devScraper = join(APP_ROOT, 'scraper', 'scrape.py')
   return {
     cmd: PYTHON_BIN,
-    args: (url: string) => [devScraper, url, '--no-images'],
+    args: (url: string) => [devScraper, url, '--with-images'],
   }
 }
 
@@ -64,4 +64,6 @@ export const SKILLS_DIR = join(APP_ROOT, 'skills')
 export const PIPELINE_DIR = join(APP_ROOT, 'pipeline')
 
 // Output-katalogen (per-jobb artefakter)
-export const OUTPUT_DIR = join(APP_ROOT, 'output')
+// Alltid i ~/.genflow/output/ — aldrig inuti .app-bundlen
+import { homedir } from 'node:os'
+export const OUTPUT_DIR = join(homedir(), '.genflow', 'output')

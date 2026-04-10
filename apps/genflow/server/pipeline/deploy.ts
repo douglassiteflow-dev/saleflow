@@ -4,9 +4,7 @@ import { join } from 'node:path'
 import type { LogFn } from '../lib/types'
 
 export interface DeployResult {
-  /** Raw Vercel URL that works immediately (e.g. https://site-xxx.vercel.app) */
   rawUrl: string
-  /** Friendly URL via saleflow proxy (requires backend to have slug in DB) */
   friendlyUrl: string
 }
 
@@ -21,18 +19,28 @@ export async function deployToVercel(
     throw new Error(`Site-katalog saknas: ${siteDir}`)
   }
 
-  // Skapa vercel.json om den inte finns
-  const vercelJsonPath = join(siteDir, 'vercel.json')
-  if (!existsSync(vercelJsonPath)) {
-    writeFileSync(vercelJsonPath, JSON.stringify({
-      cleanUrls: true,
-    }, null, 2))
+  // Skapa .vercel/project.json för att forcera projektnamn = slug
+  const vercelDir = join(siteDir, '.vercel')
+  if (!existsSync(vercelDir)) {
+    const { mkdirSync } = await import('node:fs')
+    mkdirSync(vercelDir, { recursive: true })
   }
+
+  // Skapa vercel.json med projektnamn (name-fältet ersätter deprecated --name flaggan)
+  writeFileSync(join(siteDir, 'vercel.json'), JSON.stringify({
+    name: slug,
+    cleanUrls: true,
+    trailingSlash: false,
+  }, null, 2))
 
   const output: string[] = []
 
   await new Promise<void>((resolve, reject) => {
-    const proc = spawn('vercel', ['deploy', '--prod', '--yes'], {
+    const proc = spawn('vercel', [
+      'deploy',
+      '--prod',
+      '--yes',
+    ], {
       cwd: siteDir,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: process.env,
@@ -58,7 +66,7 @@ export async function deployToVercel(
     })
   })
 
-  // Extrahera raw Vercel URL från output
+  // Extrahera raw Vercel URL
   const fullOutput = output.join('')
   const urlMatch = fullOutput.match(/https:\/\/[\w-]+\.vercel\.app/g)
   if (!urlMatch || urlMatch.length === 0) {
@@ -68,6 +76,6 @@ export async function deployToVercel(
   const friendlyUrl = `https://demo.siteflow.se/${slug}`
 
   log(`Deploy klar: ${rawUrl}`)
-  log(`(friendly URL i prod: ${friendlyUrl})`)
+  log(`Friendly URL: ${friendlyUrl}`)
   return { rawUrl, friendlyUrl }
 }

@@ -1,72 +1,85 @@
-# Innehållsstrategi för flersidig webbplats
+# Content Strategy Analysis
 
-Du är innehållsstrategist för en webbyrå. Analysera företagsdatan nedan och bestäm:
-1. Vilka sidor som behövs (från en fast kandidatlista)
-2. Vilka tjänster som ska vara featured på index
-3. Hur recensioner ska visas
-4. Om galleri behövs och vilka Unsplash-teman som passar
+You are a content strategist for a web agency. Analyze the following business data, look at the actual images, and make decisions about how to present services and images on the website.
 
-## Företagsdata
-
+## Business Data
 $BUSINESS_DATA
 
-## Tillgängliga sidtyper (fast lista)
+## Selected Services ($SERVICE_COUNT total, in $CATEGORY_COUNT categories)
+$SERVICES
 
-- `index` — alltid obligatorisk
-- `tjanster` — lämplig när >15 tjänster eller >4 kategorier
-- `om-oss` — lämplig när om_oss-text >200 tecken eller ≥3 personal finns
-- `galleri` — lämplig när affärstypen gynnas av visuellt innehåll (salong, spa, nagel, massage, skönhet, klinik)
-- `kontakt` — lämplig när minst 2 av följande finns: adress, telefon, öppettider, karta
+## Selected Images ($IMAGE_COUNT total)
+The image files are located at: `$IMAGES_DIR`
 
-## Minimum-regel
+These are the filenames:
+$IMAGE_FILES
 
-Om INGA kandidater triggas — skippa alla undersidor. Allt packas in på `index.html` (tjänster som "visa fler"-toggle, om-oss som sektion, kontakt i footer).
+**Read each image file** and classify it into one of these categories:
+- `"lokal"` — interior, exterior, storefront, reception, decor
+- `"personal"` — people, staff, portraits, team photos
+- `"arbete"` — work being performed, treatments, services in action
+- `"produkt"` — products, tools, equipment, before/after
 
-## Recensions-regler
+## Your Task
 
-- ≤3 recensioner → statiska kort på index
-- >3 recensioner → horisontell infinity-scroll på index (ALDRIG på en separat recensioner-sida)
+1. **Read and classify every image** listed above
+2. **Analyze the volume** of services and images
+3. **Produce a content strategy** with active, reasoned decisions
 
-## Galleri-regler
+### Services
+- The services are listed in bokadirekt popularity order (most booked first).
+- If there are many services (more than ~10), select the most representative ones for the main page ("featured"). Pick the top services per category so all categories are represented.
+- Decide if remaining services should be on a separate `services.html` page or an expand/toggle section:
+  - ~15 or fewer total services → expand (toggle "Visa fler" in the same page) is sufficient
+  - More than ~15 total services → a separate `services.html` page is better
+- Determine the best category display order based on what best represents this business.
 
-- Galleri visas ALLTID som bento-grid (varierade cell-storlekar) — ALDRIG infinity-scroll eller carousel
-- När du väljer galleri: ge 3-5 konkreta Unsplash-söktermar baserat på affärstypen
+### Images
+Choose a layout type for each section based on how many images fit that section. Available layout types:
+- `"single"` — 1 image, full width
+- `"asymmetric-pair"` — 2 images, different sizes (visually interesting)
+- `"grid-even"` — 3-4 images in an even grid (MUST be even — never 3 in a 2-column grid)
+- `"carousel"` — 5+ images in a slider/carousel
 
-## Ingen team-sida
+Rules:
+- NEVER create uneven grids. If the number of images doesn't fit an even grid, use carousel instead.
+- Assign images to sections based on YOUR classification:
+  - `lokal` → hero section and/or about section
+  - `personal` → about section (NOT a dedicated team section — we never create team sections)
+  - `arbete` → gallery/portfolio section
+  - `produkt` → services section or gallery
+- Pick the single best `lokal` image for the hero.
+- Do NOT create a "team" section. Personal images go in about or gallery.
 
-Personal nämns som text i `om-oss` eller i footern — ingen dedikerad team-sektion med porträtt.
+## Output Format
 
-## Output
-
-Respondera med ENDAST valid JSON, inget annat:
+Respond with ONLY valid JSON, no other text:
 
 ```json
 {
-  "reasoning": "2-4 meningar motivering",
-  "businessType": "frisör | spa | nagel | massage | skönhet | klinik | annat",
-  "pages": [
-    {
-      "slug": "index",
-      "filename": "index.html",
-      "sections": ["hero", "intro", "featured-tjanster", "recensioner", "kontakt-cta"],
-      "reason": "Huvudsida"
-    }
+  "reasoning": "Your analysis and motivation for the decisions (2-4 sentences)",
+  "imageClassifications": [
+    {"file": "<filename>", "category": "<lokal|personal|arbete|produkt>", "description": "<short description>"}
   ],
   "services": {
-    "total": 0,
-    "featuredForIndex": [{"namn": "...", "kategori": "...", "reason": "..."}],
-    "categoryOrder": ["..."]
+    "total": <number>,
+    "featuredCount": <number>,
+    "featured": [
+      {"namn": "<service name>", "kategori": "<category>", "reason": "<why featured>"}
+    ],
+    "separatePage": <true|false>,
+    "pageType": "<services.html or expand>",
+    "categoryOrder": ["<category1>", "<category2>"]
   },
-  "reviews": {
-    "total": 0,
-    "displayMode": "statiska-kort",
-    "placement": "index"
-  },
-  "gallery": {
-    "needed": true,
-    "layout": "bento",
-    "placement": "galleri",
-    "themes": ["modern salong interiör", "hår styling närbild"]
+  "images": {
+    "total": <number>,
+    "hero": {"file": "<filename>", "reason": "<why this image>"},
+    "sections": {
+      "gallery": {"files": ["<filename>"], "layout": "<layout-type>", "reason": "<motivation>"},
+      "about": {"files": ["<filename>"], "layout": "<layout-type>"}
+    }
   }
 }
 ```
+
+Only include sections that have images assigned to them. If no images match a category, omit that section.

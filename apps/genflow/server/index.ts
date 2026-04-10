@@ -97,9 +97,24 @@ process.parentPort?.on('message', (event: Electron.MessageEvent) => {
   }
 
   if (msg?.type === 'trigger-test') {
-    const testMsg = msg as { type: 'trigger-test'; sourceUrl?: string }
-    const sourceUrl = testMsg.sourceUrl ?? 'https://bokadirekt.se/places/sakura-relax-massage-59498'
-    const slug = `test-${buildSlugFromUrl(sourceUrl)}-${Date.now()}`
+    const testMsg = msg as {
+      type: 'trigger-test'
+      sourceUrl?: string
+      sourceType?: 'bokadirekt' | 'description' | 'website'
+      sourceText?: string
+    }
+    const sourceType = testMsg.sourceType ?? 'bokadirekt'
+    const sourceUrl = testMsg.sourceUrl ?? ''
+    const sourceText = testMsg.sourceText ?? ''
+
+    let slug: string
+    if (sourceType === 'description') {
+      const nameSlug = sourceText.slice(0, 30).toLowerCase().replace(/[^a-zåäö0-9]+/g, '-').replace(/-+$/, '')
+      slug = `test-${nameSlug || 'beskrivning'}-${Date.now()}`
+    } else {
+      slug = `test-${buildSlugFromUrl(sourceUrl)}-${Date.now()}`
+    }
+
     const fakeJob: GenJob = {
       id: `test-${Date.now()}`,
       source_url: sourceUrl,
@@ -107,8 +122,10 @@ process.parentPort?.on('message', (event: Electron.MessageEvent) => {
       status: 'pending',
       deal_id: null,
       demo_config_id: null,
+      source_type: sourceType,
+      source_text: sourceText,
     }
-    console.log('[server] Test-pipeline triggad:', sourceUrl)
+    console.log(`[server] Test-pipeline triggad (${sourceType}):`, sourceUrl || sourceText.slice(0, 50))
     handleJob(fakeJob).catch((err) => {
       console.error('[server] Test-pipeline error:', err.message)
     })

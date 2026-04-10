@@ -1,16 +1,17 @@
 import { spawn, ChildProcess } from 'node:child_process'
 import pLimit from 'p-limit'
 import { CLAUDE_BIN } from './lib/platform'
+import { loadConfig } from './lib/config'
 import type { LogFn } from './lib/types'
 
-const CLAUDE_CONCURRENCY = 6
-const CLAUDE_MAX_RUNTIME_MS = 45 * 60 * 1000  // 45 min hard timeout
-const STDOUT_IDLE_MS = 10 * 60 * 1000          // 10 min utan stdout = hang
-                                               // Polish-pass med aggressiv prompt
-                                               // kan tänka 5-8 min mellan Edits
-
-const limit = pLimit(CLAUDE_CONCURRENCY)
 const activeProcesses = new Set<ChildProcess>()
+
+let limit = pLimit(loadConfig().claudeConcurrency)
+
+export function reloadLimiter(): void {
+  const config = loadConfig()
+  limit = pLimit(config.claudeConcurrency)
+}
 
 export interface RunClaudeOptions {
   args: string[]
@@ -21,12 +22,15 @@ export interface RunClaudeOptions {
 
 export function runClaude(opts: RunClaudeOptions): Promise<string> {
   return limit(() => new Promise<string>((resolve, reject) => {
-    // Strip ANTHROPIC_API_KEY so claude falls back on OAuth/keychain auth.
-    // The user's env var is invalid (revoked/wrong-account) but their
-    // Claude Code subscription works fine via OAuth — claude --print uses
-    // the env var first if set, even if invalid.
+    const config = loadConfig()
+    const maxRuntimeMs = config.claudeMaxRuntimeMs
+    const idleTimeoutMs = config.claudeIdleTimeoutMs
+
+    // Strip ALL API keys so Claude always uses OAuth/keychain auth.
     const env = { ...process.env }
     delete env.ANTHROPIC_API_KEY
+    delete env.CLAUDE_API_KEY
+    delete env.ANTHROPIC_AUTH_TOKEN
 
     const proc = spawn(CLAUDE_BIN, opts.args, {
       cwd: opts.cwd,
@@ -50,8 +54,8 @@ export function runClaude(opts: RunClaudeOptions): Promise<string> {
     }
 
     const watchdog = setInterval(() => {
-      if (Date.now() - lastActivity > STDOUT_IDLE_MS) {
-        opts.log(`Claude tyst i ${STDOUT_IDLE_MS / 1000}s — skickar SIGTERM`)
+      if (Date.now() - lastActivity > idleTimeoutMs) {
+        opts.log(`Claude tyst i ${idleTimeoutMs / 1000}s — skickar SIGTERM`)
         proc.kill('SIGTERM')
         setTimeout(() => {
           if (!proc.killed) proc.kill('SIGKILL')
@@ -60,10 +64,10 @@ export function runClaude(opts: RunClaudeOptions): Promise<string> {
     }, 10_000)
 
     const hardTimer = setTimeout(() => {
-      opts.log(`Claude max runtime (${CLAUDE_MAX_RUNTIME_MS / 1000}s) — dödar`)
+      opts.log(`Claude max runtime (${maxRuntimeMs / 1000}s) — dödar`)
       proc.kill('SIGKILL')
       finalize(null, new Error('claude max runtime exceeded'))
-    }, CLAUDE_MAX_RUNTIME_MS)
+    }, maxRuntimeMs)
 
     proc.stdout?.on('data', (chunk: Buffer) => {
       lastActivity = Date.now()

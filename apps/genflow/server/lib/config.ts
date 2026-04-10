@@ -10,6 +10,11 @@ const DEFAULT_CONFIG: GenflowConfig = {
   backendUrl: 'https://api.siteflow.se',
   apiKey: '',
   pollInterval: 5000,
+  claudeConcurrency: 6,
+  claudeMaxRuntimeMs: 45 * 60 * 1000,
+  claudeIdleTimeoutMs: 10 * 60 * 1000,
+  autoStartPolling: true,
+  outputDir: '',
 }
 
 export function loadConfig(): GenflowConfig {
@@ -22,10 +27,16 @@ export function loadConfig(): GenflowConfig {
   try {
     const raw = readFileSync(CONFIG_PATH, 'utf-8')
     const parsed = JSON.parse(raw)
+    const { flowingAiUrl, ...rest } = parsed  // ignorera gammal nyckel
     return {
-      backendUrl: parsed.backendUrl ?? DEFAULT_CONFIG.backendUrl,
-      apiKey: parsed.apiKey ?? DEFAULT_CONFIG.apiKey,
-      pollInterval: parsed.pollInterval ?? DEFAULT_CONFIG.pollInterval,
+      backendUrl: rest.backendUrl ?? DEFAULT_CONFIG.backendUrl,
+      apiKey: rest.apiKey ?? DEFAULT_CONFIG.apiKey,
+      pollInterval: rest.pollInterval ?? DEFAULT_CONFIG.pollInterval,
+      claudeConcurrency: rest.claudeConcurrency ?? DEFAULT_CONFIG.claudeConcurrency,
+      claudeMaxRuntimeMs: rest.claudeMaxRuntimeMs ?? DEFAULT_CONFIG.claudeMaxRuntimeMs,
+      claudeIdleTimeoutMs: rest.claudeIdleTimeoutMs ?? DEFAULT_CONFIG.claudeIdleTimeoutMs,
+      autoStartPolling: rest.autoStartPolling ?? DEFAULT_CONFIG.autoStartPolling,
+      outputDir: rest.outputDir ?? DEFAULT_CONFIG.outputDir,
     }
   } catch (err) {
     console.error('[config] failed to parse, using defaults:', err)
