@@ -57,7 +57,9 @@ defmodule SaleflowWeb.GenJobController do
       error: job.error,
       picked_up_at: job.picked_up_at,
       completed_at: job.completed_at,
-      inserted_at: job.inserted_at
+      inserted_at: job.inserted_at,
+      source_type: job.source_type,
+      source_text: job.source_text
     }
   end
 

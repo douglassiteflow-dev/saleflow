@@ -16,6 +16,8 @@ export interface OutcomeParams {
   customer_name?: string;
   create_teams_meeting?: boolean;
   source_url?: string;
+  source_type?: "bokadirekt" | "website" | "description";
+  source_text?: string;
 }
 
 export function useLeads(search?: string) {

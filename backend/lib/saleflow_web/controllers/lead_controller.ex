@@ -309,11 +309,15 @@ defmodule SaleflowWeb.LeadController do
 
           # Auto-create DemoConfig + trigger generation if source_url provided
           source_url = params["source_url"]
+          source_type = params["source_type"] || "bokadirekt"
+          source_text = params["source_text"]
           if is_binary(source_url) and source_url != "" do
             case Sales.create_demo_config(%{
               lead_id: lead.id,
               user_id: user.id,
-              source_url: source_url
+              source_url: source_url,
+              source_type: source_type,
+              source_text: source_text
             }) do
               {:ok, demo_config} ->
                 Sales.update_meeting(meeting, %{demo_config_id: demo_config.id})

@@ -49,6 +49,17 @@ defmodule Saleflow.Sales.DemoConfig do
       public? true
     end
 
+    attribute :source_type, :string do
+      allow_nil? true
+      default "bokadirekt"
+      public? true
+    end
+
+    attribute :source_text, :string do
+      allow_nil? true
+      public? true
+    end
+
     attribute :website_path, :string do
       allow_nil? true
       public? true
@@ -101,7 +112,7 @@ defmodule Saleflow.Sales.DemoConfig do
 
     create :create do
       description "Create a new demo config for a lead"
-      accept [:lead_id, :user_id, :source_url, :notes]
+      accept [:lead_id, :user_id, :source_url, :source_type, :source_text, :notes]
 
       change {Saleflow.Audit.Changes.CreateAuditLog, action: "demo_config.created"}
     end

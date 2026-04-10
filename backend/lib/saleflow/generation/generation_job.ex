@@ -15,6 +15,8 @@ defmodule Saleflow.Generation.GenerationJob do
     attribute :demo_config_id, :uuid, allow_nil?: true, public?: true
     attribute :source_url, :string, allow_nil?: false, public?: true
     attribute :slug, :string, allow_nil?: false, public?: true
+    attribute :source_type, :string, allow_nil?: true, default: "bokadirekt", public?: true
+    attribute :source_text, :string, allow_nil?: true, public?: true
 
     attribute :status, :atom do
       constraints one_of: [:pending, :processing, :completed, :failed]
@@ -36,7 +38,7 @@ defmodule Saleflow.Generation.GenerationJob do
     defaults [:read]
 
     create :create do
-      accept [:deal_id, :demo_config_id, :source_url, :slug]
+      accept [:deal_id, :demo_config_id, :source_url, :slug, :source_type, :source_text]
     end
 
     update :pick do

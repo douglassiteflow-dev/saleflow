@@ -42,12 +42,17 @@ defmodule Saleflow.Workers.DemoGenerationWorker do
   # ---------------------------------------------------------------------------
 
   defp run_via_genflow(demo_config, id) do
-    slug = slug_from_url(demo_config.source_url)
+    source_type = demo_config.source_type || "bokadirekt"
+    slug = if source_type == "description",
+      do: "gen-#{:crypto.strong_rand_bytes(4) |> Base.encode16(case: :lower)}",
+      else: slug_from_url(demo_config.source_url)
 
     case Generation.create_job(%{
            demo_config_id: id,
            source_url: demo_config.source_url || "",
-           slug: slug
+           slug: slug,
+           source_type: source_type,
+           source_text: demo_config.source_text
          }) do
       {:ok, gen_job} ->
         Logger.info("DemoGenerationWorker: created genflow job #{gen_job.id} for #{id}")

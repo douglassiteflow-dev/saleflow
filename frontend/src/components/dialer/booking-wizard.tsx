@@ -100,6 +100,18 @@ export function BookingWizard({
     return undefined;
   }
 
+  function getSourceType(): "bokadirekt" | "website" | "description" | undefined {
+    if (hasBokadirekt === "yes") return "bokadirekt";
+    if (demoSource === "existing_website") return "website";
+    if (demoSource === "manual") return "description";
+    return undefined;
+  }
+
+  function getSourceText(): string | undefined {
+    if (demoSource === "manual") return manualInfo || undefined;
+    return undefined;
+  }
+
   function isStep2Valid(): boolean {
     if (hasBokadirekt === "yes") return !!bokadirektUrl.trim();
     if (hasBokadirekt === "no") {
@@ -134,6 +146,8 @@ export function BookingWizard({
       customer_name: customerName || undefined,
       create_teams_meeting: sendTeams,
       source_url: getSourceUrl(),
+      source_type: getSourceType(),
+      source_text: getSourceText(),
     };
 
     submitOutcome.mutate(params, {
