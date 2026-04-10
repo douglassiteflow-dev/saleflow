@@ -86,6 +86,7 @@ defmodule SaleflowWeb.Router do
     post "/leads/next", LeadController, :next
     patch "/leads/:id", LeadController, :update
     post "/leads/:id/outcome", LeadController, :outcome
+    post "/leads/:id/reactivate", LeadController, :reactivate
     get "/leads/:id/comments", LeadController, :comments
     post "/leads/:id/comments", LeadController, :create_comment
     get "/leads/:lead_id/contacts", LeadController, :list_contacts

@@ -138,6 +138,17 @@ defmodule SaleflowWeb.LeadController do
     end
   end
 
+  def reactivate(conn, %{"id" => id}) do
+    with {:ok, lead} <- Sales.get_lead(id),
+         true <- lead.status in [:quarantine, :bad_number],
+         {:ok, updated} <- Sales.update_lead_status(lead, %{status: :assigned, quarantine_until: nil}) do
+      json(conn, %{ok: true, lead: %{id: updated.id, status: updated.status}})
+    else
+      false -> conn |> put_status(422) |> json(%{error: "Lead är inte i karantän"})
+      {:error, reason} -> conn |> put_status(422) |> json(%{error: inspect(reason)})
+    end
+  end
+
   @doc """
   Submit an outcome for a lead: logs the call, releases the assignment,
   updates lead status, and optionally creates a meeting or quarantine.

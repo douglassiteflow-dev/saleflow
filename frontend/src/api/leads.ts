@@ -103,6 +103,22 @@ export function useSubmitOutcome(leadId: string) {
   });
 }
 
+export function useReactivateLead(leadId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, ApiError, void>({
+    mutationFn: async () => {
+      await api<{ ok: boolean }>(`/api/leads/${leadId}/reactivate`, {
+        method: "POST",
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["leads", "detail", leadId] });
+      void queryClient.invalidateQueries({ queryKey: ["leads", "list"] });
+    },
+  });
+}
+
 export function useCallbacks() {
   return useQuery<Lead[]>({
     queryKey: ["callbacks"],
